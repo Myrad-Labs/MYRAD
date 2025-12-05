@@ -167,7 +167,7 @@ MYRAD is built with privacy as a core principle:
 
 ## License
 
-Copyright © 2024 MYRAD Labs. All rights reserved.
+Copyright © 2024 MYRAD Labs. All rights reserved
 
 ---
 
