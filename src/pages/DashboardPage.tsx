@@ -224,7 +224,7 @@ const DashboardPage = () => {
     return (
       <div className="dashboard-loading">
         <style>{styles}</style>
-        <Loader2 className="spin" size={40} color="#7C3AED" />
+        <Loader2 className="spin" size={40} color="#10B981" />
         <p>Loading...</p>
       </div>
     );
@@ -237,7 +237,7 @@ const DashboardPage = () => {
         <style>{styles}</style>
         <div className="auth-card">
           <div className="auth-icon">
-            <Shield size={48} color="#7C3AED" />
+            <Shield size={48} color="#10B981" />
           </div>
           <h1>Welcome to <span className="brand">MYRAD</span></h1>
           <p>Sign in to contribute your data privately and earn rewards</p>
@@ -298,7 +298,7 @@ const DashboardPage = () => {
 
         {loading ? (
           <div className="loading-state">
-            <Loader2 className="spin" size={32} color="#7C3AED" />
+            <Loader2 className="spin" size={32} color="#10B981" />
             <p>Loading your data...</p>
           </div>
         ) : (
@@ -468,8 +468,8 @@ const styles = `
   .auth-card {
     text-align: center;
     padding: 48px;
-    background: linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, transparent 100%);
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
+    border: 1px solid rgba(16, 185, 129, 0.2);
     border-radius: 24px;
     max-width: 400px;
   }
@@ -478,7 +478,7 @@ const styles = `
     width: 80px;
     height: 80px;
     border-radius: 20px;
-    background: rgba(124, 58, 237, 0.15);
+    background: rgba(16, 185, 129, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -492,7 +492,7 @@ const styles = `
     margin-bottom: 12px;
   }
   
-  .auth-card .brand { color: #7C3AED; }
+  .auth-card .brand { color: #10B981; }
   
   .auth-card p {
     color: #888;
@@ -505,7 +505,7 @@ const styles = `
     align-items: center;
     gap: 8px;
     padding: 14px 32px;
-    background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
     border: none;
     border-radius: 12px;
     color: #fff;
@@ -515,7 +515,7 @@ const styles = `
     transition: all 0.2s;
   }
   
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4); }
   
   .back-link {
     display: block;
@@ -546,7 +546,7 @@ const styles = `
   .logo {
     font-size: 22px;
     font-weight: 800;
-    color: #7C3AED;
+    color: #10B981;
     text-decoration: none;
     letter-spacing: -0.5px;
   }
@@ -562,10 +562,10 @@ const styles = `
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    background: rgba(168, 85, 247, 0.1);
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
     border-radius: 100px;
-    color: #A855F7;
+    color: #34D399;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -576,10 +576,10 @@ const styles = `
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%);
-    border: 1px solid rgba(124, 58, 237, 0.3);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
     border-radius: 100px;
-    color: #A78BFA;
+    color: #34D399;
     font-size: 14px;
     font-weight: 600;
   }
@@ -672,19 +672,19 @@ const styles = `
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: rgba(124, 58, 237, 0.1);
-    color: #7C3AED;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   
   .points-card { 
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0.02) 100%);
-    border-color: rgba(124, 58, 237, 0.2);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.02) 100%);
+    border-color: rgba(16, 185, 129, 0.2);
   }
   
-  .points-card .stat-icon { background: rgba(124, 58, 237, 0.2); }
+  .points-card .stat-icon { background: rgba(16, 185, 129, 0.2); }
   
   .contributions-icon { background: rgba(34, 197, 94, 0.1); color: #22C55E; }
   .status-icon { background: rgba(59, 130, 246, 0.1); color: #3B82F6; }

@@ -170,7 +170,7 @@ const LandingPage = () => {
             {/* Background Effects */}
             <div className="glow-orb pulse" style={{ top: '10%', left: '10%', width: '400px', height: '400px', background: 'rgba(229, 185, 78, 0.08)' }} />
             <div className="glow-orb pulse" style={{ top: '60%', right: '5%', width: '500px', height: '500px', background: 'rgba(229, 185, 78, 0.05)', animationDelay: '2s' }} />
-            <div className="glow-orb" style={{ bottom: '10%', left: '30%', width: '300px', height: '300px', background: 'rgba(147, 51, 234, 0.05)' }} />
+            <div className="glow-orb" style={{ bottom: '10%', left: '30%', width: '300px', height: '300px', background: 'rgba(16, 185, 129, 0.05)' }} />
 
             {/* Header */}
             <header style={{
@@ -565,11 +565,11 @@ const LandingPage = () => {
                         }}>
                             <div style={{
                                 padding: '6px 14px',
-                                background: 'rgba(147, 51, 234, 0.1)',
+                                background: 'rgba(16, 185, 129, 0.1)',
                                 borderRadius: '100px',
                                 fontSize: '13px',
                                 fontWeight: 600,
-                                color: '#a855f7',
+                                color: '#10B981',
                                 display: 'inline-block',
                                 marginBottom: '24px'
                             }}>
@@ -587,7 +587,7 @@ const LandingPage = () => {
                                     'Aggregated analytics'
                                 ].map((item, i) => (
                                     <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'rgba(255,255,255,0.7)' }}>
-                                        <CheckCircle size={18} color="#a855f7" />
+                                        <CheckCircle size={18} color="#10B981" />
                                         <span>{item}</span>
                                     </li>
                                 ))}
@@ -604,9 +604,9 @@ const LandingPage = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     gap: '8px',
-                                    background: 'rgba(147, 51, 234, 0.2)',
-                                    border: '1px solid rgba(147, 51, 234, 0.3)',
-                                    color: '#a855f7',
+                                    background: 'rgba(16, 185, 129, 0.2)',
+                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                    color: '#10B981',
                                     textDecoration: 'none',
                                     fontWeight: 600,
                                     transition: 'all 0.3s ease'

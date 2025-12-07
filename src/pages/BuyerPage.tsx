@@ -3,7 +3,7 @@ import { ArrowRight, Shield, Lock, Database, CheckCircle, BarChart3, Zap } from 
 
 const BuyerPage = () => {
     const accent = '#E5B94E';
-    const purple = '#a855f7';
+    const emerald = '#10B981';
 
     const features = [
         {
@@ -56,21 +56,21 @@ const BuyerPage = () => {
                 }
                 .card:hover {
                     background: rgba(255,255,255,0.04);
-                    border-color: rgba(168, 85, 247, 0.3);
+                    border-color: rgba(16, 185, 129, 0.3);
                     transform: translateY(-4px);
                 }
                 .btn-primary {
-                    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+                    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
                     border: none;
                     color: #fff;
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.3s ease;
-                    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
+                    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
                 }
                 .btn-primary:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4);
+                    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
                 }
                 .glow-orb {
                     position: absolute;
@@ -81,8 +81,8 @@ const BuyerPage = () => {
             `}</style>
 
             {/* Background Effects */}
-            <div className="glow-orb" style={{ top: '10%', right: '10%', width: '400px', height: '400px', background: 'rgba(168, 85, 247, 0.08)' }} />
-            <div className="glow-orb" style={{ bottom: '20%', left: '5%', width: '500px', height: '500px', background: 'rgba(168, 85, 247, 0.05)' }} />
+            <div className="glow-orb" style={{ top: '10%', right: '10%', width: '400px', height: '400px', background: 'rgba(16, 185, 129, 0.08)' }} />
+            <div className="glow-orb" style={{ bottom: '20%', left: '5%', width: '500px', height: '500px', background: 'rgba(16, 185, 129, 0.05)' }} />
 
             {/* Header */}
             <header style={{
@@ -111,7 +111,7 @@ const BuyerPage = () => {
                     </Link>
                     <nav style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                         <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px' }}>For Users</Link>
-                        <Link to="/buyers" style={{ color: purple, textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>For Buyers</Link>
+                        <Link to="/buyers" style={{ color: emerald, textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>For Buyers</Link>
                         <Link to="/contact" className="btn-primary" style={{ padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px' }}>
                             Get Access
                         </Link>
@@ -132,12 +132,12 @@ const BuyerPage = () => {
                         alignItems: 'center',
                         gap: '8px',
                         padding: '8px 16px',
-                        background: 'rgba(168, 85, 247, 0.1)',
-                        border: '1px solid rgba(168, 85, 247, 0.2)',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.2)',
                         borderRadius: '100px',
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: purple,
+                        color: emerald,
                         marginBottom: '32px'
                     }}>
                         <Database size={14} />
@@ -153,7 +153,7 @@ const BuyerPage = () => {
                         letterSpacing: '-0.03em'
                     }}>
                         The Future of Behavioral Intelligence is{' '}
-                        <span style={{ color: purple }}>Compliant.</span>
+                        <span style={{ color: emerald }}>Compliant.</span>
                     </h1>
 
                     {/* Sub-headline */}
@@ -165,7 +165,7 @@ const BuyerPage = () => {
                         margin: '0 auto 48px'
                     }}>
                         Access high-quality, anonymous, and user-consented data for your AI models and audience segmentation.
-                        <span style={{ color: purple }}> Cookie-proof by design.</span>
+                        <span style={{ color: emerald }}> Cookie-proof by design.</span>
                     </p>
 
                     {/* CTA */}
@@ -196,8 +196,8 @@ const BuyerPage = () => {
             }}>
                 <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
                     <div style={{
-                        background: 'rgba(168, 85, 247, 0.05)',
-                        border: '1px solid rgba(168, 85, 247, 0.15)',
+                        background: 'rgba(16, 185, 129, 0.05)',
+                        border: '1px solid rgba(16, 185, 129, 0.15)',
                         borderRadius: '20px',
                         padding: '40px',
                         textAlign: 'center'
@@ -206,8 +206,8 @@ const BuyerPage = () => {
                             What We Provide
                         </h2>
                         <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.8, maxWidth: '800px', margin: '0 auto' }}>
-                            We provide essential, pre-labeled behavioral traits and cohorts (e.g., <strong style={{ color: purple }}>Daily Delivery Users</strong> or{' '}
-                            <strong style={{ color: purple }}>High Spend Eaters</strong>) that traditional data brokers cannot.
+                            We provide essential, pre-labeled behavioral traits and cohorts (e.g., <strong style={{ color: emerald }}>Daily Delivery Users</strong> or{' '}
+                            <strong style={{ color: emerald }}>High Spend Eaters</strong>) that traditional data brokers cannot.
                             Our data is 100% compliant, sourced directly from users via zero-knowledge proofs.
                         </p>
                     </div>
@@ -223,7 +223,7 @@ const BuyerPage = () => {
                         textAlign: 'center',
                         marginBottom: '60px'
                     }}>
-                        Why <span style={{ color: purple }}>MYRAD</span> Data?
+                        Why <span style={{ color: emerald }}>MYRAD</span> Data?
                     </h2>
                     <div style={{
                         display: 'grid',
@@ -236,13 +236,13 @@ const BuyerPage = () => {
                                     width: '56px',
                                     height: '56px',
                                     borderRadius: '14px',
-                                    background: 'rgba(168, 85, 247, 0.1)',
+                                    background: 'rgba(16, 185, 129, 0.1)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     marginBottom: '20px'
                                 }}>
-                                    <feature.icon size={28} color={purple} />
+                                    <feature.icon size={28} color={emerald} />
                                 </div>
                                 <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '12px' }}>
                                     {feature.title}
@@ -278,8 +278,8 @@ const BuyerPage = () => {
                         {useCases.map((useCase, i) => (
                             <div key={i} style={{
                                 padding: '12px 24px',
-                                background: 'rgba(168, 85, 247, 0.1)',
-                                border: '1px solid rgba(168, 85, 247, 0.2)',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                border: '1px solid rgba(16, 185, 129, 0.2)',
                                 borderRadius: '100px',
                                 fontSize: '14px',
                                 fontWeight: 500,
@@ -316,7 +316,7 @@ const BuyerPage = () => {
             {/* CTA Section */}
             <section style={{
                 padding: '100px 24px',
-                background: `linear-gradient(180deg, rgba(168, 85, 247, 0.08) 0%, transparent 100%)`,
+                background: `linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%)`,
                 borderTop: '1px solid rgba(255,255,255,0.05)',
                 textAlign: 'center'
             }}>
