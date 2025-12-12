@@ -11,6 +11,7 @@ const LandingPage = () => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [isButtonHovered, setIsButtonHovered] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => setScrollY(window.scrollY);
@@ -446,6 +447,8 @@ const LandingPage = () => {
                                 <button
                                     onClick={handleGetStarted}
                                     className="btn-primary"
+                                    onMouseEnter={() => setIsButtonHovered(true)}
+                                    onMouseLeave={() => setIsButtonHovered(false)}
                                     style={{
                                         padding: '18px 40px',
                                         borderRadius: '12px',
@@ -534,15 +537,17 @@ const LandingPage = () => {
                                             height="150"
                                             viewBox="0 0 150 150"
                                             style={{
-                                                transform: `rotate(${tiltAngle * 0.5}deg) scale(${excitedScale})`,
+                                                transform: `rotate(${tiltAngle * 0.5}deg) scale(${isButtonHovered ? 1.2 : excitedScale})`,
                                                 transition: 'transform 0.15s ease-out'
                                             }}
                                         >
                                             <circle cx="75" cy="75" r="68" fill="#FF7A00" />
+                                            {/* Eyes */}
                                             <circle cx={52 + eyeOffsetX} cy={65 + eyeOffsetY} r={isExcited ? 8 : 7} fill="#000" />
                                             <circle cx={49 + eyeOffsetX} cy={62 + eyeOffsetY} r="2.5" fill="#fff" />
                                             <circle cx={98 + eyeOffsetX} cy={65 + eyeOffsetY} r={isExcited ? 8 : 7} fill="#000" />
                                             <circle cx={95 + eyeOffsetX} cy={62 + eyeOffsetY} r="2.5" fill="#fff" />
+                                            {/* Mouth */}
                                             <path
                                                 d={isExcited ? "M55 85 Q75 105 95 85" : "M60 88 Q75 98 90 88"}
                                                 stroke="#000"
@@ -550,6 +555,7 @@ const LandingPage = () => {
                                                 fill="none"
                                                 strokeLinecap="round"
                                             />
+                                            {/* Blush */}
                                             <circle cx="40" cy="80" r="6" fill="#FF5500" opacity="0.2" />
                                             <circle cx="110" cy="80" r="6" fill="#FF5500" opacity="0.2" />
                                         </svg>

@@ -1,1 +1,234 @@
-[]
+[
+  {
+    "id": "1765560753880",
+    "userId": "1765532082866",
+    "data": {
+      "orderCount": 0,
+      "totalSpend": 0,
+      "avgOrderValue": 0,
+      "topCuisines": [],
+      "topBrands": []
+    },
+    "sellableData": {
+      "schema_version": "2.0",
+      "dataset_id": "myrad_zomato_v1",
+      "record_type": "consumer_behavior_profile",
+      "generated_at": "2025-12-12T17:32:33.874Z",
+      "audience_segment": {
+        "segment_id": "zomato_regional_budget_occasional",
+        "iab_categories": [],
+        "dmp_attributes": {
+          "interest_food_delivery": true,
+          "interest_dining_out": true,
+          "interest_cuisine_types": [],
+          "lifestyle_segment": "value_conscious"
+        }
+      },
+      "transaction_data": {
+        "summary": {
+          "total_orders": 0,
+          "total_gmv": 0,
+          "avg_order_value": 0,
+          "currency": "INR",
+          "data_window_days": 90,
+          "data_window_start": null,
+          "data_window_end": null,
+          "platform": "zomato_india"
+        },
+        "frequency_metrics": {
+          "orders_per_month": 0,
+          "avg_days_between_orders": null,
+          "avg_days_computed_from": "estimated",
+          "estimated_monthly_spend": 0,
+          "frequency_tier": "occasional"
+        },
+        "recency": {
+          "last_order_date": null,
+          "last_order_computed_from": "sorted_order_timestamps",
+          "days_since_last_order": null,
+          "rfm_recency_score": 1
+        }
+      },
+      "brand_intelligence": {
+        "top_brands": [],
+        "brand_loyalty_score": 0,
+        "brand_loyalty_scale": "0-100 (top brand share as % of total orders)",
+        "chain_vs_local_preference": "chain_preferred",
+        "competitor_exposure": []
+      },
+      "category_insights": {
+        "top_categories": [],
+        "dietary_signals": {
+          "preference": "mixed",
+          "health_conscious": false,
+          "variety_seeker": false,
+          "spice_preference": "mild_preference"
+        }
+      },
+      "consumer_profile": {
+        "spend_tier": "budget",
+        "loyalty_tier": "bronze",
+        "engagement_level": "occasional",
+        "timing_preferences": {
+          "peak_order_day": "Sunday",
+          "peak_order_time": "morning",
+          "weekend_preference": "weekday_focused"
+        }
+      },
+      "temporal_behavior": {
+        "day_of_week_distribution": {
+          "monday": 0,
+          "tuesday": 0,
+          "wednesday": 0,
+          "thursday": 0,
+          "friday": 0,
+          "saturday": 0,
+          "sunday": 0
+        },
+        "time_of_day_curve": {
+          "morning": 0,
+          "afternoon": 0,
+          "evening": 0,
+          "dinner": 0,
+          "late_night": 0
+        },
+        "peak_ordering_day": "Sunday",
+        "peak_ordering_time": "morning",
+        "weekday_vs_weekend_ratio": 0,
+        "weekly_consistency_score": 100,
+        "month_spend_pattern": {
+          "month_start_avg_spend": 0,
+          "month_end_avg_spend": 0,
+          "salary_cycle_sensitivity": "low"
+        },
+        "late_night_eater": false
+      },
+      "price_sensitivity": {
+        "price_bucket_distribution": {
+          "budget_pct": null,
+          "mid_range_pct": null,
+          "premium_pct": null,
+          "luxury_pct": null
+        },
+        "dominant_price_segment": "budget",
+        "discount_usage_rate": null,
+        "offer_dependent": false,
+        "price_sensitivity_index": 0,
+        "elasticity_score": "price_inelastic",
+        "premium_vs_budget_ratio": "premium_focused"
+      },
+      "repeat_patterns": {
+        "frequent_dishes": [],
+        "dish_repeat_rate": 0,
+        "unique_dishes_tried": 0,
+        "cuisine_fatigue_score": "high_variety",
+        "dish_switching_rate": 0,
+        "favorite_restaurants": []
+      },
+      "behavioral_traits": {
+        "late_night_eater": false,
+        "late_night_score": null,
+        "spice_preference": "mild_preference",
+        "health_orientation_score": null,
+        "health_conscious": false,
+        "variety_seeker_score": 0,
+        "variety_seeker": false,
+        "impulsive_buyer_score": 0,
+        "stable_routine_buyer": true,
+        "per_brand_loyalty": {}
+      },
+      "competitor_mapping": {
+        "substitution_chains": [],
+        "brand_switching_probability": 0,
+        "brand_loyalty_vs_switching": "switcher",
+        "competitor_overlap_by_category": {},
+        "category_exploration_score": 0
+      },
+      "basket_intelligence": {
+        "average_basket_size": 0,
+        "basket_diversity_score": 0,
+        "add_ons_analysis": {
+          "drinks_pct": null,
+          "sides_pct": null,
+          "desserts_pct": null,
+          "add_on_propensity": "low"
+        },
+        "combo_preference": null,
+        "cuisine_bundles": {},
+        "repeat_baskets": [],
+        "upsell_receptivity": "moderate"
+      },
+      "propensity_predictions": {
+        "repeat_purchase_probability": 0,
+        "churn_risk": 70,
+        "new_category_adoption": "moderate",
+        "premium_tier_probability": null,
+        "dessert_cross_sell": "saturated",
+        "beverage_cross_sell": "saturated",
+        "upsell_receptivity_score": 80,
+        "combo_upsell_probability": 30,
+        "win_back_probability": 80,
+        "referral_propensity": "moderate",
+        "weekend_activation_probability": 70,
+        "late_night_activation": 20
+      },
+      "geo_data": {
+        "geo_bucket": "unknown_region",
+        "country": "IN",
+        "city_tier": "tier_2_3_city",
+        "city_cluster": "regional",
+        "geo_inference_method": "restaurant_name_pattern_matching",
+        "neighborhood_affluence_index": "value"
+      },
+      "basket_samples": [],
+      "metadata": {
+        "source": "reclaim_protocol",
+        "schema_standard": "myrad_consumer_intelligence_v2",
+        "verification": {
+          "status": "zk_verified",
+          "proof_type": "zero_knowledge",
+          "attestor": "reclaim_network"
+        },
+        "privacy_compliance": {
+          "pii_stripped": true,
+          "k_anonymity_threshold": 10,
+          "k_anonymity_compliant": null,
+          "k_anonymity_note": "Compliance verified when cohort size >= 10",
+          "gdpr_compatible": true,
+          "ccpa_compatible": true
+        },
+        "data_quality": {
+          "score": 0,
+          "score_breakdown": {},
+          "enrichment_applied": [
+            "brand_inference",
+            "category_mapping",
+            "temporal_analytics",
+            "price_sensitivity",
+            "repeat_patterns",
+            "behavioral_traits",
+            "competitor_mapping",
+            "basket_intelligence",
+            "propensity_scoring",
+            "geo_inference"
+          ],
+          "completeness": "empty",
+          "ml_ready": false
+        },
+        "commercial_compatibility": {
+          "iab_taxonomy": true,
+          "gs1_food_codes": true,
+          "dmp_friendly": true,
+          "audience_segment_ready": true,
+          "retail_media_quality": true
+        }
+      }
+    },
+    "behavioralInsights": null,
+    "dataType": "zomato_order_history",
+    "reclaimProofId": "0x19009a8f12f3dfa744294f4d483a95db1f7b6c2095ccf4db75ca1402bba9201f",
+    "processingMethod": "enterprise_pipeline",
+    "status": "verified",
+    "createdAt": "2025-12-12T17:32:33.880Z"
+  }
+]
