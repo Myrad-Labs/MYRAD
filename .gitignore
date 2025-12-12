@@ -33,7 +33,7 @@ typechain-types
 # Local development
 .vscode/
 .idea/
-.env
+
 .env.bak
 .env.local 
 backend/db.json

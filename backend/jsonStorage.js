@@ -62,12 +62,13 @@ export const getUserByPrivyId = (privyId) => {
     return users.find(u => u.privyId === privyId);
 };
 
-export const createUser = (privyId, email) => {
+export const createUser = (privyId, email, walletAddress = null) => {
     const users = getUsers();
     const newUser = {
         id: Date.now().toString(),
         privyId,
         email,
+        walletAddress,
         createdAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
         totalPoints: 100 // Signup bonus
@@ -79,6 +80,17 @@ export const createUser = (privyId, email) => {
     addPoints(newUser.id, 100, 'signup_bonus');
 
     return newUser;
+};
+
+export const updateUserWallet = (userId, walletAddress) => {
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+        users[userIndex].walletAddress = walletAddress;
+        saveUsers(users);
+        return users[userIndex];
+    }
+    return null;
 };
 
 export const updateUserActivity = (userId) => {

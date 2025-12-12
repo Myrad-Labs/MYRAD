@@ -1,6 +1,8 @@
 // MVP API Routes for MYRAD
 import express from 'express';
 import * as jsonStorage from './jsonStorage.js';
+import * as cohortService from './cohortService.js';
+import * as consentLedger from './consentLedger.js';
 
 const router = express.Router();
 
@@ -174,6 +176,13 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             return res.status(400).json({ error: 'anonymizedData is required' });
         }
 
+        // Extract wallet address from the data if present
+        const walletAddress = anonymizedData?.walletAddress || null;
+        if (walletAddress && !user.walletAddress) {
+            jsonStorage.updateUserWallet(user.id, walletAddress);
+            console.log(`💳 Wallet address updated for user ${user.id}: ${walletAddress}`);
+        }
+
         // ========================================
         // DUPLICATE SUBMISSION PREVENTION
         // ========================================
@@ -267,6 +276,13 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
 
             console.log(`📊 Cohort ${cohortId}: size=${cohortSize}, k_compliant=${kAnonymityCompliant}`);
 
+            // ========================================
+            // INCREMENT COHORT COUNTER (Production)
+            // ========================================
+            const cohortData = cohortService.incrementCohort(cohortId);
+            cohortSize = cohortData.count;
+            kAnonymityCompliant = cohortData.k_anonymity_compliant;
+
             // Update the contribution's sellable data with k-anonymity status
             if (sellableData?.metadata?.privacy_compliance) {
                 const contributions = jsonStorage.getContributions();
@@ -276,11 +292,31 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                     contributions[idx].sellableData.metadata.privacy_compliance.cohort_size = cohortSize;
                     if (!kAnonymityCompliant) {
                         contributions[idx].sellableData.metadata.privacy_compliance.aggregation_status = 'pending_more_contributors';
+                    } else {
+                        contributions[idx].sellableData.metadata.privacy_compliance.aggregation_status = 'sellable';
                     }
                     jsonStorage.saveContributions(contributions);
                 }
             }
         }
+
+        // ========================================
+        // LOG CONSENT (Compliance Audit Trail)
+        // ========================================
+        const consentEntry = consentLedger.logConsent({
+            userId: user.id,
+            reclaimProofId,
+            dataType,
+            datasetSource: 'reclaim_protocol',
+            geoRegion: sellableData?.geo_data?.city_cluster || 'unknown',
+            cohortId,
+            contributionId: contribution.id,
+            orderCount: sellableData?.transaction_data?.summary?.total_orders || 0,
+            dataWindowStart: sellableData?.transaction_data?.summary?.data_window_start,
+            dataWindowEnd: sellableData?.transaction_data?.summary?.data_window_end,
+            walletAddress: user.walletAddress || walletAddress
+        });
+        console.log(`📋 Consent logged: ${consentEntry.id}`);
 
         // Update user activity
         jsonStorage.updateUserActivity(user.id);
@@ -294,6 +330,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 cohortId: cohortId || null,
                 cohortSize,
                 kAnonymityCompliant,
+                dataQualityScore: sellableData?.metadata?.data_quality?.score || null,
                 hasSellableData: !!sellableData
             },
             message: 'Contribution received! 500 points awarded.'
@@ -323,6 +360,46 @@ router.get('/leaderboard', (req, res) => {
 // ===================
 // ENTERPRISE ENDPOINTS
 // ===================
+
+// Get cohort statistics
+router.get('/enterprise/cohorts', verifyApiKey, (req, res) => {
+    try {
+        const stats = cohortService.getCohortStats();
+        const allCohorts = cohortService.getAllCohorts();
+        const compliantCohorts = cohortService.getCompliantCohorts();
+
+        res.json({
+            success: true,
+            stats,
+            cohorts: allCohorts,
+            compliant_cohorts: compliantCohorts,
+            k_threshold: cohortService.K_THRESHOLD
+        });
+    } catch (error) {
+        console.error('Cohort stats error:', error);
+        res.status(500).json({ error: 'Failed to fetch cohort statistics' });
+    }
+});
+
+// Get consent ledger for audit
+router.get('/enterprise/consent-ledger', verifyApiKey, (req, res) => {
+    try {
+        const { start_date, end_date } = req.query;
+
+        const stats = consentLedger.getConsentStats();
+        const entries = consentLedger.exportForAudit(start_date, end_date);
+
+        res.json({
+            success: true,
+            stats,
+            entries,
+            exported_at: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Consent ledger error:', error);
+        res.status(500).json({ error: 'Failed to fetch consent ledger' });
+    }
+});
 
 // Get sellable data in enterprise format
 router.get('/enterprise/dataset', verifyApiKey, (req, res) => {

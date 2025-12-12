@@ -7,6 +7,10 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 dayjs.extend(customParseFormat);
 
+// Import production services
+import { generateDeterministicCohortId } from './cohortService.js';
+import { validateSellableData, getValidationStatus } from './schemaValidator.js';
+
 // Data quality constants
 const DATA_WINDOW_DAYS = 90;
 const MIN_K_ANONYMITY = 10; // Minimum cohort size for k-anonymity
@@ -658,6 +662,96 @@ const calculatePropensityScores = (orders, temporalData, priceData, repeatData, 
         late_night_activation: temporalData.late_night_eater ? 80 : 20
     };
 };
+
+// ================================
+// DATA QUALITY SCORING
+// ================================
+
+/**
+ * Calculate comprehensive data quality score
+ * Weighted signals (0-1 scale, multiplied by weight):
+ * - price_coverage (20%): Orders with valid prices
+ * - category_mapping (20%): Categories mapped to IAB/GS1
+ * - brand_matching (15%): Orders matched to known brands
+ * - timestamp_coverage (15%): Orders with parseable timestamps
+ * - data_window_span (15%): Actual vs expected data window
+ * - parsing_success (15%): Overall parsing success rate
+ */
+const calculateDataQualityScore = (orders, basketContents, cuisineCount, brandCount, orderDates, actualDataWindowDays) => {
+    const totalOrders = orders.length;
+    if (totalOrders === 0) {
+        return { score: 0, breakdown: {}, completeness: 'empty' };
+    }
+
+    // 1. Price coverage (20%)
+    const ordersWithPrice = orders.filter(o => parsePrice(o.price) > 0).length;
+    const priceCoverage = ordersWithPrice / totalOrders;
+
+    // 2. Category mapping (20%)
+    const knownCategories = Object.keys(cuisineCount).filter(c => c !== 'Unknown').length;
+    const totalCategories = Object.keys(cuisineCount).length;
+    const unknownCount = cuisineCount['Unknown'] || 0;
+    const categoryMapping = totalCategories > 0 ?
+        (totalOrders - unknownCount) / totalOrders : 0;
+
+    // 3. Brand matching (15%)
+    const localCount = brandCount['Local Restaurant'] || 0;
+    const brandMatching = (totalOrders - localCount) / totalOrders;
+
+    // 4. Timestamp coverage (15%)
+    const validTimestamps = orderDates?.length || 0;
+    const timestampCoverage = validTimestamps / totalOrders;
+
+    // 5. Data window span (15%)
+    const expectedWindow = DATA_WINDOW_DAYS;
+    const dataWindowSpan = Math.min(1, (actualDataWindowDays || 0) / expectedWindow);
+
+    // 6. Parsing success (15%)
+    const itemsParsed = basketContents?.length || 0;
+    const avgItemsPerOrder = itemsParsed / totalOrders;
+    const parsingSuccess = Math.min(1, avgItemsPerOrder / 1.5); // Expect avg 1.5 items
+
+    // Calculate weighted score
+    const weights = {
+        price_coverage: 0.20,
+        category_mapping: 0.20,
+        brand_matching: 0.15,
+        timestamp_coverage: 0.15,
+        data_window_span: 0.15,
+        parsing_success: 0.15
+    };
+
+    const signals = {
+        price_coverage: Math.round(priceCoverage * 100),
+        category_mapping: Math.round(categoryMapping * 100),
+        brand_matching: Math.round(brandMatching * 100),
+        timestamp_coverage: Math.round(timestampCoverage * 100),
+        data_window_span: Math.round(dataWindowSpan * 100),
+        parsing_success: Math.round(parsingSuccess * 100)
+    };
+
+    const weightedScore =
+        priceCoverage * weights.price_coverage +
+        categoryMapping * weights.category_mapping +
+        brandMatching * weights.brand_matching +
+        timestampCoverage * weights.timestamp_coverage +
+        dataWindowSpan * weights.data_window_span +
+        parsingSuccess * weights.parsing_success;
+
+    // Determine completeness tier
+    let completeness;
+    if (weightedScore >= 0.8) completeness = 'excellent';
+    else if (weightedScore >= 0.6) completeness = 'good';
+    else if (weightedScore >= 0.4) completeness = 'partial';
+    else completeness = 'limited';
+
+    return {
+        score: Math.round(weightedScore * 100) / 100,
+        breakdown: signals,
+        weights,
+        completeness
+    };
+};
 // ================================
 // PII STRIPPING
 // ================================
@@ -1016,10 +1110,6 @@ export const transformToSellableData = async (rawData, provider, userId) => {
         .slice(0, 5)
         .map(([brand]) => brand);
 
-    // Generate cohort ID
-    const geoAnon = anonymizeLocation(parsedData?.pincode, parsedData?.city);
-    const cohortId = generateCohortId(provider, spendBracket, frequency, geoAnon);
-
     // Step 6: Build sellable record with ENTERPRISE ANALYTICS
     console.log('📦 Step 5: Building sellable record...');
     console.log('📊 Computing enterprise analytics...');
@@ -1034,6 +1124,17 @@ export const transformToSellableData = async (rawData, provider, userId) => {
     const competitorMapping = calculateCompetitorMapping(validOrders);
     const propensityScores = calculatePropensityScores(validOrders, temporalAnalytics, priceAnalytics, repeatAnalytics, basketAnalytics);
     const geoInference = inferCityTier(restaurants, parsedData?.DYNAMIC_GEO);
+
+    // Generate DETERMINISTIC cohort ID using city cluster
+    // Formula: {platform}_{city_cluster}_{spend_tier}_{frequency_tier}
+    const geoAnon = anonymizeLocation(parsedData?.pincode, parsedData?.city);
+    const cohortId = generateDeterministicCohortId(
+        provider,
+        geoInference.city_cluster || geoAnon,
+        spendBracket,
+        frequency
+    );
+    console.log(`🏷️ Cohort ID: ${cohortId}`);
 
     console.log('✅ Enterprise analytics computed');
 
@@ -1075,6 +1176,17 @@ export const transformToSellableData = async (rawData, provider, userId) => {
     // Normalized brand loyalty score (top brand share as percentage)
     const topBrandCount = topBrands.length > 0 ? (brandCount[topBrands[0]] || 0) : 0;
     const normalizedBrandLoyaltyScore = orderCount > 0 ? Math.round((topBrandCount / orderCount) * 100) : 0;
+
+    // Calculate data quality score
+    const dataQuality = calculateDataQualityScore(
+        validOrders,
+        basketContents,
+        cuisineCount,
+        brandCount,
+        orderDates,
+        actualDataWindowDays
+    );
+    console.log(`📊 Data quality score: ${dataQuality.score} (${dataQuality.completeness})`);
 
     // IAB Content Taxonomy categories for food
     const iabCategories = {
@@ -1336,7 +1448,8 @@ export const transformToSellableData = async (rawData, provider, userId) => {
                 ccpa_compatible: true
             },
             data_quality: {
-                score: orderCount > 0 ? 0.95 : 0.5,
+                score: dataQuality.score,
+                score_breakdown: dataQuality.breakdown,
                 enrichment_applied: [
                     'brand_inference',
                     'category_mapping',
@@ -1350,8 +1463,8 @@ export const transformToSellableData = async (rawData, provider, userId) => {
                     'geo_inference',
                     ...(geminiInsights ? ['ai_enrichment'] : [])
                 ],
-                completeness: orderCount > 0 ? 'complete' : 'partial',
-                ml_ready: true
+                completeness: dataQuality.completeness,
+                ml_ready: dataQuality.score >= 0.6
             },
             commercial_compatibility: {
                 iab_taxonomy: true,

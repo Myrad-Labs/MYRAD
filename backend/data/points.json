@@ -89,5 +89,12 @@
     "points": 500,
     "reason": "data_contribution",
     "createdAt": "2025-12-12T12:31:44.234Z"
+  },
+  {
+    "id": "1765543302081",
+    "userId": "1765532082866",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T12:41:42.081Z"
   }
 ]
