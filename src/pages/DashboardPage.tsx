@@ -10,23 +10,12 @@ const PROVIDERS = [
     id: 'zomato',
     name: 'Zomato',
     description: 'Order History',
-    providerId: '61fea293-73bc-495c-9354-c2f61294fc30',
+    providerId: import.meta.env.VITE_ZOMATO_PROVIDER_ID || '',
     icon: '🍕',
     color: '#E23744',
     bgGradient: 'linear-gradient(135deg, #E23744 0%, #BE2D3B 100%)',
     points: 500,
     dataType: 'zomato_order_history'
-  },
-  {
-    id: 'swiggy',
-    name: 'Swiggy',
-    description: 'Order History',
-    providerId: '385b8e17-467d-4814-95b7-cbe58118c13e',
-    icon: '🍔',
-    color: '#FC8019',
-    bgGradient: 'linear-gradient(135deg, #FC8019 0%, #E07316 100%)',
-    points: 500,
-    dataType: 'swiggy_order_history'
   }
 ];
 
@@ -152,15 +141,33 @@ const DashboardPage = () => {
 
           let extractedData: any = {};
           try {
+            // DEBUG: Log full proof structure
+            console.log('🔍 DEBUG - Full proof object:', JSON.stringify(proof, null, 2));
+            console.log('🔍 DEBUG - proof.claimData:', proof.claimData);
+            console.log('🔍 DEBUG - proof.publicData:', proof.publicData);
+
+            // Extract from context.extractedParameters
             if (proof.claimData?.context) {
               const context = typeof proof.claimData.context === 'string'
                 ? JSON.parse(proof.claimData.context)
                 : proof.claimData.context;
+              console.log('🔍 DEBUG - Parsed context:', context);
               extractedData = context.extractedParameters || {};
             }
+
+            // Extract from extractedParameterValues
             if (proof.extractedParameterValues) {
+              console.log('🔍 DEBUG - extractedParameterValues:', proof.extractedParameterValues);
               extractedData = { ...extractedData, ...proof.extractedParameterValues };
             }
+
+            // IMPORTANT: Extract from publicData (contains order history!)
+            if (proof.publicData) {
+              console.log('🔍 DEBUG - publicData:', proof.publicData);
+              extractedData = { ...extractedData, ...proof.publicData };
+            }
+
+            console.log('🔍 DEBUG - Final extractedData:', extractedData);
           } catch (e) {
             console.error('Error extracting data:', e);
           }
@@ -428,7 +435,7 @@ const DashboardPage = () => {
                   <div className="empty-state">
                     <div className="empty-icon">🍽️</div>
                     <p>No contributions yet</p>
-                    <span>Verify your Zomato or Swiggy data above to earn points!</span>
+                    <span>Verify your Zomato data above to earn points!</span>
                   </div>
                 )}
               </div>

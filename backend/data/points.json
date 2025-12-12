@@ -1,58 +1,93 @@
 [
   {
-    "id": "1764855558222",
-    "userId": "1764855558220",
+    "id": "1765532082867",
+    "userId": "1765532082866",
     "points": 100,
     "reason": "signup_bonus",
-    "createdAt": "2025-12-04T13:39:18.222Z"
+    "createdAt": "2025-12-12T09:34:42.867Z"
   },
   {
-    "id": "1764856381843",
-    "userId": "1764855558220",
+    "id": "1765532632466",
+    "userId": "1765532082866",
     "points": 500,
     "reason": "data_contribution",
-    "createdAt": "2025-12-04T13:53:01.843Z"
+    "createdAt": "2025-12-12T09:43:52.466Z"
   },
   {
-    "id": "1764856389737",
-    "userId": "1764855558220",
+    "id": "1765532910890",
+    "userId": "1765532082866",
     "points": 500,
     "reason": "data_contribution",
-    "createdAt": "2025-12-04T13:53:09.737Z"
+    "createdAt": "2025-12-12T09:48:30.890Z"
   },
   {
-    "id": "1764921805008",
-    "userId": "1764921805006",
-    "points": 100,
-    "reason": "signup_bonus",
-    "createdAt": "2025-12-05T08:03:25.008Z"
-  },
-  {
-    "id": "1764922009594",
-    "userId": "1764921805006",
+    "id": "1765533641089",
+    "userId": "1765532082866",
     "points": 500,
     "reason": "data_contribution",
-    "createdAt": "2025-12-05T08:06:49.594Z"
+    "createdAt": "2025-12-12T10:00:41.089Z"
   },
   {
-    "id": "1764923696565",
-    "userId": "1764921805006",
+    "id": "1765534306363",
+    "userId": "1765532082866",
     "points": 500,
     "reason": "data_contribution",
-    "createdAt": "2025-12-05T08:34:56.566Z"
+    "createdAt": "2025-12-12T10:11:46.363Z"
   },
   {
-    "id": "1764924079296",
-    "userId": "1764855558220",
+    "id": "1765535269055",
+    "userId": "1765532082866",
     "points": 500,
     "reason": "data_contribution",
-    "createdAt": "2025-12-05T08:41:19.296Z"
+    "createdAt": "2025-12-12T10:27:49.055Z"
   },
   {
-    "id": "1764928066045",
-    "userId": "1764855558220",
+    "id": "1765535517051",
+    "userId": "1765532082866",
     "points": 500,
     "reason": "data_contribution",
-    "createdAt": "2025-12-05T09:47:46.045Z"
+    "createdAt": "2025-12-12T10:31:57.051Z"
+  },
+  {
+    "id": "1765535751849",
+    "userId": "1765532082866",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T10:35:51.849Z"
+  },
+  {
+    "id": "1765536626661",
+    "userId": "1765532082866",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T10:50:26.661Z"
+  },
+  {
+    "id": "1765537956924",
+    "userId": "1765532082866",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T11:12:36.924Z"
+  },
+  {
+    "id": "1765538544926",
+    "userId": "1765532082866",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T11:22:24.926Z"
+  },
+  {
+    "id": "1765538994214",
+    "userId": "1765532082866",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T11:29:54.214Z"
+  },
+  {
+    "id": "1765542704234",
+    "userId": "1765532082866",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T12:31:44.234Z"
   }
 ]

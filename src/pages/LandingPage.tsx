@@ -50,7 +50,7 @@ const LandingPage = () => {
             number: '02',
             icon: Eye,
             title: 'Contribute Privately',
-            description: 'Connect apps like Zomato or Swiggy. We verify your order history without seeing raw data.',
+            description: 'Connect apps like Zomato. We verify your order history without seeing raw data.',
             tech: 'Reclaim Protocol'
         },
         {

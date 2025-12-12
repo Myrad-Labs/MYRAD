@@ -149,6 +149,32 @@ export const getUserContributions = (userId) => {
     return contributions.filter(c => c.userId === userId);
 };
 
+// Alias for compatibility
+export const getContributionsByUserId = getUserContributions;
+
+// Get cohort size for k-anonymity compliance
+export const getCohortSize = (cohortId) => {
+    const contributions = getContributions();
+    return contributions.filter(c =>
+        c.sellableData?.audience_segment?.segment_id === cohortId
+    ).length;
+};
+
+// Get all unique cohorts with their sizes
+export const getCohortSizes = () => {
+    const contributions = getContributions();
+    const cohortCounts = {};
+
+    contributions.forEach(c => {
+        const cohortId = c.sellableData?.audience_segment?.segment_id;
+        if (cohortId) {
+            cohortCounts[cohortId] = (cohortCounts[cohortId] || 0) + 1;
+        }
+    });
+
+    return cohortCounts;
+};
+
 export const addContribution = (userId, data) => {
     const contributions = getContributions();
     const newContribution = {

@@ -174,28 +174,72 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             return res.status(400).json({ error: 'anonymizedData is required' });
         }
 
+        // ========================================
+        // DUPLICATE SUBMISSION PREVENTION
+        // ========================================
+        // Check if this exact proof has already been submitted
+        if (reclaimProofId) {
+            const existingContributions = jsonStorage.getContributionsByUserId(user.id);
+            const duplicateProof = existingContributions.find(c => c.reclaimProofId === reclaimProofId);
+
+            if (duplicateProof) {
+                console.log(`⚠️ Duplicate submission blocked: proofId ${reclaimProofId} already exists`);
+                return res.status(409).json({
+                    error: 'Duplicate submission',
+                    message: 'This data has already been submitted. You cannot earn points for the same data twice.',
+                    existingContributionId: duplicateProof.id
+                });
+            }
+        }
+
+        // Check for similar data submission within 24 hours (content-based dedup)
+        const recentContributions = jsonStorage.getContributionsByUserId(user.id)
+            .filter(c => c.dataType === dataType)
+            .filter(c => new Date() - new Date(c.createdAt) < 24 * 60 * 60 * 1000); // Last 24 hours
+
+        if (recentContributions.length > 0) {
+            // Calculate a simple hash of the order count to detect similar data
+            const orderCount = anonymizedData?.orders?.length || 0;
+            const similarSubmission = recentContributions.find(c => {
+                const existingOrderCount = c.data?.orderCount || 0;
+                // If order counts match exactly, likely duplicate data
+                return Math.abs(existingOrderCount - orderCount) < 3;
+            });
+
+            if (similarSubmission) {
+                console.log(`⚠️ Similar data submission blocked within 24h for user ${user.id}`);
+                return res.status(429).json({
+                    error: 'Rate limited',
+                    message: 'You have already submitted similar data in the last 24 hours. Please wait before submitting again.',
+                    retryAfter: new Date(new Date(similarSubmission.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
+                });
+            }
+        }
+
         let sellableData = null;
         let processedData = anonymizedData;
         let behavioralInsights = null;
 
-        // Process Zomato and Swiggy data through enterprise pipeline
-        if (dataType === 'zomato_order_history' || dataType === 'swiggy_order_history') {
+        // Process Zomato data through enterprise pipeline
+        if (dataType === 'zomato_order_history') {
             try {
                 const { transformToSellableData } = await import('./llmPipeline.js');
-                const provider = dataType.includes('zomato') ? 'zomato' : 'swiggy';
 
-                console.log(`📦 Processing ${provider} data through enterprise pipeline...`);
+                console.log('📦 Processing zomato data through enterprise pipeline...');
+                // DEBUG: Print raw data
+                console.log('RAW ZOMATO DATA:', JSON.stringify(anonymizedData, null, 2));
 
-                const result = await transformToSellableData(anonymizedData, provider, user.id);
+                const result = await transformToSellableData(anonymizedData, 'zomato', user.id);
 
                 sellableData = result.sellableRecord;
                 processedData = result.rawProcessed;
                 behavioralInsights = result.geminiInsights;
 
                 console.log('✅ Enterprise data pipeline complete');
-                console.log(`📊 Generated cohort: ${sellableData.data.cohort_id}`);
+                console.log(`📊 Generated cohort: ${sellableData?.audience_segment?.segment_id || 'unknown'}`);
             } catch (pipelineError) {
                 console.error('⚠️ Pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
             }
         }
 
@@ -209,6 +253,35 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             processingMethod: sellableData ? 'enterprise_pipeline' : 'raw'
         });
 
+        // ========================================
+        // K-ANONYMITY COMPLIANCE CHECK
+        // ========================================
+        const cohortId = sellableData?.audience_segment?.segment_id;
+        let kAnonymityCompliant = null;
+        let cohortSize = 0;
+
+        if (cohortId) {
+            cohortSize = jsonStorage.getCohortSize(cohortId);
+            const MIN_K = 10; // k-anonymity threshold
+            kAnonymityCompliant = cohortSize >= MIN_K;
+
+            console.log(`📊 Cohort ${cohortId}: size=${cohortSize}, k_compliant=${kAnonymityCompliant}`);
+
+            // Update the contribution's sellable data with k-anonymity status
+            if (sellableData?.metadata?.privacy_compliance) {
+                const contributions = jsonStorage.getContributions();
+                const idx = contributions.findIndex(c => c.id === contribution.id);
+                if (idx !== -1) {
+                    contributions[idx].sellableData.metadata.privacy_compliance.k_anonymity_compliant = kAnonymityCompliant;
+                    contributions[idx].sellableData.metadata.privacy_compliance.cohort_size = cohortSize;
+                    if (!kAnonymityCompliant) {
+                        contributions[idx].sellableData.metadata.privacy_compliance.aggregation_status = 'pending_more_contributors';
+                    }
+                    jsonStorage.saveContributions(contributions);
+                }
+            }
+        }
+
         // Update user activity
         jsonStorage.updateUserActivity(user.id);
 
@@ -218,7 +291,9 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 id: contribution.id,
                 pointsAwarded: 500,
                 createdAt: contribution.createdAt,
-                cohortId: sellableData?.data?.cohort_id || null,
+                cohortId: cohortId || null,
+                cohortSize,
+                kAnonymityCompliant,
                 hasSellableData: !!sellableData
             },
             message: 'Contribution received! 500 points awarded.'
