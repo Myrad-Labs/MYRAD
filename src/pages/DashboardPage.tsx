@@ -1,8 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
-import { Coins, TrendingUp, Loader2, Zap, CheckCircle, RefreshCw, Wallet, Copy, X, Sparkles, Award, Clock, ExternalLink } from 'lucide-react';
+import { Coins, TrendingUp, Loader2, Zap, CheckCircle, RefreshCw, Wallet, Copy, X, Sparkles, Award, Clock, ExternalLink, AlertCircle } from 'lucide-react';
 import QRCode from 'react-qr-code';
+
+// Toast notification type
+type ToastType = 'success' | 'error' | 'info';
+interface ToastState {
+  show: boolean;
+  type: ToastType;
+  title: string;
+  message: string;
+}
 
 // Provider configurations
 const PROVIDERS = [
@@ -31,6 +40,14 @@ const DashboardPage = () => {
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const hasLoadedData = useRef(false);
+
+  // Toast notification state
+  const [toast, setToast] = useState<ToastState>({ show: false, type: 'info', title: '', message: '' });
+
+  const showToast = (type: ToastType, title: string, message: string) => {
+    setToast({ show: true, type, title, message });
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 5000);
+  };
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -206,16 +223,16 @@ const DashboardPage = () => {
           if (data.success) {
             // Immediately refresh data
             await fetchUserData(true);
-            alert(`✅ Success!\n\n${provider.name} verified!\n+${data.contribution?.pointsAwarded || 500} points earned!`);
+            showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
           } else {
-            alert(`❌ Error: ${data.message || 'Unknown error'}`);
+            showToast('error', 'Verification Failed', data.message || 'Unknown error');
           }
         },
         onError: (error: any) => {
           console.error('Reclaim error:', error);
           setVerificationUrl(null);
           setActiveProvider(null);
-          alert(`Verification failed: ${error.message || 'Unknown error'}`);
+          showToast('error', 'Verification Failed', error.message || 'Unknown error');
         }
       });
 
@@ -223,7 +240,7 @@ const DashboardPage = () => {
       console.error('Error:', error);
       setVerificationUrl(null);
       setActiveProvider(null);
-      alert(`Error: ${error.message || error}`);
+      showToast('error', 'Error', error.message || String(error));
     } finally {
       setContributing(null);
     }
@@ -252,6 +269,23 @@ const DashboardPage = () => {
   return (
     <div className="dashboard">
       <style>{styles}</style>
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`toast toast-${toast.type}`}>
+          <div className="toast-icon">
+            {toast.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+          </div>
+          <div className="toast-content">
+            <strong>{toast.title}</strong>
+            <p>{toast.message}</p>
+          </div>
+          <button className="toast-close" onClick={() => setToast(prev => ({ ...prev, show: false }))}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
 
       {/* Header */}
       <header className="dashboard-header">
@@ -890,6 +924,80 @@ const styles = `
   
   .spin { animation: spin 1s linear infinite; }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* Toast Notification Styles */
+  .toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    background: rgba(20, 20, 20, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    z-index: 10000;
+    max-width: 400px;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .toast-success { border-color: #22C55E; }
+  .toast-success .toast-icon { color: #22C55E; }
+
+  .toast-error { border-color: #EF4444; }
+  .toast-error .toast-icon { color: #EF4444; }
+
+  .toast-info { border-color: #3B82F6; }
+  .toast-info .toast-icon { color: #3B82F6; }
+
+  .toast-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .toast-content {
+    flex: 1;
+  }
+
+  .toast-content strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  .toast-content p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 4px;
+    margin: -4px -4px -4px 0;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .toast-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
 `;
 
 export default DashboardPage;

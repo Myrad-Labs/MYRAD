@@ -4,10 +4,10 @@
     "privyId": "did:privy:cmiskvg7602ztjo0c2rexk4cw",
     "email": "user",
     "createdAt": "2025-12-12T09:34:42.866Z",
-    "lastActiveAt": "2025-12-12T13:51:57.479Z",
-    "totalPoints": 7130,
+    "lastActiveAt": "2025-12-12T14:14:17.128Z",
+    "totalPoints": 0,
     "walletAddress": "0xEA418d3ea3415528f6e96e03dB69745FB1533CAc",
-    "lastContributionDate": "2025-12-12T13:40:02.091Z",
+    "lastContributionDate": null,
     "league": "Bronze"
   },
   {
@@ -18,7 +18,7 @@
     "username": null,
     "streak": 0,
     "lastContributionDate": null,
-    "totalPoints": 100,
+    "totalPoints": 0,
     "league": "Bronze",
     "createdAt": "2025-12-12T13:43:45.690Z",
     "lastActiveAt": "2025-12-12T13:46:22.974Z"

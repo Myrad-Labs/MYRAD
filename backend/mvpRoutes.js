@@ -293,6 +293,22 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         const dataQualityScore = sellableData?.metadata?.data_quality?.score || 0;
         const orderCount = sellableData?.transaction_data?.summary?.total_orders || 0;
 
+        // BLOCK CONTRIBUTION IF ZERO ORDERS
+        if (orderCount === 0) {
+            console.log(`⚠️ Zero orders detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No orders found',
+                message: 'Your order history appears to be empty. We can only award points for verifiable order data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    orderCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
         const rewardResult = rewardService.calculateRewards({
             dataQualityScore,
             orderCount
