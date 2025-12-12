@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText } from 'lucide-react';
 
 const TermsOfServicePage = () => {
-    const accent = '#E5B94E';
+    const accent = '#fff';
 
     return (
         <div style={{
-            background: 'linear-gradient(180deg, #000000 0%, #0a0a0a 100%)',
+            background: '#000',
             minHeight: '100vh',
             color: '#fff',
             fontFamily: "'Inter', -apple-system, sans-serif"

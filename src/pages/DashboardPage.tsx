@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { Link } from 'react-router-dom';
-import { Coins, TrendingUp, Shield, Loader2, Zap, CheckCircle, ArrowRight, RefreshCw, Wallet, Copy, X, Sparkles, Award, Clock, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Coins, TrendingUp, Loader2, Zap, CheckCircle, RefreshCw, Wallet, Copy, X, Sparkles, Award, Clock, ExternalLink } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 // Provider configurations
@@ -11,16 +11,16 @@ const PROVIDERS = [
     name: 'Zomato',
     description: 'Order History',
     providerId: import.meta.env.VITE_ZOMATO_PROVIDER_ID || '',
-    icon: '🍕',
-    color: '#E23744',
-    bgGradient: 'linear-gradient(135deg, #E23744 0%, #BE2D3B 100%)',
-    points: 500,
+    color: '#ffffff',
+    bgGradient: 'linear-gradient(135deg, #333333 0%, #000000 100%)',
+    points: 10, // Updated to match new reward system (base points)
     dataType: 'zomato_order_history'
   }
 ];
 
 const DashboardPage = () => {
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, logout } = usePrivy();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [points, setPoints] = useState<any>(null);
   const [contributions, setContributions] = useState<any[]>([]);
@@ -34,11 +34,12 @@ const DashboardPage = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-  // Get wallet address from Privy user
-  const walletAddress = user?.wallet?.address || null;
-  const shortWalletAddress = walletAddress
-    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-    : null;
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (ready && !authenticated) {
+      navigate('/');
+    }
+  }, [ready, authenticated, navigate]);
 
   // Copy wallet address to clipboard
   const copyWalletAddress = () => {
@@ -48,6 +49,12 @@ const DashboardPage = () => {
       setTimeout(() => setCopiedAddress(false), 2000);
     }
   };
+
+  // Get wallet address from Privy user
+  const walletAddress = user?.wallet?.address || null;
+  const shortWalletAddress = walletAddress
+    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+    : null;
 
   // Fetch user data
   const fetchUserData = useCallback(async (showRefresh = false) => {
@@ -223,11 +230,11 @@ const DashboardPage = () => {
   };
 
   const getProviderInfo = (dataType: string) => {
-    return PROVIDERS.find(p => p.dataType === dataType) || { icon: '📊', name: dataType, color: '#888' };
+    return PROVIDERS.find(p => p.dataType === dataType) || { name: dataType, color: '#888' };
   };
 
-  // Loading state
-  if (!ready) {
+  // Loading state (only show if authenticated, otherwise redirect handles it)
+  if (!ready || (authenticated && !hasLoadedData.current && !profile)) {
     return (
       <div className="dashboard-loading">
         <style>{styles}</style>
@@ -237,25 +244,9 @@ const DashboardPage = () => {
     );
   }
 
-  // Not authenticated
+  // If not authenticated, we return null as the useEffect will redirect
   if (!authenticated) {
-    return (
-      <div className="dashboard-auth">
-        <style>{styles}</style>
-        <div className="auth-card">
-          <div className="auth-icon">
-            <Shield size={48} color="#fff" />
-          </div>
-          <h1>Welcome to <span className="brand">MYRAD</span></h1>
-          <p>Sign in to contribute your data privately and earn rewards</p>
-          <button onClick={login} className="btn-primary">
-            <Zap size={18} />
-            Get Started
-          </button>
-          <Link to="/" className="back-link">← Back to Home</Link>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -265,7 +256,7 @@ const DashboardPage = () => {
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-content">
-          <Link to="/" className="logo">MYRAD</Link>
+          <div className="logo-placeholder" style={{ width: 24 }}></div> {/* Spacer to keep layout if needed, or just empty */}
 
           <div className="header-right">
             {walletAddress && (
@@ -358,7 +349,6 @@ const DashboardPage = () => {
                     style={{ '--provider-color': provider.color } as React.CSSProperties}
                   >
                     <div className="provider-header">
-                      <div className="provider-icon">{provider.icon}</div>
                       <div className="provider-info">
                         <h3>{provider.name}</h3>
                         <span>{provider.description}</span>
@@ -415,9 +405,6 @@ const DashboardPage = () => {
                     const provider = getProviderInfo(contrib.dataType);
                     return (
                       <div key={contrib.id} className="activity-item">
-                        <div className="activity-icon" style={{ background: `${provider.color}20`, color: provider.color }}>
-                          {provider.icon}
-                        </div>
                         <div className="activity-info">
                           <span className="activity-title">{provider.name} Verification</span>
                           <span className="activity-time">{new Date(contrib.createdAt).toLocaleDateString('en-US', {
@@ -433,7 +420,6 @@ const DashboardPage = () => {
                   })
                 ) : (
                   <div className="empty-state">
-                    <div className="empty-icon">🍽️</div>
                     <p>No contributions yet</p>
                     <span>Verify your Zomato data above to earn points!</span>
                   </div>
@@ -455,7 +441,7 @@ const styles = `
   
   .dashboard {
     min-height: 100vh;
-    background: #0A0A0B;
+    background: #000;
     color: #fff;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
@@ -467,7 +453,7 @@ const styles = `
     justify-content: center;
     flex-direction: column;
     gap: 16px;
-    background: #0A0A0B;
+    background: #000;
     color: #888;
     font-family: 'Inter', sans-serif;
   }

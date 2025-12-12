@@ -304,13 +304,9 @@ const LandingPage = () => {
                     }}>
                         <Link to="/" style={{ textDecoration: 'none' }}>
                             <div style={{
-                                fontSize: '24px',
-                                fontWeight: 800,
-                                letterSpacing: '-0.03em',
-                                color: '#fff',
-                                fontFamily: "'Space Grotesk', sans-serif"
+                                width: 24, // Placeholder space
+                                height: 24
                             }}>
-                                MYRAD
                             </div>
                         </Link>
 

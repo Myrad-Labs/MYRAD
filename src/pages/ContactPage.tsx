@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { Send, CheckCircle, ArrowLeft, Building2, Mail, User, MessageSquare, Briefcase } from 'lucide-react';
 
 const ContactPage = () => {
-    const accent = '#E5B94E';
-    const purple = '#a855f7';
+    const accent = '#fff';
+    const purple = '#fff';
 
     const [formData, setFormData] = useState({
         name: '',
@@ -76,7 +76,7 @@ const ContactPage = () => {
         return (
             <div style={{
                 minHeight: '100vh',
-                background: 'linear-gradient(180deg, #000000 0%, #0a0a0a 100%)',
+                background: '#000',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -90,13 +90,13 @@ const ContactPage = () => {
                         width: '80px',
                         height: '80px',
                         borderRadius: '50%',
-                        background: 'rgba(34, 197, 94, 0.1)',
+                        background: 'rgba(255, 255, 255, 0.1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         margin: '0 auto 24px'
                     }}>
-                        <CheckCircle size={40} color="#22c55e" />
+                        <CheckCircle size={40} color="#fff" />
                     </div>
                     <h1 style={{
                         fontSize: '32px',
@@ -117,7 +117,7 @@ const ContactPage = () => {
                             alignItems: 'center',
                             gap: '8px',
                             padding: '14px 28px',
-                            background: `linear-gradient(135deg, ${accent} 0%, #D4A843 100%)`,
+                            background: '#fff',
                             borderRadius: '10px',
                             color: '#000',
                             textDecoration: 'none',
@@ -135,7 +135,7 @@ const ContactPage = () => {
 
     return (
         <div style={{
-            background: 'linear-gradient(180deg, #000000 0%, #0a0a0a 100%)',
+            background: '#000',
             minHeight: '100vh',
             color: '#fff',
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
@@ -157,7 +157,7 @@ const ContactPage = () => {
                     outline: none;
                 }
                 .input-field:focus {
-                    border-color: rgba(168, 85, 247, 0.5);
+                    border-color: rgba(255, 255, 255, 0.5);
                     background: rgba(255,255,255,0.05);
                 }
                 .input-field::placeholder {
@@ -166,19 +166,18 @@ const ContactPage = () => {
                 .btn-submit {
                     width: 100%;
                     padding: 18px;
-                    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+                    background: #fff;
                     border: none;
                     border-radius: 12px;
-                    color: #fff;
+                    color: #000;
                     font-size: 16px;
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.3s ease;
-                    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
                 }
                 .btn-submit:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4);
+                    box-shadow: 0 8px 30px rgba(255, 255, 255, 0.15);
                 }
                 .btn-submit:disabled {
                     opacity: 0.6;
@@ -235,7 +234,7 @@ const ContactPage = () => {
                         width: '64px',
                         height: '64px',
                         borderRadius: '16px',
-                        background: 'rgba(168, 85, 247, 0.1)',
+                        background: 'rgba(255, 255, 255, 0.1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

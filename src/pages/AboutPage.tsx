@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield, Users, Target, Sparkles } from 'lucide-react';
 
 const AboutPage = () => {
-    const accent = '#E5B94E';
+    const accent = '#fff';
 
     return (
         <div style={{
-            background: 'linear-gradient(180deg, #000000 0%, #0a0a0a 100%)',
+            background: '#000',
             minHeight: '100vh',
             color: '#fff',
             fontFamily: "'Inter', -apple-system, sans-serif"
@@ -161,7 +161,7 @@ const AboutPage = () => {
                             alignItems: 'center',
                             gap: '8px',
                             padding: '16px 32px',
-                            background: `linear-gradient(135deg, ${accent} 0%, #D4A843 100%)`,
+                            background: '#fff',
                             borderRadius: '12px',
                             color: '#000',
                             textDecoration: 'none',

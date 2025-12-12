@@ -29,7 +29,7 @@ const NotFoundPage = () => {
       <style>{`
         .notfound-container {
           min-height: 100vh;
-          background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+          background: #000;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -381,7 +381,7 @@ const NotFoundPage = () => {
         </div>
 
         <div className="notfound-content">
-          <div 
+          <div
             className="notfound-svg-container"
             style={{
               transform: `perspective(1000px) rotateY(${mousePosition.x}deg) rotateX(${-mousePosition.y}deg)`
@@ -391,14 +391,14 @@ const NotFoundPage = () => {
           </div>
 
           <div className="notfound-actions">
-            <button 
+            <button
               className="notfound-btn notfound-btn-primary"
               onClick={handleGoHome}
             >
               <Home size={20} strokeWidth={2} />
               <span>Go Home</span>
             </button>
-            <button 
+            <button
               className="notfound-btn notfound-btn-secondary"
               onClick={handleGoBack}
             >

@@ -57,9 +57,20 @@ const writeJSON = (filePath, data) => {
 export const getUsers = () => readJSON(USERS_FILE);
 export const saveUsers = (users) => writeJSON(USERS_FILE, users);
 
+// Check if username is available
+export const isUsernameAvailable = (username) => {
+    const users = getUsers();
+    return !users.some(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+};
+
 export const getUserByPrivyId = (privyId) => {
     const users = getUsers();
     return users.find(u => u.privyId === privyId);
+};
+
+export const getUserById = (userId) => {
+    const users = getUsers();
+    return users.find(u => u.id === userId);
 };
 
 export const createUser = (privyId, email, walletAddress = null) => {
@@ -69,9 +80,13 @@ export const createUser = (privyId, email, walletAddress = null) => {
         privyId,
         email,
         walletAddress,
+        username: null,
+        streak: 0,
+        lastContributionDate: null,
+        totalPoints: 100, // Signup bonus
+        league: 'Bronze',
         createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-        totalPoints: 100 // Signup bonus
+        lastActiveAt: new Date().toISOString()
     };
     users.push(newUser);
     saveUsers(users);
@@ -100,6 +115,17 @@ export const updateUserActivity = (userId) => {
         users[userIndex].lastActiveAt = new Date().toISOString();
         saveUsers(users);
     }
+};
+
+export const updateUserProfile = (userId, updates) => {
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+        users[userIndex] = { ...users[userIndex], ...updates };
+        saveUsers(users);
+        return users[userIndex];
+    }
+    return null;
 };
 
 // Points
@@ -146,10 +172,45 @@ export const getLeaderboard = (limit = 10) => {
         .slice(0, limit)
         .map(u => ({
             id: u.id,
-            email: u.email,
+            email: u.email, // Kept for admin view flexibility
+            username: u.username || `User ${u.id.substr(-4)}`,
             totalPoints: u.totalPoints || 0,
+            league: u.league || 'Bronze',
+            streak: u.streak || 0,
             createdAt: u.createdAt
         }));
+};
+
+export const getWeeklyLeaderboard = (limit = 10) => {
+    const users = getUsers();
+    const points = getPoints();
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    // Calculate weekly points per user
+    const weeklyPoints = points
+        .filter(p => new Date(p.createdAt) > oneWeekAgo)
+        .reduce((acc, p) => {
+            acc[p.userId] = (acc[p.userId] || 0) + p.points;
+            return acc;
+        }, {});
+
+    // Sort users by weekly points
+    return Object.entries(weeklyPoints)
+        .sort(([, pointsA], [, pointsB]) => pointsB - pointsA)
+        .slice(0, limit)
+        .map(([userId, wPoints]) => {
+            const user = users.find(u => u.id === userId);
+            if (!user) return null;
+            return {
+                id: user.id,
+                username: user.username || `User ${user.id.substr(-4)}`,
+                weeklyPoints: wPoints,
+                totalPoints: user.totalPoints || 0,
+                league: user.league || 'Bronze'
+            };
+        })
+        .filter(u => u !== null);
 };
 
 // Contributions

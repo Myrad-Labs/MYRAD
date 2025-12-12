@@ -96,5 +96,26 @@
     "points": 500,
     "reason": "data_contribution",
     "createdAt": "2025-12-12T12:41:42.081Z"
+  },
+  {
+    "id": "1765546802090",
+    "userId": "1765532082866",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T13:40:02.090Z"
+  },
+  {
+    "id": "1765546802090",
+    "userId": "1765532082866",
+    "points": 30,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-12T13:40:02.090Z"
+  },
+  {
+    "id": "1765547025691",
+    "userId": "1765547025690",
+    "points": 100,
+    "reason": "signup_bonus",
+    "createdAt": "2025-12-12T13:43:45.691Z"
   }
 ]

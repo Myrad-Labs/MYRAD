@@ -3,6 +3,8 @@ import express from 'express';
 import * as jsonStorage from './jsonStorage.js';
 import * as cohortService from './cohortService.js';
 import * as consentLedger from './consentLedger.js';
+import * as rewardService from './rewardService.js';
+
 
 const router = express.Router();
 
@@ -54,16 +56,36 @@ const verifyApiKey = (req, res, next) => {
 // USER ENDPOINTS
 // ===================
 
+// Set user username
+router.post('/user/username', verifyPrivyToken, (req, res) => {
+    try {
+        const user = jsonStorage.getUserByPrivyId(req.user.privyId);
+        const { username } = req.body;
+
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!username || username.length < 3) return res.status(400).json({ error: 'Username must be at least 3 characters' });
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+
+        if (jsonStorage.isUsernameAvailable(username)) {
+            const updatedUser = jsonStorage.updateUserProfile(user.id, { username });
+            res.json({ success: true, username: updatedUser.username });
+        } else {
+            res.status(409).json({ error: 'Username already taken' });
+        }
+    } catch (error) {
+        console.error('Set username error:', error);
+        res.status(500).json({ error: 'Failed to set username' });
+    }
+});
+
 // Verify Privy token and get/create user
 router.post('/auth/verify', verifyPrivyToken, (req, res) => {
     try {
         let user = jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
-            // Create new user
             user = jsonStorage.createUser(req.user.privyId, req.user.email);
         } else {
-            // Update last active
             jsonStorage.updateUserActivity(user.id);
         }
 
@@ -72,7 +94,10 @@ router.post('/auth/verify', verifyPrivyToken, (req, res) => {
             user: {
                 id: user.id,
                 email: user.email,
+                username: user.username,
                 totalPoints: user.totalPoints || 0,
+                league: user.league || 'Bronze',
+                streak: user.streak || 0,
                 createdAt: user.createdAt,
                 lastActiveAt: user.lastActiveAt
             }
@@ -87,10 +112,7 @@ router.post('/auth/verify', verifyPrivyToken, (req, res) => {
 router.get('/user/profile', verifyPrivyToken, (req, res) => {
     try {
         const user = jsonStorage.getUserByPrivyId(req.user.privyId);
-
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
         const contributions = jsonStorage.getUserContributions(user.id);
 
@@ -99,7 +121,10 @@ router.get('/user/profile', verifyPrivyToken, (req, res) => {
             profile: {
                 id: user.id,
                 email: user.email,
+                username: user.username,
                 totalPoints: user.totalPoints || 0,
+                league: user.league || 'Bronze',
+                streak: user.streak || 0,
                 contributionsCount: contributions.length,
                 createdAt: user.createdAt,
                 lastActiveAt: user.lastActiveAt
@@ -263,6 +288,27 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         });
 
         // ========================================
+        // COMPUTE REWARDS
+        // ========================================
+        const dataQualityScore = sellableData?.metadata?.data_quality?.score || 0;
+        const orderCount = sellableData?.transaction_data?.summary?.total_orders || 0;
+
+        const rewardResult = rewardService.calculateRewards({
+            dataQualityScore,
+            orderCount
+        });
+
+        // Award dynamic points
+        jsonStorage.addPoints(user.id, rewardResult.totalPoints, 'data_contribution');
+
+        // Update user stats (only league, no streaks)
+        const newTotalPoints = (user.totalPoints || 0) + rewardResult.totalPoints;
+        jsonStorage.updateUserProfile(user.id, {
+            lastContributionDate: new Date().toISOString(),
+            league: rewardService.calculateLeague(newTotalPoints)
+        });
+
+        // ========================================
         // K-ANONYMITY COMPLIANCE CHECK
         // ========================================
         const cohortId = sellableData?.audience_segment?.segment_id;
@@ -325,7 +371,8 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             success: true,
             contribution: {
                 id: contribution.id,
-                pointsAwarded: 500,
+                pointsAwarded: rewardResult.totalPoints,
+                pointsBreakdown: rewardResult.breakdown,
                 createdAt: contribution.createdAt,
                 cohortId: cohortId || null,
                 cohortSize,
@@ -345,11 +392,19 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
 router.get('/leaderboard', (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
-        const leaderboard = jsonStorage.getLeaderboard(limit);
+        const timeframe = req.query.timeframe || 'all_time'; // 'all_time' or 'weekly'
+
+        let leaderboard;
+        if (timeframe === 'weekly') {
+            leaderboard = jsonStorage.getWeeklyLeaderboard(limit);
+        } else {
+            leaderboard = jsonStorage.getLeaderboard(limit);
+        }
 
         res.json({
             success: true,
-            leaderboard
+            leaderboard,
+            timeframe
         });
     } catch (error) {
         console.error('Leaderboard error:', error);
