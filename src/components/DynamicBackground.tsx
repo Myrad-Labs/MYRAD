@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Simple CSS animated background with floating gradient orbs
 const DynamicBackground = () => {
     return (

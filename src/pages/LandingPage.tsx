@@ -1,30 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect} from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
-import { ArrowRight, Shield, Lock, Sparkles, CheckCircle, Zap, Eye, Gift, Menu, X } from 'lucide-react';
+import { ArrowRight, Shield, Lock, Sparkles, CheckCircle, Zap, Eye, Gift } from 'lucide-react';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 import DynamicBackground from '../components/DynamicBackground';
 
 const LandingPage = () => {
     const navigate = useNavigate();
     const { login, authenticated, ready } = usePrivy();
-    const [scrollY, setScrollY] = useState(0);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [isButtonHovered, setIsButtonHovered] = useState(false);
 
     useEffect(() => {
-        const handleScroll = () => setScrollY(window.scrollY);
         const handleMouseMove = (e: MouseEvent) => {
             setMousePos({ x: e.clientX, y: e.clientY });
         };
 
-        window.addEventListener('scroll', handleScroll);
         window.addEventListener('mousemove', handleMouseMove);
         setTimeout(() => setIsVisible(true), 100);
 
         return () => {
-            window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('mousemove', handleMouseMove);
         };
     }, []);
@@ -42,13 +39,6 @@ const LandingPage = () => {
             login();
         }
     };
-
-    const navLinks = [
-        { label: 'For Users', href: '#how-it-works' },
-        { label: 'For Buyers', href: '/buyers' },
-        { label: 'How It Works', href: '#how-it-works' },
-        { label: 'About', href: '/about' },
-    ];
 
     const steps = [
         {
@@ -181,22 +171,6 @@ const LandingPage = () => {
                     border-color: rgba(0, 0, 0, 0.35);
                 }
                 
-                /* Navigation */
-                .nav-link {
-                    color: rgba(0, 0, 0, 0.5);
-                    text-decoration: none;
-                    font-size: 14px;
-                    font-weight: 500;
-                    padding: 8px 16px;
-                    border-radius: 8px;
-                    transition: all 0.25s ease;
-                }
-                
-                .nav-link:hover {
-                    color: #1a1a1a;
-                    background: rgba(0, 0, 0, 0.05);
-                }
-                
                 /* Step number */
                 .step-number {
                     position: absolute;
@@ -211,15 +185,9 @@ const LandingPage = () => {
                 
                 /* Responsive */
                 @media (max-width: 768px) {
-                    .desktop-nav { display: none !important; }
-                    .mobile-menu-btn { display: flex !important; }
                     .hero-title { font-size: 40px !important; }
                     .hero-subtitle { font-size: 16px !important; }
                     .characters-container { display: none !important; }
-                }
-                
-                @media (min-width: 769px) {
-                    .mobile-menu-btn { display: none !important; }
                 }
                 
                 html { scroll-behavior: smooth; }
@@ -283,127 +251,7 @@ const LandingPage = () => {
 
             {/* Main Content */}
             <div className="content-wrapper">
-                {/* Header */}
-                <header style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 1000,
-                    background: scrollY > 50 ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-                    backdropFilter: scrollY > 50 ? 'blur(20px)' : 'none',
-                    borderBottom: scrollY > 50 ? '1px solid rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.4s ease'
-                }}>
-                    <div style={{
-                        maxWidth: '1280px',
-                        margin: '0 auto',
-                        padding: '20px 24px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}>
-<Link to="/" style={{ textDecoration: "none" }}>
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      color: "#1a1a1a",
-      fontFamily: "'Space Grotesk', sans-serif",
-    }}
-  >
-    <img
-      src="/logo.png"
-      alt="MYRAD logo"
-      style={{
-        width: "20px",
-        height: "20px",
-        objectFit: "contain",
-      }}
-    />
-
-    <span
-      style={{
-        fontSize: "20px",
-        fontWeight: 800,
-      }}
-    >
-      MYRAD
-    </span>
-  </div>
-</Link>
-
-
-                        <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {navLinks.map((link, i) => (
-                                link.href.startsWith('#') ? (
-                                    <a key={i} href={link.href} className="nav-link">{link.label}</a>
-                                ) : (
-                                    <Link key={i} to={link.href} className="nav-link">{link.label}</Link>
-                                )
-                            ))}
-                        </nav>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <button
-                                onClick={handleGetStarted}
-                                className="btn-primary"
-                                style={{
-                                    padding: '12px 28px',
-                                    borderRadius: '10px',
-                                    fontSize: '14px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                            >
-                                {authenticated ? 'Dashboard' : 'Get Started'}
-                                <ArrowRight size={16} />
-                            </button>
-
-                            <button
-                                className="mobile-menu-btn"
-                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                                style={{
-                                    background: 'transparent',
-                                    border: '1px solid rgba(0,0,0,0.15)',
-                                    borderRadius: '8px',
-                                    color: '#1a1a1a',
-                                    cursor: 'pointer',
-                                    padding: '10px',
-                                    display: 'none',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Mobile Menu */}
-                    {mobileMenuOpen && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: 0,
-                            right: 0,
-                            background: 'rgba(255, 255, 255, 0.98)',
-                            backdropFilter: 'blur(20px)',
-                            borderBottom: '1px solid rgba(0,0,0,0.08)',
-                            padding: '20px 24px'
-                        }}>
-                            {navLinks.map((link, i) => (
-                                link.href.startsWith('#') ? (
-                                    <a key={i} href={link.href} className="nav-link" style={{ display: 'block', padding: '14px 0' }} onClick={() => setMobileMenuOpen(false)}>{link.label}</a>
-                                ) : (
-                                    <Link key={i} to={link.href} className="nav-link" style={{ display: 'block', padding: '14px 0' }} onClick={() => setMobileMenuOpen(false)}>{link.label}</Link>
-                                )
-                            ))}
-                        </div>
-                    )}
-                </header>
+                <Header />
 
                 {/* Hero Section */}
                 <section style={{
@@ -430,7 +278,7 @@ const LandingPage = () => {
                                 marginBottom: '32px'
                             }}>
                                 <Sparkles size={14} />
-                                Privacy-First Data Network
+                                Privacy First Data Network
                             </div>
                         )}
 
@@ -497,8 +345,7 @@ const LandingPage = () => {
                                         gap: '8px'
                                     }}
                                 >
-                                    How It Works
-                                </a>
+Learn More                                </a>
                             </div>
                         )}
 
@@ -1001,7 +848,7 @@ const LandingPage = () => {
                                     ))}
                                 </ul>
                                 <button
-                                    onClick={handleGetStarted}
+                                    onClick={() => navigate('/dashboard')}
                                     className="btn-primary"
                                     style={{
                                         width: '100%',
@@ -1113,127 +960,7 @@ const LandingPage = () => {
                     </div>
                 </section>
 
-                {/* Footer */}
-<footer
-  style={{
-    background: "#f8f9fa",
-    color: "#1a1a1a",
-    padding: "50px 24px 25px",
-    position: "relative",
-    overflow: "hidden",
-    fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    textAlign: 'left'
-  }}
->
-
-<div
-  style={{
-    display: "flex",
-    justifyContent: "center", // ✅ centers the whole footer group
-  }}
->
-
-  {/* Top content */}
-  <div
-    style={{
-      maxWidth: "1200px",
-      margin: "0 auto",
-      display: "grid",
-      gridTemplateColumns: "1.5fr 1fr 1fr 1fr",
-      gap: "100px",
-    }}
-  >
-    {/* Brand */}
-<div
-  style={{
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  }}
->
-  {/* Logo + MYRAD (same line) */}
-  <div
-    style={{
-      display: "flex",
-      alignItems: "left",
-      gap: "10px",
-    }}
-  >
-    <img
-      src="/logo.png"
-      alt="MYRAD logo"
-      style={{
-        width: "22px",
-        height: "22px",
-        objectFit: "contain",
-      }}
-    />
-
-    <div
-      style={{
-        fontSize: "18px",
-        fontWeight: 700,
-        letterSpacing: "0.5px",
-      }}
-    >
-      MYRAD
-    </div>
-  </div>
-
-  {/* Description (next line) */}
-  <p
-    style={{
-      fontSize: "14px",
-      lineHeight: "1.6",
-      color: "rgba(0,0,0,0.6)",
-      maxWidth: "260px",
-      margin: 0,
-    }}
-  >
-    Empowering decentralized data exchange with transparency and trust.
-  </p>
-</div>
-
-    <div>
-      <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px", color: "#1a1a1a" }}>Products</div>
-      <a href="/about" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>Features</a>
-      <a href="/team" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>How to get started</a>
-    </div>
-
-    {/* Company */}
-    <div>
-      <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px", color: "#1a1a1a" }}>Company</div>
-      <a href="/about" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>About</a>
-      <a href="/team" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>Team</a>
-    </div>
-
-    {/* Connect */}
-    <div>
-      <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px", color: "#1a1a1a" }}>Connect</div>
-      <a href="https://x.com" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>X</a>
-      <a href="https://x.com" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>Telegram</a>
-      <a href="https://github.com" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>GitHub</a>
-    </div>
-  </div>
-</div>
-  {/* Huge MYRAD text */}
-  <div
-    style={{
-      marginTop: "50px",
-      fontSize: "18vw",
-      fontWeight: 900,
-      letterSpacing: "-0.04em",
-      lineHeight: "0.9",
-      color: "#000000",
-      opacity: 0.95,
-      textAlign: "center",
-      userSelect: "none",
-    }}
-  >
-    MYRAD
-  </div>
-
-</footer>
+                <Footer />
 
             </div>
         </div>

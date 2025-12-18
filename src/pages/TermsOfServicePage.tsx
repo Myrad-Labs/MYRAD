@@ -1,53 +1,21 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const TermsOfServicePage = () => {
-    const accent = '#fff';
+    const accent = '#4F46E5';
 
     return (
         <div style={{
-            background: '#000',
+            background: '#fff',
             minHeight: '100vh',
-            color: '#fff',
-            fontFamily: "'Inter', -apple-system, sans-serif"
+            color: '#1a1a1a',
+            fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}>
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-            {/* Header */}
-            <header style={{
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(0,0,0,0.8)',
-                backdropFilter: 'blur(20px)'
-            }}>
-                <div style={{
-                    maxWidth: '1280px',
-                    margin: '0 auto',
-                    padding: '16px 24px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                }}>
-                    <Link to="/" style={{ textDecoration: 'none' }}>
-                        <span style={{
-                            fontSize: '28px',
-                            fontWeight: 800,
-                            color: accent,
-                            fontFamily: "'Space Grotesk', sans-serif"
-                        }}>MYRAD</span>
-                    </Link>
-                    <Link to="/" style={{
-                        color: 'rgba(255,255,255,0.6)',
-                        textDecoration: 'none',
-                        fontSize: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}>
-                        <ArrowLeft size={16} />
-                        Back to Home
-                    </Link>
-                </div>
-            </header>
+            <Header />
 
             <main style={{ maxWidth: '800px', margin: '0 auto', padding: '80px 24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
@@ -61,13 +29,13 @@ const TermsOfServicePage = () => {
                     </h1>
                 </div>
 
-                <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '48px' }}>
+<p style={{ color: 'rgba(0,0,0,0.6)', marginBottom: '48px' }}>
                     Last updated: December 2024
                 </p>
 
-                <div style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>
+<div style={{ color: '#1a1a1a', lineHeight: 1.8 }}>
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
                             1. Acceptance of Terms
                         </h2>
                         <p>
@@ -77,7 +45,7 @@ const TermsOfServicePage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
                             2. Description of Service
                         </h2>
                         <p>
@@ -88,7 +56,7 @@ const TermsOfServicePage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
                             3. User Accounts
                         </h2>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
@@ -99,7 +67,7 @@ const TermsOfServicePage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
                             4. Points and Rewards
                         </h2>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
@@ -111,7 +79,7 @@ const TermsOfServicePage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
                             5. Data Contributions
                         </h2>
                         <p>
@@ -122,7 +90,7 @@ const TermsOfServicePage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
                             6. Prohibited Activities
                         </h2>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
@@ -134,7 +102,7 @@ const TermsOfServicePage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
                             7. Termination
                         </h2>
                         <p>
@@ -144,7 +112,7 @@ const TermsOfServicePage = () => {
                     </section>
 
                     <section>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
                             8. Contact
                         </h2>
                         <p>
@@ -154,6 +122,8 @@ const TermsOfServicePage = () => {
                     </section>
                 </div>
             </main>
+
+            <Footer />
         </div>
     );
 };
