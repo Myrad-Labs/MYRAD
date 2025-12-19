@@ -34,8 +34,19 @@ const PROVIDERS = [
     bgGradient: 'linear-gradient(135deg, #24292e 0%, #0d1117 100%)',
     points: 15,
     dataType: 'github_profile'
+  },
+  {
+    id: 'netflix',
+    name: 'Netflix',
+    description: 'Watch History & Ratings',
+    providerId: import.meta.env.VITE_NETFLIX_PROVIDER_ID || '',
+    color: '#ffffff',
+    bgGradient: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)',
+    points: 20,
+    dataType: 'netflix_watch_history'
   }
 ];
+
 
 const DashboardPage = () => {
   const { ready, authenticated, user, logout } = usePrivy();

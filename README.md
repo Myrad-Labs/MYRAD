@@ -85,6 +85,7 @@ ZK proofs are cryptographic protocols that allow one party to prove knowledge of
 - 100 points welcome bonus
 - 25 points per Zomato contribution
 - 15 points per GitHub contribution
+- 20 points per Netflix contribution
 - Real-time balance tracking
 
 ### Enterprise-Grade API
@@ -114,6 +115,7 @@ ZK proofs are cryptographic protocols that allow one party to prove knowledge of
 |----------|-----------|--------|--------|
 | Zomato | Order History | 25 pts | Live |
 | GitHub | Developer Profile | 15 pts | Live |
+| Netflix | Watch History & Ratings | 20 pts | Live |
 | Swiggy | Order History | 25 pts | Coming Soon |
 | More... | — | — | Roadmap |
 
@@ -152,6 +154,7 @@ VITE_RECLAIM_APP_ID=your_reclaim_app_id
 VITE_RECLAIM_APP_SECRET=your_reclaim_secret
 VITE_ZOMATO_PROVIDER_ID=your_zomato_provider_id
 VITE_GITHUB_PROVIDER_ID=your_github_provider_id
+VITE_NETFLIX_PROVIDER_ID=your_netflix_provider_id
 
 # Backend
 DATABASE_URL=your_neon_postgres_connection_string

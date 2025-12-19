@@ -24,21 +24,21 @@ function extractZomatoFields(sellableData) {
   };
 
   // Extract top cuisines (from category_insights or audience_segment)
-  const topCuisines = sellableData?.audience_segment?.dmp_attributes?.interest_cuisine_types || 
-                     (sellableData?.category_insights?.top_categories?.slice(0, 5).map(c => c.category_name) || null);
-  
+  const topCuisines = sellableData?.audience_segment?.dmp_attributes?.interest_cuisine_types ||
+    (sellableData?.category_insights?.top_categories?.slice(0, 5).map(c => c.category_name) || null);
+
   // Extract top brands (array of brand names)
   const topBrands = sellableData?.brand_intelligence?.top_brands?.map(b => b.brand_name) || null;
-  
+
   // Extract favorite restaurants (from repeat_patterns, not brand_intelligence)
   const favoriteRestaurants = sellableData?.repeat_patterns?.favorite_restaurants || null;
-  
+
   // Extract frequent dishes
   const frequentDishes = sellableData?.repeat_patterns?.frequent_dishes || null;
-  
+
   // Extract competitor mapping (direct property)
   const competitorMapping = sellableData?.competitor_mapping || null;
-  
+
   // Extract repeat baskets (from basket_intelligence)
   const repeatBaskets = sellableData?.basket_intelligence?.repeat_baskets || null;
 
@@ -52,7 +52,7 @@ function extractZomatoFields(sellableData) {
     city_cluster: sellableData?.geo_data?.city_cluster || null,
     data_quality_score: toInt(sellableData?.metadata?.data_quality?.score),
     cohort_id: sellableData?.metadata?.privacy_compliance?.cohort_id || null,
-    
+
     // New extended fields
     top_cuisines: topCuisines,
     top_brands: topBrands,
@@ -114,6 +114,53 @@ function extractGithubFields(sellableData, contributionData = null) {
 }
 
 /**
+ * Extract key fields from sellableData for indexing (Netflix)
+ */
+function extractNetflixFields(sellableData) {
+  if (!sellableData) return {};
+
+  const toInt = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  const toDecimal = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  };
+
+  return {
+    total_titles_watched: toInt(sellableData?.viewing_summary?.total_titles_watched),
+    total_watch_hours: toDecimal(sellableData?.viewing_summary?.total_watch_hours),
+    binge_score: toInt(sellableData?.viewing_behavior?.binge_score),
+    engagement_tier: sellableData?.viewing_summary?.engagement_tier || null,
+    top_genres: sellableData?.content_preferences?.top_genres || null,
+    genre_diversity_score: toInt(sellableData?.content_preferences?.genre_diversity_score),
+    dominant_content_type: sellableData?.content_preferences?.content_type_preference?.dominant_type || null,
+    primary_language: sellableData?.content_preferences?.language_preferences?.[0]?.language || null,
+    peak_viewing_day: sellableData?.viewing_behavior?.peak_viewing_day || null,
+    peak_viewing_time: sellableData?.viewing_behavior?.peak_viewing_time || null,
+    late_night_viewer: sellableData?.viewing_behavior?.late_night_viewer || false,
+    is_binge_watcher: sellableData?.viewing_behavior?.is_binge_watcher || false,
+    day_of_week_distribution: sellableData?.viewing_behavior?.day_of_week_distribution || null,
+    time_of_day_curve: sellableData?.viewing_behavior?.time_of_day_curve || null,
+    subscription_tier: sellableData?.subscription_data?.tier || null,
+    account_age_years: toDecimal(sellableData?.subscription_data?.account_age_years),
+    member_since_year: toInt(sellableData?.subscription_data?.member_since_year),
+    loyalty_tier: sellableData?.subscription_data?.loyalty_tier || null,
+    churn_risk: sellableData?.subscription_data?.churn_risk || null,
+    kids_content_pct: toInt(sellableData?.content_preferences?.maturity_profile?.kids_content_pct),
+    mature_content_pct: toInt(sellableData?.content_preferences?.maturity_profile?.mature_content_pct),
+    primary_audience: sellableData?.content_preferences?.maturity_profile?.primary_audience || null,
+    segment_id: sellableData?.audience_segment?.segment_id || null,
+    cohort_id: sellableData?.metadata?.privacy_compliance?.cohort_id || null,
+    data_quality_score: toInt(sellableData?.metadata?.data_quality?.score * 100),
+  };
+}
+
+/**
  * Save a contribution to the appropriate table based on dataType
  */
 export async function saveContribution(contribution) {
@@ -147,7 +194,7 @@ export async function saveContribution(contribution) {
       // Determine which table to use based on dataType
       if (dataType === 'zomato_order_history') {
         const indexedFields = extractZomatoFields(sellableData);
-        
+
         await query(
           `INSERT INTO zomato_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
@@ -224,7 +271,7 @@ export async function saveContribution(contribution) {
 
       } else if (dataType === 'github_profile') {
         const indexedFields = extractGithubFields(sellableData, contribution);
-        
+
         await query(
           `INSERT INTO github_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
@@ -260,6 +307,66 @@ export async function saveContribution(contribution) {
             indexedFields.is_active_contributor,
             indexedFields.data_quality_score,
             indexedFields.cohort_id
+          ]
+        );
+
+      } else if (dataType === 'netflix_watch_history') {
+        const indexedFields = extractNetflixFields(sellableData);
+
+        await query(
+          `INSERT INTO netflix_contributions (
+            id, user_id, reclaim_proof_id, status, processing_method, created_at,
+            sellable_data, metadata,
+            total_titles_watched, total_watch_hours, binge_score, engagement_tier,
+            top_genres, genre_diversity_score, dominant_content_type, primary_language,
+            peak_viewing_day, peak_viewing_time, late_night_viewer, is_binge_watcher,
+            day_of_week_distribution, time_of_day_curve,
+            subscription_tier, account_age_years, member_since_year, loyalty_tier, churn_risk,
+            kids_content_pct, mature_content_pct, primary_audience,
+            segment_id, cohort_id, data_quality_score
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            status = EXCLUDED.status,
+            sellable_data = EXCLUDED.sellable_data,
+            metadata = EXCLUDED.metadata,
+            total_titles_watched = EXCLUDED.total_titles_watched,
+            total_watch_hours = EXCLUDED.total_watch_hours,
+            binge_score = EXCLUDED.binge_score,
+            engagement_tier = EXCLUDED.engagement_tier,
+            top_genres = EXCLUDED.top_genres,
+            updated_at = NOW()`,
+          [
+            id, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            JSON.stringify(sellableData),
+            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+            indexedFields.total_titles_watched,
+            indexedFields.total_watch_hours,
+            indexedFields.binge_score,
+            indexedFields.engagement_tier,
+            indexedFields.top_genres ? JSON.stringify(indexedFields.top_genres) : null,
+            indexedFields.genre_diversity_score,
+            indexedFields.dominant_content_type,
+            indexedFields.primary_language,
+            indexedFields.peak_viewing_day,
+            indexedFields.peak_viewing_time,
+            indexedFields.late_night_viewer,
+            indexedFields.is_binge_watcher,
+            indexedFields.day_of_week_distribution ? JSON.stringify(indexedFields.day_of_week_distribution) : null,
+            indexedFields.time_of_day_curve ? JSON.stringify(indexedFields.time_of_day_curve) : null,
+            indexedFields.subscription_tier,
+            indexedFields.account_age_years,
+            indexedFields.member_since_year,
+            indexedFields.loyalty_tier,
+            indexedFields.churn_risk,
+            indexedFields.kids_content_pct,
+            indexedFields.mature_content_pct,
+            indexedFields.primary_audience,
+            indexedFields.segment_id,
+            indexedFields.cohort_id,
+            indexedFields.data_quality_score
           ]
         );
 
@@ -359,7 +466,7 @@ export async function queryZomatoContributions(filters = {}) {
     }
 
     const result = await query(sql, params);
-    
+
     // Helper to parse JSONB fields
     const parseJsonb = (val) => {
       if (!val) return null;
@@ -372,7 +479,7 @@ export async function queryZomatoContributions(filters = {}) {
       }
       return val;
     };
-    
+
     return result.rows.map(row => ({
       ...row,
       sellable_data: parseJsonb(row.sellable_data),
@@ -473,6 +580,100 @@ export async function queryGithubContributions(filters = {}) {
 }
 
 /**
+ * Query Netflix contributions with filters
+ */
+export async function queryNetflixContributions(filters = {}) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return [];
+  }
+
+  try {
+    let sql = `
+      SELECT id, user_id, reclaim_proof_id, status, created_at,
+             sellable_data, metadata,
+             total_titles_watched, total_watch_hours, binge_score, engagement_tier,
+             top_genres, genre_diversity_score, dominant_content_type, primary_language,
+             peak_viewing_day, peak_viewing_time, late_night_viewer, is_binge_watcher,
+             subscription_tier, account_age_years, loyalty_tier, churn_risk,
+             segment_id, cohort_id, data_quality_score
+      FROM netflix_contributions
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    if (filters.userId) {
+      sql += ` AND user_id = $${paramIndex++}`;
+      params.push(String(filters.userId));
+    }
+
+    if (filters.minTitles) {
+      sql += ` AND total_titles_watched >= $${paramIndex++}`;
+      params.push(filters.minTitles);
+    }
+
+    if (filters.minWatchHours) {
+      sql += ` AND total_watch_hours >= $${paramIndex++}`;
+      params.push(filters.minWatchHours);
+    }
+
+    if (filters.engagementTier) {
+      sql += ` AND engagement_tier = $${paramIndex++}`;
+      params.push(filters.engagementTier);
+    }
+
+    if (filters.subscriptionTier) {
+      sql += ` AND subscription_tier = $${paramIndex++}`;
+      params.push(filters.subscriptionTier);
+    }
+
+    if (filters.startDate) {
+      sql += ` AND created_at >= $${paramIndex++}`;
+      params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      sql += ` AND created_at <= $${paramIndex++}`;
+      params.push(filters.endDate);
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    if (filters.limit) {
+      sql += ` LIMIT $${paramIndex++}`;
+      params.push(filters.limit);
+    }
+
+    if (filters.offset) {
+      sql += ` OFFSET $${paramIndex++}`;
+      params.push(filters.offset);
+    }
+
+    const result = await query(sql, params);
+
+    const parseJsonb = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (e) { return val; }
+      }
+      return val;
+    };
+
+    return result.rows.map(row => ({
+      ...row,
+      sellable_data: parseJsonb(row.sellable_data),
+      metadata: parseJsonb(row.metadata),
+      top_genres: parseJsonb(row.top_genres),
+    }));
+
+  } catch (error) {
+    console.error('Error querying Netflix contributions:', error);
+    return [];
+  }
+}
+
+/**
  * Query contributions with filters (routes to appropriate table)
  */
 export async function queryContributions(filters = {}) {
@@ -481,11 +682,14 @@ export async function queryContributions(filters = {}) {
     return await queryZomatoContributions(filters);
   } else if (filters.dataType === 'github_profile') {
     return await queryGithubContributions(filters);
+  } else if (filters.dataType === 'netflix_watch_history') {
+    return await queryNetflixContributions(filters);
   } else {
-    // If no dataType specified, return both (or empty if you want to enforce dataType)
+    // If no dataType specified, return all
     const zomato = await queryZomatoContributions({ ...filters, dataType: 'zomato_order_history' });
     const github = await queryGithubContributions({ ...filters, dataType: 'github_profile' });
-    return [...zomato, ...github];
+    const netflix = await queryNetflixContributions({ ...filters, dataType: 'netflix_watch_history' });
+    return [...zomato, ...github, ...netflix];
   }
 }
 
@@ -504,9 +708,10 @@ export async function getUserContributions(userId) {
   try {
     const zomato = await queryZomatoContributions({ userId });
     const github = await queryGithubContributions({ userId });
-    
+    const netflix = await queryNetflixContributions({ userId });
+
     // Transform database format to match expected format
-    return [...zomato, ...github].map(contrib => {
+    return [...zomato, ...github, ...netflix].map(contrib => {
       // Determine dataType based on which table it came from or sellable_data structure
       let dataType = 'general';
       if (contrib.sellable_data?.dataset_id) {
@@ -514,16 +719,20 @@ export async function getUserContributions(userId) {
           dataType = 'zomato_order_history';
         } else if (contrib.sellable_data.dataset_id.includes('github')) {
           dataType = 'github_profile';
+        } else if (contrib.sellable_data.dataset_id.includes('netflix')) {
+          dataType = 'netflix_watch_history';
         }
       } else {
-        // Fallback: check if it has zomato-specific fields
+        // Fallback: check if it has provider-specific fields
         if (contrib.total_orders !== undefined) {
           dataType = 'zomato_order_history';
         } else if (contrib.follower_count !== undefined) {
           dataType = 'github_profile';
+        } else if (contrib.total_titles_watched !== undefined) {
+          dataType = 'netflix_watch_history';
         }
       }
-      
+
       return {
         id: contrib.id,
         userId: contrib.user_id,
@@ -557,21 +766,31 @@ export async function findContributionByProofId(reclaimProofId) {
       'SELECT id, user_id, reclaim_proof_id FROM zomato_contributions WHERE reclaim_proof_id = $1',
       [reclaimProofId]
     );
-    
+
     if (zomatoResult.rows.length > 0) {
       return zomatoResult.rows[0];
     }
-    
+
     // Check github table
     const githubResult = await query(
       'SELECT id, user_id, reclaim_proof_id FROM github_contributions WHERE reclaim_proof_id = $1',
       [reclaimProofId]
     );
-    
+
     if (githubResult.rows.length > 0) {
       return githubResult.rows[0];
     }
-    
+
+    // Check netflix table
+    const netflixResult = await query(
+      'SELECT id, user_id, reclaim_proof_id FROM netflix_contributions WHERE reclaim_proof_id = $1',
+      [reclaimProofId]
+    );
+
+    if (netflixResult.rows.length > 0) {
+      return netflixResult.rows[0];
+    }
+
     return null;
   } catch (error) {
     console.error('Error finding contribution by proof ID:', error);
@@ -593,17 +812,24 @@ export async function getCohortSize(cohortId) {
       'SELECT COUNT(*) as count FROM zomato_contributions WHERE cohort_id = $1',
       [cohortId]
     );
-    
+
     // Count from github table
     const githubResult = await query(
       'SELECT COUNT(*) as count FROM github_contributions WHERE cohort_id = $1',
       [cohortId]
     );
-    
+
+    // Count from netflix table
+    const netflixResult = await query(
+      'SELECT COUNT(*) as count FROM netflix_contributions WHERE cohort_id = $1',
+      [cohortId]
+    );
+
     const zomatoCount = parseInt(zomatoResult.rows[0]?.count || '0', 10);
     const githubCount = parseInt(githubResult.rows[0]?.count || '0', 10);
-    
-    return zomatoCount + githubCount;
+    const netflixCount = parseInt(netflixResult.rows[0]?.count || '0', 10);
+
+    return zomatoCount + githubCount + netflixCount;
   } catch (error) {
     console.error('Error getting cohort size:', error);
     return 0;
@@ -646,8 +872,22 @@ export async function getAggregateStats(filters = {}) {
         FROM github_contributions
       `);
       return result.rows[0] || {};
+    } else if (filters.dataType === 'netflix_watch_history') {
+      const result = await query(`
+        SELECT 
+          COUNT(*) as total_contributions,
+          COUNT(DISTINCT user_id) as unique_users,
+          SUM(total_titles_watched) as total_titles,
+          AVG(total_titles_watched) as avg_titles,
+          SUM(total_watch_hours) as total_watch_hours,
+          AVG(total_watch_hours) as avg_watch_hours,
+          AVG(binge_score) as avg_binge_score,
+          AVG(data_quality_score) as avg_quality_score
+        FROM netflix_contributions
+      `);
+      return result.rows[0] || {};
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting aggregate stats:', error);

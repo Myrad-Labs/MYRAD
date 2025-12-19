@@ -106,5 +106,32 @@
       "method": "zk_proof",
       "verified": true
     }
+  },
+  {
+    "id": "consent_1766164326254_f20b4223",
+    "timestamp": "2025-12-19T17:12:06.254Z",
+    "hashed_user_id": "3df7babc977570ef9c11e922c9add1716415e060a4802bb22448fddd1cbfa147",
+    "hashed_wallet": "eb617922fd19dd5e5f3a74bf147dedd9f3c981b94befebf0d4020df269ea9204",
+    "proof_id": "0xad8d3daa1cad5ca08c1fc829a44e557b4eef7ba78692e5a3a58c775de9510c2f",
+    "dataset_source": "reclaim_protocol",
+    "data_type": "netflix_watch_history",
+    "geo_region": "unknown",
+    "cohort_id": "netflix_casual_standard_drama",
+    "contribution_id": "1766164324927",
+    "data_summary": {
+      "order_count": 0,
+      "data_window_start": null,
+      "data_window_end": null
+    },
+    "consent_type": "explicit_contribution",
+    "consent_scope": [
+      "anonymized_behavioral_data",
+      "aggregated_insights"
+    ],
+    "revocable": true,
+    "verification": {
+      "method": "zk_proof",
+      "verified": true
+    }
   }
 ]

@@ -11,20 +11,23 @@ const router = express.Router();
 
 // Rate limiting for enterprise/export endpoints (prevent abuse)
 const enterpriseRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each API key to 100 requests per windowMs
-  message: 'Too many requests from this API key, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    // Rate limit by API key instead of IP
-    return req.headers['x-api-key'] || req.ip;
-  },
-  skip: (req) => {
-    // Skip rate limiting if no API key (will fail auth anyway)
-    return !req.headers['x-api-key'];
-  }
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each API key to 100 requests per windowMs
+    message: 'Too many requests from this API key, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        // Rate limit by API key instead of IP
+        // Using only the API key avoids IPv6 handling issues
+        return req.headers['x-api-key'] || 'unknown';
+    },
+    skip: (req) => {
+        // Skip rate limiting if no API key (will fail auth anyway)
+        return !req.headers['x-api-key'];
+    },
+    validate: { xForwardedForHeader: false, default: true }
 });
+
 
 // Middleware to verify Privy token (stub for now)
 const verifyPrivyToken = (req, res, next) => {
@@ -59,7 +62,7 @@ const verifyApiKey = (req, res, next) => {
     const apiKey = req.headers['x-api-key'];
 
     if (!apiKey) {
-        return res.status(401).json({ 
+        return res.status(401).json({
             error: 'API key required',
             message: 'Please provide your API key in the X-API-Key header'
         });
@@ -69,7 +72,7 @@ const verifyApiKey = (req, res, next) => {
     if (!isValid) {
         // Log failed attempts (for security monitoring)
         console.warn(`⚠️  Failed API key attempt from IP: ${req.ip}`);
-        return res.status(401).json({ 
+        return res.status(401).json({
             error: 'Invalid or inactive API key',
             message: 'The provided API key is invalid, expired, or inactive'
         });
@@ -334,6 +337,28 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
         }
 
+        // Process Netflix data through streaming intelligence pipeline
+        if (dataType === 'netflix_watch_history') {
+            try {
+                const { processNetflixData } = await import('./netflixPipeline.js');
+
+                console.log('📺 Processing Netflix data through streaming intelligence pipeline...');
+                console.log('RAW NETFLIX DATA:', JSON.stringify(anonymizedData, null, 2));
+
+                const result = await processNetflixData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Netflix streaming pipeline complete');
+                    console.log(`📊 Binge score: ${sellableData?.viewing_behavior?.binge_score || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Netflix pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
         // Store contribution with sellable data format
         const contribution = await jsonStorage.addContribution(user.id, {
             anonymizedData: processedData,
@@ -367,7 +392,25 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             });
         }
 
+        // Validate Netflix watch history
+        const netflixTitles = sellableData?.viewing_summary?.total_titles_watched || 0;
+        if (dataType === 'netflix_watch_history' && netflixTitles === 0) {
+            console.log(`⚠️ Zero titles detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No watch history found',
+                message: 'Your Netflix watch history appears to be empty. We can only award points for verifiable viewing data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    titlesWatched: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
         // For GitHub, award flat 500 points for valid profile verification
+        // For Netflix, award flat 500 points for valid watch history verification
         let rewardResult;
         if (dataType === 'github_profile') {
             rewardResult = {
@@ -379,12 +422,23 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 }
             };
             console.log(`🐙 GitHub profile verified for user ${user.id}. Awarding 500 points.`);
+        } else if (dataType === 'netflix_watch_history') {
+            rewardResult = {
+                totalPoints: 500,
+                breakdown: {
+                    base: 500,
+                    quality: 0,
+                    bonus: 0
+                }
+            };
+            console.log(`📺 Netflix watch history verified for user ${user.id}. Awarding 500 points.`);
         } else {
             rewardResult = rewardService.calculateRewards({
                 dataQualityScore,
                 orderCount
             });
         }
+
 
         // Award dynamic points
         jsonStorage.addPoints(user.id, rewardResult.totalPoints, 'data_contribution');
@@ -424,7 +478,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                     const { query } = await import('./database/db.js');
                     const tableName = dataType === 'zomato_order_history' ? 'zomato_contributions' : 'github_contributions';
                     const aggregationStatus = kAnonymityCompliant ? 'sellable' : 'pending_more_contributors';
-                    
+
                     await query(
                         `UPDATE ${tableName} 
                          SET sellable_data = jsonb_set(
@@ -563,9 +617,9 @@ router.get('/enterprise/consent-ledger', enterpriseRateLimit, verifyApiKey, (req
 // Get sellable data in enterprise format (enhanced with database support)
 router.get('/enterprise/dataset', enterpriseRateLimit, verifyApiKey, async (req, res) => {
     try {
-        const { 
-            platform, 
-            format = 'json', 
+        const {
+            platform,
+            format = 'json',
             limit = 1000,
             dataType,
             minOrders,
@@ -593,7 +647,7 @@ router.get('/enterprise/dataset', enterpriseRateLimit, verifyApiKey, async (req,
 
         // Use database export service if available
         const { exportContributionsJSON, exportContributionsCSV } = await import('./database/exportService.js');
-        
+
         let contributions;
         let sellableRecords;
 
@@ -608,7 +662,7 @@ router.get('/enterprise/dataset', enterpriseRateLimit, verifyApiKey, async (req,
 
         // Get contributions from database or JSON fallback
         contributions = await exportContributionsJSON(filters);
-        
+
         // Filter to only contributions with sellable data
         sellableRecords = contributions
             .filter(c => c.sellable_data || c.sellableData)
@@ -772,11 +826,11 @@ router.get('/enterprise/insights', enterpriseRateLimit, verifyApiKey, (req, res)
 
 // Generate API key (admin endpoint - protected by ADMIN_SECRET)
 const apiKeyGenerationRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Only 5 API key generations per hour
-  message: 'Too many API key generation attempts, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // Only 5 API key generations per hour
+    message: 'Too many API key generation attempts, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
 router.post('/enterprise/keys', apiKeyGenerationRateLimit, (req, res) => {
@@ -786,7 +840,7 @@ router.post('/enterprise/keys', apiKeyGenerationRateLimit, (req, res) => {
         // Admin authentication required
         if (!process.env.ADMIN_SECRET) {
             console.error('❌ ADMIN_SECRET not configured - API key generation disabled');
-            return res.status(503).json({ 
+            return res.status(503).json({
                 error: 'API key generation is not configured',
                 message: 'Admin secret not set on server'
             });
@@ -794,7 +848,7 @@ router.post('/enterprise/keys', apiKeyGenerationRateLimit, (req, res) => {
 
         if (adminSecret !== process.env.ADMIN_SECRET) {
             console.warn(`⚠️  Failed admin secret attempt from IP: ${req.ip}`);
-            return res.status(401).json({ 
+            return res.status(401).json({
                 error: 'Unauthorized',
                 message: 'Invalid admin secret'
             });

@@ -11,12 +11,15 @@ let pool = null;
  */
 export function getPool() {
   if (!pool && config.DATABASE_URL && config.DB_USE_DATABASE) {
+    // Remove channel_binding from connection string if present (not supported by pg library)
+    let connectionString = config.DATABASE_URL.replace(/&?channel_binding=require/g, '');
+
     pool = new Pool({
-      connectionString: config.DATABASE_URL,
-      ssl: config.DATABASE_URL?.includes('neon.tech') ? { rejectUnauthorized: false } : false,
+      connectionString,
+      ssl: connectionString?.includes('neon.tech') ? { rejectUnauthorized: false } : false,
       max: 20, // Maximum number of clients in the pool
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 10000, // Increased to 10s for cloud databases
     });
 
     // Handle pool errors
@@ -37,7 +40,7 @@ export async function query(text, params) {
   if (!pool) {
     throw new Error('Database connection not configured. Set DATABASE_URL environment variable.');
   }
-  
+
   const start = Date.now();
   try {
     const res = await pool.query(text, params);

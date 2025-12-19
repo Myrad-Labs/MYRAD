@@ -68,5 +68,33 @@
     "points": 500,
     "reason": "data_contribution",
     "createdAt": "2025-12-17T12:37:25.328Z"
+  },
+  {
+    "id": "1766142530396",
+    "userId": "1766142530395",
+    "points": 100,
+    "reason": "signup_bonus",
+    "createdAt": "2025-12-19T11:08:50.396Z"
+  },
+  {
+    "id": "1766163924470",
+    "userId": "1766163924469",
+    "points": 100,
+    "reason": "signup_bonus",
+    "createdAt": "2025-12-19T17:05:24.470Z"
+  },
+  {
+    "id": "1766164325885",
+    "userId": "1766163924469",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-19T17:12:05.885Z"
+  },
+  {
+    "id": "1766164325886",
+    "userId": "1766163924469",
+    "points": 500,
+    "reason": "data_contribution",
+    "createdAt": "2025-12-19T17:12:05.886Z"
   }
 ]
