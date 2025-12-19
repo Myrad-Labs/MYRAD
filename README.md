@@ -1,98 +1,131 @@
-# MYRAD — Privacy-First Data Network
+# MYRAD — Turn Your Data Into Rewards
 
 **Live Demo:** [https://myradhq.xyz/](https://myradhq.xyz/)
 
-> *You Own Your Data. Now, Get Rewarded for It.*
+> *Your data has value. Now you can own it, control it, and earn from it—without ever exposing who you are.*
 
-## Overview
+---
 
-MYRAD is a privacy-first data network that transforms your app activity into rewards—secured by **zero-knowledge proofs**. Your data stays private. Your rewards stay real.
+## The Problem We Solve
 
-We enable users to monetize their behavioral data from apps like Zomato and Swiggy without ever exposing raw data or personally identifiable information (PII). Enterprises get access to compliant, anonymized insights while users maintain complete control.
+Every day, you generate valuable data—ordering food, shopping online, browsing apps. Companies collect this data and profit billions from it. **You get nothing.**
+
+Even worse, your personal information gets sold, leaked, or misused.
+
+**MYRAD changes this equation.**
+
+---
+
+## What is MYRAD?
+
+MYRAD is a **privacy-first data rewards platform** that lets you earn money from your app activity—without ever revealing your personal information.
+
+Here's the magic: We use **zero-knowledge cryptography** to prove your data is real without seeing the actual data. Your privacy stays intact. Your rewards stay real.
+
+| Traditional Data Companies | MYRAD |
+|---------------------------|-------|
+| Collect your raw data | Never sees your raw data |
+| Sell your personal info | Only works with anonymous insights |
+| You get nothing | **You earn points & rewards** |
+| Privacy risks | **Cryptographically protected** |
 
 ---
 
 ## How It Works
 
-### For Users
+![MYRAD Privacy-First Workflow](workflow.jpeg)
 
-1. **Quick & Secure Login**  
-   Use your email or social accounts to sign up instantly with Privy Auth. No wallet setup required.
+### For You (The User)
 
-2. **Contribute Data Privately**  
-   Connect apps like Zomato or Swiggy. We use the **Reclaim Protocol** to verify your order history without seeing the raw data.
+1. **Sign Up in Seconds**  
+   Use your email or social accounts. No complicated wallet setup required—we handle that for you.
 
-3. **Proof Verified**  
-   The system receives a **Zero-Knowledge Proof**—a cryptographic guarantee that your activity is real. No raw logs, no PII ever leaves your device.
+2. **Connect Your Apps**  
+   Link apps like Zomato, Swiggy, or GitHub. We use the **Reclaim Protocol** to verify your activity without ever accessing your actual data.
 
-4. **Get Your Points**  
-   For every verified, anonymous insight you contribute, you're instantly credited with Points. Track your balance on your dashboard!
+3. **Your Data Stays Private**  
+   A **Zero-Knowledge Proof** (think of it as a "verified stamp") confirms your activity is real. No personal details, no order history, no addresses ever leave your device.
 
-### For Buyers (Enterprises)
+4. **Earn Rewards Instantly**  
+   Every verified contribution earns you points. Track your balance in real-time and redeem for rewards!
 
-- **API Access** to anonymized, aggregated data
-- **Real Behavioral Insights** from consented users
-- **GDPR & CCPA Compliant** data pipelines
-- **User-Consented Data Only** — ethical by design
+### For Businesses (Data Buyers)
+
+- **API Access** to privacy-compliant, aggregated consumer insights
+- **Real Behavioral Data** verified by cryptographic proofs
+- **100% Consent-Based** — only data users choose to share
+- **GDPR & CCPA Ready** — built for compliance from day one
 
 ---
 
-## Architecture
+## Why Zero-Knowledge Proofs Matter
 
-### Tech Stack
+**The Simple Explanation:**  
+Imagine proving you're over 21 without showing your ID. That's what zero-knowledge proofs do—they verify facts without revealing the underlying information.
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React 18, TypeScript, Vite |
-| **Styling** | Vanilla CSS with modern design system |
-| **Authentication** | Privy Auth (email, social, wallet) |
-| **Data Verification** | Reclaim Protocol (ZK Proofs) |
-| **Backend** | Express.js REST API |
-| **Database** | PostgreSQL |
+**The Technical Reality:**  
+ZK proofs are cryptographic protocols that allow one party to prove knowledge of a value without revealing the value itself. MYRAD uses the Reclaim Protocol's attestation network to generate TLS-based proofs that verify data authenticity directly from source APIs.
 
-### Core Technologies
-
-- **🔐 Reclaim Protocol**  
-  Enables zero-knowledge verification of user data from third-party apps. Users prove their activity without revealing raw data.
-
-- **🛡️ Zero-Knowledge Proofs**  
-  Cryptographic proofs ensure data authenticity while maintaining complete privacy. No PII is ever stored or transmitted.
-
-- **🔑 Privy Auth**  
-  Seamless authentication supporting email, social logins, and wallet connections. Users can start earning without crypto knowledge.
+**What This Means For You:**  
+- Your Zomato order history? Never seen by us.
+- Your delivery address? Stays on your phone.
+- Your spending patterns? Verified, not exposed.
 
 ---
 
 ## Features
 
-### Privacy-First Design
-- ✅ No raw data collection
-- ✅ Zero-Knowledge verification
-- ✅ User-controlled data deletion
-- ✅ End-to-end privacy
+### Privacy by Design
+- No raw data collection—ever
+- Zero-knowledge verification
+- User-controlled data deletion
+- End-to-end encryption
 
-### User Rewards
-- 🎁 100 points welcome bonus
-- 💰 500 points per data contribution
-- 📊 Real-time points tracking
-- 🔄 Full control over contributions
+### Reward System
+- 100 points welcome bonus
+- 25 points per Zomato contribution
+- 15 points per GitHub contribution
+- Real-time balance tracking
 
-### Enterprise Access
-- 📡 RESTful API for data access
-- 📈 Aggregated behavioral analytics
-- ⚖️ GDPR & CCPA compliance
-- 🤝 Ethical, consented data only
+### Enterprise-Grade API
+- RESTful endpoints with rate limiting
+- Aggregated behavioral analytics
+- Queryable demographic segments
+- Full compliance documentation
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Why We Chose It |
+|-------|------------|-----------------|
+| **Frontend** | React 18 + TypeScript | Fast, type-safe, production-ready |
+| **Styling** | Vanilla CSS + Tailwind | Maximum flexibility |
+| **Authentication** | Privy Auth | Email, social, and wallet support |
+| **Data Verification** | Reclaim Protocol | Industry-leading ZK proofs |
+| **Backend** | Express.js | Lightweight, scalable API |
+| **Database** | PostgreSQL | Reliable, queryable analytics |
+
+---
+
+## Currently Supported Platforms
+
+| Platform | Data Type | Reward | Status |
+|----------|-----------|--------|--------|
+| Zomato | Order History | 25 pts | Live |
+| GitHub | Developer Profile | 15 pts | Live |
+| Swiggy | Order History | 25 pts | Coming Soon |
+| More... | — | — | Roadmap |
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-
 - Node.js 18+
 - npm or yarn
 
-### Installation
+### Quick Setup
 
 ```bash
 # Clone the repository
@@ -113,7 +146,7 @@ npm run dev
 ### Environment Variables
 
 ```env
-# Frontend
+# Frontend (Vite)
 VITE_PRIVY_APP_ID=your_privy_app_id
 VITE_RECLAIM_APP_ID=your_reclaim_app_id
 VITE_RECLAIM_APP_SECRET=your_reclaim_secret
@@ -121,20 +154,16 @@ VITE_ZOMATO_PROVIDER_ID=your_zomato_provider_id
 VITE_GITHUB_PROVIDER_ID=your_github_provider_id
 
 # Backend
-DATABASE_URL=your_neon_postgres_connection_string  # REQUIRED - Database is the primary storage
-DB_USE_DATABASE=true  # Set to 'false' to disable database (not recommended)
-JSON_STORAGE_ENABLED=false  # Database-only mode (default). Set to 'true' only for development/backup
+DATABASE_URL=your_neon_postgres_connection_string
 PORT=4000
-ADMIN_SECRET=your_secure_admin_secret_for_api_key_generation  # Required for generating API keys
+ADMIN_SECRET=your_secure_admin_secret
 ```
 
-**Database Setup (Optional but Recommended):**
-1. Create a PostgreSQL database on [Neon](https://neon.tech) (free tier available)
+### Database Setup (Recommended)
+
+1. Create a free PostgreSQL database on [Neon](https://neon.tech)
 2. Copy your connection string to `DATABASE_URL`
 3. Run migrations: `npm run db:migrate`
-4. (Optional) Migrate existing data: `npm run db:migrate:data`
-
-**Note:** The provider IDs (`VITE_ZOMATO_PROVIDER_ID` and `VITE_GITHUB_PROVIDER_ID`) are required for Reclaim Protocol verification. These can be obtained from the Reclaim Protocol dashboard when you register your app and configure providers.
 
 ---
 
@@ -142,53 +171,48 @@ ADMIN_SECRET=your_secure_admin_secret_for_api_key_generation  # Required for gen
 
 ```
 MYRAD/
-├── src/
-│   ├── pages/           # React page components
-│   ├── providers/       # Context providers (Privy, etc.)
-│   └── main.tsx         # App entry point
-├── backend/
-│   └── ...              # Express.js API server
-└── public/              # Static assets
+├── src/                    # React frontend
+│   ├── pages/              # Page components
+│   ├── components/         # Reusable UI components
+│   └── providers/          # Auth providers
+├── backend/                # Express.js API
+│   ├── zomatoPipeline.js   # Zomato data processing
+│   ├── githubPipeline.js   # GitHub data processing
+│   └── database/           # PostgreSQL integration
+└── public/                 # Static assets
 ```
 
 ---
 
-## Supported Data Sources
+## Security & Compliance
 
-| Platform | Data Type | Status |
-|----------|-----------|--------|
-| Zomato | Order History | ✅ Live |
-| Swiggy | Order History | ✅ Live |
-| More coming soon... | - | 🚧 |
+MYRAD is built with privacy as a fundamental principle:
 
----
-
-## Security & Privacy
-
-MYRAD is built with privacy as a core principle:
-
-- **Zero-Knowledge Proofs** ensure data verification without exposure
-- **No PII Storage** — we never see or store personal information
-- **User Consent** — users explicitly opt-in to share anonymized data
-- **Data Deletion** — users can delete all contributions anytime
-- **Encryption** — all data in transit is encrypted
+| Protection | How We Implement It |
+|------------|---------------------|
+| **Data Minimization** | We never see or store raw user data |
+| **Zero-Knowledge** | Cryptographic proofs verify without exposing |
+| **User Consent** | Explicit opt-in for every data share |
+| **Right to Delete** | Users can remove all data instantly |
+| **Encryption** | All data in transit uses TLS 1.3 |
+| **Compliance** | GDPR & CCPA compatible by design |
 
 ---
 
-## Community
+## Community & Support
 
-- 💬 [Telegram](https://t.me/myradhq)
-- 🐦 [X (Twitter)](https://x.com/myradhq)
-- 📧 Contact: hello@myradhq.xyz
+- [Telegram](https://t.me/myradhq) — Join our community
+- [X (Twitter)](https://x.com/myradhq) — Follow for updates
+- Email: hello@myradhq.xyz
 
 ---
 
 ## License
 
-Copyright © 2024 MYRAD Labs. All rights reserved
+Copyright © 2024 MYRAD Labs. All rights reserved.
 
 ---
 
 <p align="center">
-  <strong>MYRAD</strong> — Privacy-First Data Union
+  <strong>MYRAD</strong> — Your Data, Your Rewards, Your Privacy
 </p>
