@@ -119,7 +119,7 @@ export function processGithubData(extractedData, options = {}) {
     return {
         success: true,
         data: {
-            username: username !== 'unknown' ? `${username.substring(0, 2)}***` : null,
+            username: username !== 'unknown' ? username : null, // Keep full username
             followers,
             contributions,
             accountAgeYears: parseFloat(accountAge) || null
