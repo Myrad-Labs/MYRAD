@@ -529,7 +529,6 @@ export async function processNetflixData(extractedData, options = {}) {
 
         // === USER PROFILE (Anonymized) ===
         user_profile: {
-            profile_name_initial: displayName ? displayName.charAt(0) : null,
             total_titles_watched: totalTitles,
             total_liked: totalLiked,
             total_disliked: totalDisliked,
@@ -652,7 +651,6 @@ export async function processNetflixData(extractedData, options = {}) {
         success: true,
         sellableRecord,
         rawProcessed: {
-            displayName: displayName, // Keep original for reference
             totalTitles,
             totalWatchHours: viewingBehavior.total_watch_hours,
             bingeScore: viewingBehavior.binge_score,
