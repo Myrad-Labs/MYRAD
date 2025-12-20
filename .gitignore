@@ -39,9 +39,16 @@ typechain-types
 backend/db.json
 backend/lastBlock.json
 
+# Data files (contain user data, API keys, etc.)
+backend/data/*.json
+backend/data/**/*.json
+!backend/data/**/contributions.json.example
+!backend/schemas/*.json
+
 # Logs
 *.log
 backend.log
+backend/server.log
 
 # OS files
 .DS_Store
