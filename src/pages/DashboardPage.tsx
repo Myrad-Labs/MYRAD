@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { Coins, TrendingUp, Loader2, Zap, CheckCircle, RefreshCw, Wallet, Copy, X, Sparkles, Award, Clock, ExternalLink, AlertCircle } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
+import github from "../assets/github.png";
+import zomato from "../assets/zomato.png";
+import netflix from "../assets/netflix.png";
 // Toast notification type
 type ToastType = 'success' | 'error' | 'info';
 interface ToastState {
@@ -20,30 +23,34 @@ const PROVIDERS = [
     name: 'Zomato',
     description: 'Order History',
     providerId: import.meta.env.VITE_ZOMATO_PROVIDER_ID || '',
-    color: '#ffffff',
+color: '#000000',
     bgGradient: 'linear-gradient(135deg, #333333 0%, #000000 100%)',
     points: 10, // Updated to match new reward system (base points)
-    dataType: 'zomato_order_history'
+    dataType: 'zomato_order_history',
+    logo: zomato
   },
   {
     id: 'github',
     name: 'GitHub',
     description: 'Developer Profile',
     providerId: import.meta.env.VITE_GITHUB_PROVIDER_ID || '',
-    color: '#ffffff',
+color: '#000000',
     bgGradient: 'linear-gradient(135deg, #24292e 0%, #0d1117 100%)',
     points: 15,
-    dataType: 'github_profile'
+    dataType: 'github_profile',
+    logo: github
+
   },
   {
     id: 'netflix',
     name: 'Netflix',
     description: 'Watch History & Ratings',
     providerId: import.meta.env.VITE_NETFLIX_PROVIDER_ID || '',
-    color: '#ffffff',
+    color: '#000000',
     bgGradient: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)',
     points: 20,
-    dataType: 'netflix_watch_history'
+    dataType: 'netflix_watch_history',
+    logo: netflix
   }
 ];
 
@@ -295,6 +302,8 @@ const DashboardPage = () => {
   }
 
   return (
+
+    
     <div className="dashboard">
       <style>{styles}</style>
 
@@ -400,26 +409,38 @@ const DashboardPage = () => {
             <section className="contribute-section">
               <div className="section-header">
                 <h2><Sparkles size={20} /> Contribute & Earn</h2>
-                <p>Verify your food delivery data to earn points</p>
+                <p>Verify your data to earn points</p>
               </div>
 
-              <div className="providers-grid">
-                {PROVIDERS.map((provider) => (
-                  <div
-                    key={provider.id}
-                    className={`provider-card ${activeProvider === provider.id ? 'active' : ''}`}
-                    style={{ '--provider-color': provider.color } as React.CSSProperties}
-                  >
-                    <div className="provider-header">
-                      <div className="provider-info">
-                        <h3>{provider.name}</h3>
-                        <span>{provider.description}</span>
-                      </div>
-                      <div className="provider-reward">
-                        <span className="reward-value">+{provider.points}</span>
-                        <span className="reward-label">points</span>
-                      </div>
-                    </div>
+          <div className="providers-grid">
+  {PROVIDERS.map((provider) => (
+    <div
+      key={provider.id}
+      className={`provider-card ${
+        activeProvider === provider.id ? "active" : ""
+      }`}
+      style={{ "--provider-color": provider.color } as React.CSSProperties}
+    >
+   <div className="provider-header">
+  <div className="provider-info">
+    <div className="provider-name-row">
+      <img
+        src={provider.logo}
+        alt={`${provider.name} logo`}
+        className="provider-logo"
+      />
+      <h3 className="provider-name">{provider.name}</h3>
+    </div>
+
+    <span className="provider-desc">{provider.description}</span>
+  </div>
+
+  <div className="provider-reward">
+    <span className="reward-value">+{provider.points}</span>
+    <span className="reward-label">points</span>
+  </div>
+</div>
+    
 
                     {/* QR Code Section */}
                     {activeProvider === provider.id && verificationUrl && (
@@ -483,7 +504,7 @@ const DashboardPage = () => {
                 ) : (
                   <div className="empty-state">
                     <p>No contributions yet</p>
-                    <span>Verify your Zomato data above to earn points!</span>
+                    <span>Verify your data above to earn points!</span>
                   </div>
                 )}
               </div>
@@ -500,7 +521,35 @@ const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  
+.provider-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.provider-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.provider-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.provider-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.provider-desc {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
   .dashboard {
     min-height: 100vh;
     background: #f8f9fa;
