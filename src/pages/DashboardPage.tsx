@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
-import { Coins, TrendingUp, Loader2, Zap, CheckCircle, RefreshCw, Wallet, Copy, X, Sparkles, Award, Clock, ExternalLink, AlertCircle } from 'lucide-react';
+import { TrendingUp, Loader2, CheckCircle, RefreshCw, Wallet, Copy, X, Sparkles, Award, Clock, ExternalLink, AlertCircle } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -463,7 +463,7 @@ const DashboardPage = () => {
                       {contributing === provider.id ? (
                         <><Loader2 size={16} className="spin" /> Verifying...</>
                       ) : (
-                        <><Zap size={16} /> Verify {provider.name}</>
+                        <> Verify {provider.name}</>
                       )}
                     </button>
                   </div>

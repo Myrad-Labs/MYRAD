@@ -29,79 +29,177 @@ const PrivacyPolicyPage = () => {
                     </h1>
                 </div>
 
-<p style={{ color: 'rgba(0,0,0,0.6)', marginBottom: '48px' }}>
-                    Last updated: December 2024
+                <p style={{ color: 'rgba(0,0,0,0.6)', marginBottom: '48px' }}>
+                    Last updated: [Date]
                 </p>
 
                 <div style={{ color: 'rgba(0,0,0,0.6)', lineHeight: 1.8 }}>
+
                     <section style={{ marginBottom: '40px' }}>
                         <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
-                            1. Our Commitment to Privacy
+                            1. Introduction
                         </h2>
                         <p>
-                            At MYRAD, privacy is not just a feature—it's our foundation. We use zero-knowledge proofs
-                            and the Reclaim Protocol to ensure your personal data never leaves your device. Only
-                            cryptographic proofs of your activity are shared, never the underlying data.
+                            MYRAD is a privacy first platform that enables users to verify certain aspects of their
+                            digital activity and contribute aggregated, anonymized insights to businesses.
+                        </p>
+                        <p>
+                            We are committed to protecting user privacy by design. We do not collect, store, or sell
+                            raw personal data. This Privacy Policy explains what information we process, how we
+                            process it, and the choices you have.
                         </p>
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
                         <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
-                            2. What We Collect
+                            2. Core Privacy Principles
                         </h2>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
-                            <li style={{ marginBottom: '8px' }}>Email address (for account management via Privy Auth)</li>
-                            <li style={{ marginBottom: '8px' }}>Zero-knowledge proofs (cryptographic verifications, not raw data)</li>
-                            <li style={{ marginBottom: '8px' }}>Points balance and contribution history</li>
-                            <li style={{ marginBottom: '8px' }}>Usage analytics (anonymized)</li>
+                            <li>- No raw personal data collection</li>
+                            <li>- Verification without exposure using cryptographic methods</li>
+                            <li>- User consent for every contribution</li>
+                            <li>- Aggregation and anonymization by default</li>
+                            <li>- User control and right to disconnect</li>
                         </ul>
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
                         <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
-                            3. What We Never Collect
+                            3. Information We Do Not Collect
                         </h2>
+                        <p>MYRAD does <strong>not</strong> collect or store:</p>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
-                            <li style={{ marginBottom: '8px' }}>Raw activity logs from connected apps</li>
-                            <li style={{ marginBottom: '8px' }}>Personal identifiable information (PII) from proofs</li>
-                            <li style={{ marginBottom: '8px' }}>Location tracking data</li>
-                            <li style={{ marginBottom: '8px' }}>Browsing history or cookies for tracking</li>
+                            <li>- Passwords or login credentials of connected platforms</li>
+                            <li>- Raw activity histories such as watch lists, messages, or transactions</li>
+                            <li>- Content of communications</li>
+                            <li>- Contacts or social graphs</li>
+                            <li>- Location tracking data</li>
                         </ul>
-                    </section>
-
-                    <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
-                            4. Data Security
-                        </h2>
                         <p>
-                            All data transmissions are encrypted using industry-standard TLS. Zero-knowledge proofs
-                            ensure that even if our systems were compromised, your personal data would remain protected
-                            as we simply don't have it.
+                            Verification happens through secure, user initiated flows and cryptographic proofs.
                         </p>
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
                         <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
-                            5. Your Rights
+                            4. Information We Process
                         </h2>
-                        <p>You have the right to:</p>
+                        <p>
+                            When you choose to connect an external platform, MYRAD may process the following
+                            <strong> derived and non identifying information</strong>:
+                        </p>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
-                            <li style={{ marginBottom: '8px' }}>Access your account data at any time</li>
-                            <li style={{ marginBottom: '8px' }}>Delete your account and all associated data</li>
-                            <li style={{ marginBottom: '8px' }}>Withdraw from data contributions</li>
-                            <li style={{ marginBottom: '8px' }}>Export your points history</li>
+                            <li>- Aggregated activity metrics</li>
+                            <li>- Preference and engagement tiers</li>
+                            <li>- Behavioral patterns at a cohort level</li>
+                            <li>- Cryptographic proof metadata confirming verification</li>
                         </ul>
+                        <p>
+                            This information is processed in a way that prevents identification of individual users.
+                        </p>
+                    </section>
+
+                    <section style={{ marginBottom: '40px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                            5. Verification and Zero Knowledge Proofs
+                        </h2>
+                        <p>
+                            MYRAD uses cryptographic verification mechanisms, including zero knowledge proofs,
+                            to confirm that certain activity occurred without revealing the underlying data.
+                        </p>
+                        <p>
+                            Verification is performed without MYRAD accessing or storing the original content
+                            of your activity.
+                        </p>
+                    </section>
+
+                    <section style={{ marginBottom: '40px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                            6. Use of Aggregated Insights
+                        </h2>
+                        <p>
+                            Aggregated and anonymized insights may be shared with business customers in the
+                            form of cohort level intelligence.
+                        </p>
+                        <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
+                            <li>- Cannot be traced back to an individual</li>
+                            <li>- Do not include personal identifiers</li>
+                            <li>- Are delivered only after minimum aggregation thresholds are met</li>
+                        </ul>
+                        <p><strong>MYRAD does not sell personal data.</strong></p>
+                    </section>
+
+                    <section style={{ marginBottom: '40px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                            7. Data Retention
+                        </h2>
+                        <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
+                            <li>- Proof metadata and derived signals are retained only as long as necessary for platform operation</li>
+                            <li>- Users may disconnect linked platforms at any time</li>
+                            <li>- Upon disconnection, future verification and contribution stops immediately</li>
+                        </ul>
+                    </section>
+
+                    <section style={{ marginBottom: '40px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                            8. User Rights
+                        </h2>
+                        <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
+                            <li>- Understand what information is processed</li>
+                            <li>- Withdraw consent at any time</li>
+                            <li>- Disconnect linked platforms</li>
+                            <li>- Request deletion of associated records</li>
+                        </ul>
+                    </section>
+
+                    <section style={{ marginBottom: '40px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                            9. Security Measures
+                        </h2>
+                        <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
+                            <li>- Encrypted connections using TLS</li>
+                            <li>- Access controls and rate limiting</li>
+                            <li>- Secure infrastructure and monitoring</li>
+                        </ul>
+                        <p>
+                            Despite our efforts, no system is completely secure. Users acknowledge inherent risks
+                            of online systems.
+                        </p>
+                    </section>
+
+                    <section style={{ marginBottom: '40px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                            10. Regulatory Compliance
+                        </h2>
+                        <p>
+                            MYRAD is designed to align with applicable privacy regulations, including GDPR and
+                            CCPA principles, through data minimization and anonymization.
+                        </p>
+                    </section>
+
+                    <section style={{ marginBottom: '40px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                            11. Changes to This Policy
+                        </h2>
+                        <p>
+                            We may update this Privacy Policy from time to time. Changes will be posted on this
+                            page with an updated date.
+                        </p>
                     </section>
 
                     <section>
                         <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
-                            6. Contact Us
+                            12. Contact
                         </h2>
                         <p>
-                            For privacy-related questions, please contact us through our{' '}
-                            <Link to="/contact" style={{ color: accent }}>contact form</Link>.
+                            For privacy related questions, please contact us through our{' '}
+                            <Link to="/contact" style={{ color: accent }}>
+                                contact form
+                            </Link>.
                         </p>
                     </section>
+
+
                 </div>
             </main>
 
