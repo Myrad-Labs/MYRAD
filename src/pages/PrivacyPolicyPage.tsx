@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import Waves from '../components/DynamicBackground';
 
 const PrivacyPolicyPage = () => {
     const accent = '#4F46E5';
@@ -11,9 +12,25 @@ const PrivacyPolicyPage = () => {
             background: '#fff',
             minHeight: '100vh',
             color: '#1a1a1a',
-            fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            overflowX: 'hidden',
+            position: 'relative'
         }}>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            {/* Dynamic Waves Background */}
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
+                <Waves
+                    lineColor="rgba(0,0,0,0.04)"
+                    backgroundColor="#ffffff"
+                    waveSpeedX={0.01}
+                    waveSpeedY={0.005}
+                    waveAmpX={30}
+                    waveAmpY={15}
+                    friction={0.95}
+                    tension={0.01}
+                    maxCursorMove={100}
+                    xGap={10}
+                    yGap={30}
+                />
+            </div>
 
             <Header />
 
@@ -205,6 +222,7 @@ const PrivacyPolicyPage = () => {
 
             <Footer />
         </div>
+
     );
 };
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Shield, Users, Target, Sparkles } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import Waves from '../components/DynamicBackground';
 
 const AboutPage = () => {
     const [isVisible, setIsVisible] = useState(false);
@@ -17,14 +18,29 @@ const AboutPage = () => {
         <div style={{
             background: '#fff',
             minHeight: '100vh',
-            color: '#1a1a1a',
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+            position: 'relative',
+            overflowX: 'hidden'
         }}>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            {/* Dynamic Waves Background */}
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
+                <Waves
+                    lineColor="rgba(0,0,0,0.04)"
+                    backgroundColor="#ffffff"
+                    waveSpeedX={0.01}
+                    waveSpeedY={0.005}
+                    waveAmpX={30}
+                    waveAmpY={15}
+                    friction={0.95}
+                    tension={0.01}
+                    maxCursorMove={100}
+                    xGap={10}
+                    yGap={30}
+                />
+            </div>
 
             <style>{`
-                * { font-family: 'Inter', -apple-system, sans-serif; }
-                h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+                * { font-family: inherit; }
+                h1, h2, h3 { font-family: inherit; }
 
                 @keyframes fadeInUp {
                     from {
@@ -85,7 +101,7 @@ const AboutPage = () => {
                                 fontSize: '42px',
                                 fontWeight: 700,
                                 marginBottom: '16px',
-                                fontFamily: "'Space Grotesk', sans-serif"
+
                             }}>
                                 About <span style={{ color: accent }}>MYRAD</span>
                             </h1>

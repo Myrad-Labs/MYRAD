@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Database, ArrowRight } from 'lucide-react';
+import { Shield, Lock, Database } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Waves from '../components/DynamicBackground';
@@ -8,7 +8,7 @@ import Waves from '../components/DynamicBackground';
 const LandingPage = () => {
     const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState(false);
-    const [isButtonHovered, setIsButtonHovered] = useState(false);
+
 
     useEffect(() => {
         setTimeout(() => setIsVisible(true), 100);
@@ -22,12 +22,12 @@ const LandingPage = () => {
         <div style={{
             minHeight: '100vh',
             color: '#111827',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontFamily: '"Satoshi", sans-serif',
             overflowX: 'hidden',
             position: 'relative',
             background: '#ffffff'
         }}>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+            <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet" />
 
             <style>{`
                 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,7 +84,7 @@ const LandingPage = () => {
             {/* Dynamic Waves Background */}
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
                 <Waves
-                    lineColor="rgba(0,0,0,0.11)"
+                    lineColor="rgba(0,0,0,0.04)"
                     backgroundColor="#ffffff"
                     waveSpeedX={0.01}
                     waveSpeedY={0.005}
@@ -113,8 +113,8 @@ const LandingPage = () => {
                                 letterSpacing: '-0.02em',
                                 color: '#111827',
                             }}>
-                                Verified Human Behavior Data<br />
-                                Without Personal Information
+                                Human Data<br />
+                                Without Surveillance
                             </h1>
                         )}
                         {isVisible && (
@@ -126,26 +126,16 @@ const LandingPage = () => {
                                 margin: '0 auto 48px',
                                 fontWeight: 400
                             }}>
-                                Powering the world's leading AI companies, governments, and research institutions with data sourced from verified contributors, cryptographically proven and privacy-preserving.
-                            </p>
+                                Cryptographically verified human data, without collecting personal information.                        </p>
                         )}
                         {isVisible && (
                             <div className="animate-fadeInUp delay-300" style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
                                 <button
                                     onClick={handleContributorClick}
                                     className="btn-primary"
-                                    onMouseEnter={() => setIsButtonHovered(true)}
-                                    onMouseLeave={() => setIsButtonHovered(false)}
                                     style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
                                 >
                                     Become A Contributor
-                                </button>
-                                <button
-                                    onClick={() => navigate('/buyers')}
-                                    className="btn-secondary"
-                                    style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                >
-                                    Explore Datasets <ArrowRight size={16} />
                                 </button>
                             </div>
                         )}
@@ -153,7 +143,7 @@ const LandingPage = () => {
 
                     {/* Minimal Branding at bottom */}
                     <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, textAlign: 'center', opacity: 0.4 }}>
-                        <span style={{ fontSize: '12px', color: '#9ca3af', letterSpacing: '0.1em', fontWeight: 600 }}>BACKED BY RESEARCHERS FROM TOP INSTITUTIONS</span>
+                        <span style={{ fontSize: '12px', color: '#9ca3af', letterSpacing: '0.1em', fontWeight: 600 }}>BACKED BY HUMANS</span>
                     </div>
                 </section>
 

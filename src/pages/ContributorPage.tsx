@@ -75,13 +75,13 @@ const ContributorPage = () => {
         <div style={{
             minHeight: '100vh',
             color: '#1a1a1a',
-            fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+
             overflowX: 'hidden',
             position: 'relative'
         }}>
 
             <DynamicBackground />
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
 
             <style>{`
                 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -104,7 +104,7 @@ const ContributorPage = () => {
                 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); }
                 .btn-secondary { background: transparent; border: 1px solid rgba(0, 0, 0, 0.2); color: #1a1a1a; font-weight: 500; cursor: pointer; transition: all 0.3s; }
                 .btn-secondary:hover { background: rgba(0, 0, 0, 0.05); border-color: rgba(0, 0, 0, 0.35); }
-                .step-number { position: absolute; top: 24px; right: 24px; font-size: 64px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; color: rgba(0, 0, 0, 0.04); line-height: 1; }
+                .step-number { position: absolute; top: 24px; right: 24px; font-size: 64px; font-weight: 800; font-family: inherit; color: rgba(0, 0, 0, 0.04); line-height: 1; }
                 @media (max-width: 768px) { .characters-container { display: none !important; } }
                 html { scroll-behavior: smooth; }
                 .characters-container { position: fixed; left: 30px; bottom: 20px; width: 320px; height: 300px; z-index: 100; pointer-events: none; }
@@ -129,7 +129,7 @@ const ContributorPage = () => {
                             </div>
                         )}
                         {isVisible && (
-                            <h1 className="animate-fadeInUp delay-200" style={{ fontSize: '68px', fontWeight: 700, lineHeight: 1.05, marginBottom: '24px', letterSpacing: '-0.04em', color: '#1a1a1a', fontFamily: 'Space Grotesk, sans-serif' }}>
+                            <h1 className="animate-fadeInUp delay-200" style={{ fontSize: '68px', fontWeight: 700, lineHeight: 1.05, marginBottom: '24px', letterSpacing: '-0.04em', color: '#1a1a1a', fontFamily: 'inherit' }}>
                                 Earn from your digital activities<br />without exposing your privacy
                             </h1>
                         )}
@@ -192,7 +192,7 @@ const ContributorPage = () => {
                 <section id="how-it-works" style={{ padding: '120px 24px', borderTop: '1px solid rgba(0,0,0,0.08)', position: 'relative' }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                         <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-                            <h2 style={{ fontSize: '44px', fontWeight: 700, marginBottom: '16px', letterSpacing: '-0.03em', color: '#1a1a1a', fontFamily: 'Space Grotesk, sans-serif' }}>Simple. Secure. Rewarding.</h2>
+                            <h2 style={{ fontSize: '44px', fontWeight: 700, marginBottom: '16px', letterSpacing: '-0.03em', color: '#1a1a1a', fontFamily: 'inherit' }}>Simple. Secure. Rewarding.</h2>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                             {steps.map((step, i) => (
@@ -211,7 +211,7 @@ const ContributorPage = () => {
 
                 <section style={{ padding: '140px 24px', borderTop: '1px solid rgba(0,0,0,0.08)', textAlign: 'center' }}>
                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                        <h2 style={{ fontSize: '48px', fontWeight: 700, marginBottom: '20px', letterSpacing: '-0.03em', color: '#1a1a1a', fontFamily: 'Space Grotesk, sans-serif' }}>Ready to Own Your Data?</h2>
+                        <h2 style={{ fontSize: '48px', fontWeight: 700, marginBottom: '20px', letterSpacing: '-0.03em', color: '#1a1a1a', fontFamily: 'inherit' }}>Ready to Own Your Data?</h2>
                         <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '20px 48px', borderRadius: '14px', fontSize: '17px', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
                             <Sparkles size={18} /> Get Started Free <ArrowRight size={18} />
                         </button>

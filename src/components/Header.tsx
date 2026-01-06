@@ -23,12 +23,7 @@ const Header = () => {
         }
     };
 
-    const navLinks = [
-        { label: 'For Users', href: '/' },
-        { label: 'For Buyers', href: '/buyers' },
-        { label: 'Docs', href: 'https://docs.myradhq.xyz' },
-        { label: 'About', href: '/about' },
-    ];
+
 
     return (
         <>
@@ -95,37 +90,44 @@ const Header = () => {
                     }}
                 >
                     {/* Left: logo */}
-                    <Link to="/" style={{ textDecoration: 'none' }}>
-                        <img
-                            src="/images/navlogo.jpg"
-                            alt="MYRAD logo"
-                            loading="lazy"
-                            style={{
-                                height: '30px',
-                                objectFit: 'contain'
-                            }}
-                        />
-                    </Link>
+                    <div style={{ flex: 1 }}>
+                        <Link to="/" style={{ textDecoration: 'none' }}>
+                            <img
+                                src="/images/navlogo.jpg"
+                                alt="MYRAD logo"
+                                loading="lazy"
+                                style={{
+                                    height: '30px',
+                                    objectFit: 'contain'
+                                }}
+                            />
+                        </Link>
+                    </div>
 
-                    {/* Right: nav + button + mobile toggle */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <nav
-                            className="desktop-nav"
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                        >
-                            {navLinks.map((link, i) =>
-                                link.href.startsWith('#') ? (
-                                    <a key={i} href={link.href} className="nav-link">
-                                        {link.label}
-                                    </a>
-                                ) : (
-                                    <Link key={i} to={link.href} className="nav-link">
-                                        {link.label}
-                                    </Link>
-                                )
-                            )}
-                        </nav>
+                    {/* Center: nav */}
+                    <nav
+                        className="desktop-nav"
+                        style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
+                    >
+                        {[
+                            { label: 'For Users', href: '/' },
+                            { label: 'Docs', href: 'https://docs.myradhq.xyz' },
+                            { label: 'About', href: '/about' },
+                        ].map((link, i) =>
+                            link.href.startsWith('#') || link.href.startsWith('http') ? (
+                                <a key={i} href={link.href} className="nav-link" target={link.href.startsWith('http') ? "_blank" : "_self"} rel={link.href.startsWith('http') ? "noopener noreferrer" : ""}>
+                                    {link.label}
+                                </a>
+                            ) : (
+                                <Link key={i} to={link.href} className="nav-link">
+                                    {link.label}
+                                </Link>
+                            )
+                        )}
+                    </nav>
 
+                    {/* Right: button + mobile toggle */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px' }}>
                         <button
                             onClick={handleGetStarted}
                             className="btn-primary contribute-btn"
@@ -175,9 +177,13 @@ const Header = () => {
                         borderBottom: '1px solid rgba(0,0,0,0.08)',
                         padding: '20px 24px'
                     }}>
-                        {navLinks.map((link, i) => (
-                            link.href.startsWith('#') ? (
-                                <a key={i} href={link.href} className="nav-link" style={{ display: 'block', padding: '14px 0' }} onClick={() => setMobileMenuOpen(false)}>{link.label}</a>
+                        {[
+                            { label: 'For Users', href: '/' },
+                            { label: 'Docs', href: 'https://docs.myradhq.xyz' },
+                            { label: 'About', href: '/about' },
+                        ].map((link, i) => (
+                            link.href.startsWith('#') || link.href.startsWith('http') ? (
+                                <a key={i} href={link.href} className="nav-link" style={{ display: 'block', padding: '14px 0' }} onClick={() => setMobileMenuOpen(false)} target={link.href.startsWith('http') ? "_blank" : "_self"}>{link.label}</a>
                             ) : (
                                 <Link key={i} to={link.href} className="nav-link" style={{ display: 'block', padding: '14px 0' }} onClick={() => setMobileMenuOpen(false)}>{link.label}</Link>
                             )

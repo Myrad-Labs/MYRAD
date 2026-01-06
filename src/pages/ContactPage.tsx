@@ -15,6 +15,7 @@ import {
 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import Waves from '../components/DynamicBackground';
 
 
 const ContactPage = () => {
@@ -22,10 +23,10 @@ const ContactPage = () => {
 
   const [isVisible, setIsVisible] = useState(false);
 
-useEffect(() => {
-  const t = setTimeout(() => setIsVisible(true), 100);
-  return () => clearTimeout(t);
-}, []);
+  useEffect(() => {
+    const t = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(t);
+  }, []);
 
 
   const [formData, setFormData] = useState({
@@ -105,16 +106,14 @@ useEffect(() => {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '24px',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-          color: '#000'
+          fontFamily: "inherit",
+          color: '#000',
+          position: 'relative'
 
-          
+
         }}
       >
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
+
 
         <div style={{ textAlign: 'center', maxWidth: '500px' }}>
           <div
@@ -137,7 +136,7 @@ useEffect(() => {
               fontSize: '32px',
               fontWeight: 700,
               marginBottom: '16px',
-              fontFamily: "'Space Grotesk', sans-serif"
+
             }}
           >
             Inquiry Submitted!
@@ -183,14 +182,25 @@ useEffect(() => {
       style={{
         background: '#fff',
         minHeight: '100vh',
-        color: '#000',
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
-      }}
-    >
-      <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
+        position: 'relative',
+        overflowX: 'hidden'
+      }}>
+      {/* Dynamic Waves Background */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
+        <Waves
+          lineColor="rgba(0,0,0,0.04)"
+          backgroundColor="#ffffff"
+          waveSpeedX={0.01}
+          waveSpeedY={0.005}
+          waveAmpX={30}
+          waveAmpY={15}
+          friction={0.95}
+          tension={0.01}
+          maxCursorMove={100}
+          xGap={10}
+          yGap={30}
+        />
+      </div>
 
       <style>{`
         * { font-family: 'Inter', -apple-system, sans-serif; }
@@ -264,158 +274,160 @@ useEffect(() => {
       `}</style>
 
       {/* Header */}
-<Header/>
-      {/* Main */}
-<main
-  className={isVisible ? 'animate-fadeInUp delay-100' : ''}
-  style={{ maxWidth: '600px', margin: '0 auto', padding: '80px 24px' }}
->
-        {/* Page Header */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '16px',
-              background: 'rgba(0,0,0,0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px'
-            }}
-          >
-            <Mail size={32} color={purple} />
-          </div>
-
-          <h1 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '16px' }}>
-            Access <span style={{ color: purple }}>Exclusive</span> Intelligence
-          </h1>
-
-          <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: '16px' }}>
-            Fill out the form below and our team will reach out to discuss your data needs.
-          </p>
-        </div>
-
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            background: '#fff',
-            border: '1px solid rgba(0,0,0,0.1)',
-            borderRadius: '24px',
-            padding: '40px'
-          }}
+      <div style={{ position: 'relative', zIndex: 10 }}>
+        <Header />
+        {/* Main */}
+        <main
+          className={isVisible ? 'animate-fadeInUp delay-100' : ''}
+          style={{ maxWidth: '600px', margin: '0 auto', padding: '80px 24px' }}
         >
-          {error && (
+          {/* Page Header */}
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <div
               style={{
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.2)',
-                borderRadius: '10px',
-                padding: '14px 18px',
-                marginBottom: '24px',
-                color: '#ef4444',
-                fontSize: '14px'
+                width: '64px',
+                height: '64px',
+                borderRadius: '16px',
+                background: 'rgba(0,0,0,0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 24px'
               }}
             >
-              {error}
+              <Mail size={32} color={purple} />
             </div>
-          )}
 
-          {/* Name */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
-              <User size={16} /> Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Your full name"
-              className="input-field"
-              required
-            />
+            <h1 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '16px' }}>
+              Access <span style={{ color: purple }}>Exclusive</span> Intelligence
+            </h1>
+
+            <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: '16px' }}>
+              Fill out the form below and our team will reach out to discuss your data needs.
+            </p>
           </div>
 
-          {/* Company */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
-              <Building2 size={16} /> Company
-            </label>
-            <input
-              type="text"
-              name="company"
-              value={formData.company}
-              onChange={handleChange}
-              placeholder="Your company name"
-              className="input-field"
-              required
-            />
-          </div>
-
-          {/* Email */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
-              <Mail size={16} /> Work Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="you@company.com"
-              className="input-field"
-              required
-            />
-          </div>
-
-          {/* Industry */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
-              <Briefcase size={16} /> Industry
-            </label>
-            <select
-              name="industry"
-              value={formData.industry}
-              onChange={handleChange}
-              className="input-field"
-            >
-              <option value="">Select your industry</option>
-              {industries.map((industry, i) => (
-                <option key={i} value={industry}>
-                  {industry}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Message */}
-          <div style={{ marginBottom: '32px' }}>
-            <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
-              <MessageSquare size={16} /> Message
-            </label>
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              placeholder="What data are you looking for?"
-              className="input-field"
-              rows={5}
-            />
-          </div>
-
-          <button type="submit" disabled={submitting} className="btn-submit">
-            {submitting ? 'Sending...' : (
-              <>
-                <Send size={18} /> Send Inquiry
-              </>
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit}
+            style={{
+              background: '#fff',
+              border: '1px solid rgba(0,0,0,0.1)',
+              borderRadius: '24px',
+              padding: '40px'
+            }}
+          >
+            {error && (
+              <div
+                style={{
+                  background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  borderRadius: '10px',
+                  padding: '14px 18px',
+                  marginBottom: '24px',
+                  color: '#ef4444',
+                  fontSize: '14px'
+                }}
+              >
+                {error}
+              </div>
             )}
-          </button>
-        </form>
 
-      </main>
-      <Footer/>
+            {/* Name */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
+                <User size={16} /> Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Your full name"
+                className="input-field"
+                required
+              />
+            </div>
+
+            {/* Company */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
+                <Building2 size={16} /> Company
+              </label>
+              <input
+                type="text"
+                name="company"
+                value={formData.company}
+                onChange={handleChange}
+                placeholder="Your company name"
+                className="input-field"
+                required
+              />
+            </div>
+
+            {/* Email */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
+                <Mail size={16} /> Work Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="you@company.com"
+                className="input-field"
+                required
+              />
+            </div>
+
+            {/* Industry */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
+                <Briefcase size={16} /> Industry
+              </label>
+              <select
+                name="industry"
+                value={formData.industry}
+                onChange={handleChange}
+                className="input-field"
+              >
+                <option value="">Select your industry</option>
+                {industries.map((industry, i) => (
+                  <option key={i} value={industry}>
+                    {industry}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Message */}
+            <div style={{ marginBottom: '32px' }}>
+              <label style={{ display: 'flex', gap: '8px', marginBottom: '10px', fontSize: '14px', fontWeight: 500 }}>
+                <MessageSquare size={16} /> Message
+              </label>
+              <textarea
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="What data are you looking for?"
+                className="input-field"
+                rows={5}
+              />
+            </div>
+
+            <button type="submit" disabled={submitting} className="btn-submit">
+              {submitting ? 'Sending...' : (
+                <>
+                  <Send size={18} /> Send Inquiry
+                </>
+              )}
+            </button>
+          </form>
+
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 };
