@@ -83,84 +83,84 @@ const Header = () => {
                 borderBottom: scrollY > 50 ? '1px solid rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.4s ease'
             }}>
-<div
-    style={{
-        maxWidth: '1280px',
-        margin: '0 auto',
-        padding: '20px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '24px'
-    }}
->
-    {/* Left: logo */}
-    <Link to="/" style={{ textDecoration: 'none' }}>
-        <img
-            src="/images/navlogo.jpg"
-            alt="MYRAD logo"
-            loading="lazy"
-            style={{
-                height: '30px',
-                objectFit: 'contain'
-            }}
-        />
-    </Link>
-
-    {/* Right: nav + button + mobile toggle */}
-    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <nav
-            className="desktop-nav"
-            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-            {navLinks.map((link, i) =>
-                link.href.startsWith('#') ? (
-                    <a key={i} href={link.href} className="nav-link">
-                        {link.label}
-                    </a>
-                ) : (
-                    <Link key={i} to={link.href} className="nav-link">
-                        {link.label}
+                <div
+                    style={{
+                        maxWidth: '1280px',
+                        margin: '0 auto',
+                        padding: '20px 24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '24px'
+                    }}
+                >
+                    {/* Left: logo */}
+                    <Link to="/" style={{ textDecoration: 'none' }}>
+                        <img
+                            src="/images/navlogo.jpg"
+                            alt="MYRAD logo"
+                            loading="lazy"
+                            style={{
+                                height: '30px',
+                                objectFit: 'contain'
+                            }}
+                        />
                     </Link>
-                )
-            )}
-        </nav>
 
-        <button
-            onClick={handleGetStarted}
-            className="btn-primary contribute-btn"
-            style={{
-                padding: '14px 28px',
-                borderRadius: '10px',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-            }}
-        >
-            {authenticated ? 'Go to Dashboard' : 'Get Started'}
-            <ArrowRight size={16} />
-        </button>
+                    {/* Right: nav + button + mobile toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <nav
+                            className="desktop-nav"
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                            {navLinks.map((link, i) =>
+                                link.href.startsWith('#') ? (
+                                    <a key={i} href={link.href} className="nav-link">
+                                        {link.label}
+                                    </a>
+                                ) : (
+                                    <Link key={i} to={link.href} className="nav-link">
+                                        {link.label}
+                                    </Link>
+                                )
+                            )}
+                        </nav>
 
-        <button
-            className="mobile-menu-btn"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={{
-                background: 'transparent',
-                border: '1px solid rgba(0,0,0,0.15)',
-                borderRadius: '8px',
-                color: '#1a1a1a',
-                cursor: 'pointer',
-                padding: '10px',
-                display: 'none',
-                alignItems: 'center',
-                justifyContent: 'center'
-            }}
-        >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-    </div>
-</div>
+                        <button
+                            onClick={handleGetStarted}
+                            className="btn-primary contribute-btn"
+                            style={{
+                                padding: '14px 28px',
+                                borderRadius: '10px',
+                                fontSize: '14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            {authenticated ? 'Go to Dashboard' : 'Get Started'}
+                            <ArrowRight size={16} />
+                        </button>
+
+                        <button
+                            className="mobile-menu-btn"
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            style={{
+                                background: 'transparent',
+                                border: '1px solid rgba(0,0,0,0.15)',
+                                borderRadius: '8px',
+                                color: '#1a1a1a',
+                                cursor: 'pointer',
+                                padding: '10px',
+                                display: 'none',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        </button>
+                    </div>
+                </div>
 
 
                 {/* Mobile Menu */}

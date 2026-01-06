@@ -1,32 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Database, Search, ChevronRight, ArrowRight } from 'lucide-react';
+import { Shield, Lock, Database, ArrowRight } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import DynamicBackground from '../components/DynamicBackground';
+import Waves from '../components/DynamicBackground';
 
 const LandingPage = () => {
     const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState(false);
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [isButtonHovered, setIsButtonHovered] = useState(false);
 
     useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMousePos({ x: e.clientX, y: e.clientY });
-        };
-
-        window.addEventListener('mousemove', handleMouseMove);
         setTimeout(() => setIsVisible(true), 100);
-
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-        };
     }, []);
-
-    // Redirect logic removed - Landing page is for everyone (mostly B2B info), 
-    // but we won't auto-redirect logged in users away from the landing page
-    // unless they specifically try to "Login" or go to dashboard.
 
     const handleContributorClick = () => {
         navigate('/contribute');
@@ -35,148 +21,144 @@ const LandingPage = () => {
     return (
         <div style={{
             minHeight: '100vh',
-            color: '#1a1a1a',
-            fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            color: '#111827',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             overflowX: 'hidden',
-            position: 'relative'
+            position: 'relative',
+            background: '#ffffff'
         }}>
-
-            <DynamicBackground />
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
             <style>{`
                 * { box-sizing: border-box; margin: 0; padding: 0; }
-                .noise-overlay {
-                    position: fixed; inset: 0; opacity: 0.02; pointer-events: none;
-                    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulance type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-                    z-index: 2;
-                }
+                
                 .content-wrapper { position: relative; z-index: 10; }
-                @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-                .animate-fadeInUp { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-fadeInUp { animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; }
                 .delay-100 { animation-delay: 0.1s; }
                 .delay-200 { animation-delay: 0.2s; }
                 .delay-300 { animation-delay: 0.3s; }
-                .delay-400 { animation-delay: 0.4s; }
-                .delay-500 { animation-delay: 0.5s; }
-                .card { background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0, 0, 0, 0.08); transition: all 0.4s; backdrop-filter: blur(10px); }
-                .card:hover { background: rgba(255, 255, 255, 0.95); border-color: rgba(0, 0, 0, 0.15); transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
-                .btn-primary { background: #1a1a1a; border: none; color: #fff; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-                .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); }
-                .btn-secondary { background: transparent; border: 1px solid rgba(0, 0, 0, 0.2); color: #1a1a1a; font-weight: 500; cursor: pointer; transition: all 0.3s; }
-                .btn-secondary:hover { background: rgba(0, 0, 0, 0.05); border-color: rgba(0, 0, 0, 0.35); }
-                @media (max-width: 768px) { .characters-container { display: none !important; } }
-                html { scroll-behavior: smooth; }
-                .characters-container { position: fixed; left: 30px; bottom: 20px; width: 320px; height: 300px; z-index: 100; pointer-events: none; }
-                .character { position: absolute; transition: transform 0.4s; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3)); }
-                .char-purple { bottom: 70px; left: 85px; z-index: 1; animation: floatChar1 4s ease-in-out infinite; }
-                .char-black { bottom: 50px; left: 145px; z-index: 2; animation: floatChar2 3.5s ease-in-out infinite 0.5s; }
-                .char-orange { bottom: 0; left: 0; z-index: 3; animation: floatChar3 5s ease-in-out infinite 0.2s; }
-                @keyframes floatChar1 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-                @keyframes floatChar2 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-                @keyframes floatChar3 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+                
+                /* Premium Card Styles */
+                .feature-card { 
+                    background: #ffffff; 
+                    border: 1px solid #f3f4f6; 
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+                }
+                .feature-card:hover { 
+                    transform: translateY(-4px); 
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.04); 
+                    border-color: #e5e7eb;
+                }
+
+                /* Button Styles */
+                .btn-primary { 
+                    background: #1f2937; 
+                    border: 1px solid #1f2937;
+                    color: #fff; 
+                    font-weight: 500; 
+                    cursor: pointer; 
+                    transition: all 0.2s; 
+                }
+                .btn-primary:hover { 
+                    background: #000; 
+                    border-color: #000;
+                    transform: translateY(-1px);
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+                }
+                .btn-secondary { 
+                    background: #f9fafb; 
+                    border: 1px solid #e5e7eb; 
+                    color: #374151; 
+                    font-weight: 500; 
+                    cursor: pointer; 
+                    transition: all 0.2s; 
+                }
+                .btn-secondary:hover { 
+                    background: #f3f4f6;
+                    color: #111827; 
+                    border-color: #d1d5db;
+                }
             `}</style>
 
-            <div className="noise-overlay" />
+            {/* Dynamic Waves Background */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100vh', zIndex: 0 }}>
+                <Waves
+                    lineColor="rgba(0,0,0,0.08)"
+                    backgroundColor="#ffffff"
+                    waveSpeedX={0.02}
+                    waveSpeedY={0.01}
+                    waveAmpX={40}
+                    waveAmpY={20}
+                    friction={0.9}
+                    tension={0.01}
+                    maxCursorMove={120}
+                    xGap={12}
+                    yGap={36}
+                />
+            </div>
+
             <div className="content-wrapper">
                 <Header />
 
                 {/* Hero Section */}
-                <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '140px 24px 100px', position: 'relative' }}>
-                    <div style={{ maxWidth: '900px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+                <section style={{ minHeight: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '160px 24px 100px', position: 'relative' }}>
+                    <div style={{ maxWidth: '1000px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
                         {isVisible && (
-                            <div className="animate-fadeInUp delay-100" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(79, 70, 229, 0.08)', border: '1px solid rgba(79, 70, 229, 0.15)', borderRadius: '100px', fontSize: '13px', fontWeight: 500, color: '#4F46E5', marginBottom: '32px' }}>
-                                Verified Human Behavior Data
-                            </div>
-                        )}
-                        {isVisible && (
-                            <h1 className="animate-fadeInUp delay-200" style={{ fontSize: '64px', fontWeight: 700, lineHeight: 1.05, marginBottom: '24px', letterSpacing: '-0.04em', color: '#1a1a1a', fontFamily: 'Space Grotesk, sans-serif' }}>
-                                Verified Human Behavior Data<br />Without Personal Information
+                            <h1 className="animate-fadeInUp delay-100" style={{
+                                fontSize: '60px',
+                                fontWeight: 600,
+                                lineHeight: 1.1,
+                                marginBottom: '28px',
+                                letterSpacing: '-0.02em',
+                                color: '#111827',
+                            }}>
+                                Verified Human Behavior Data<br />
+                                Without Personal Information
                             </h1>
                         )}
                         {isVisible && (
-                            <p className="animate-fadeInUp delay-300" style={{ fontSize: '20px', color: 'rgba(0, 0, 0, 0.6)', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto 48px', fontWeight: 400 }}>
-                                MYRAD delivers cryptographically verified human signals that AI and data teams can trust, without collecting or storing personal data.
+                            <p className="animate-fadeInUp delay-200" style={{
+                                fontSize: '18px',
+                                color: '#4b5563',
+                                lineHeight: 1.6,
+                                maxWidth: '720px',
+                                margin: '0 auto 48px',
+                                fontWeight: 400
+                            }}>
+                                Powering the world's leading AI companies, governments, and research institutions with data sourced from verified contributors, cryptographically proven and privacy-preserving.
                             </p>
                         )}
                         {isVisible && (
-                            <div className="animate-fadeInUp delay-400" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                                <button onClick={() => navigate('/buyers')} className="btn-primary" style={{ padding: '18px 40px', borderRadius: '12px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    Explore Datasets <Search size={18} />
-                                </button>
+                            <div className="animate-fadeInUp delay-300" style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
                                 <button
                                     onClick={handleContributorClick}
-                                    className="btn-secondary"
+                                    className="btn-primary"
                                     onMouseEnter={() => setIsButtonHovered(true)}
                                     onMouseLeave={() => setIsButtonHovered(false)}
-                                    style={{ padding: '18px 40px', borderRadius: '12px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}
+                                    style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
                                 >
-                                    Become a Contributor <ChevronRight size={18} />
+                                    Become A Contributor
                                 </button>
-                            </div>
-                        )}
-
-                        {isVisible && (
-                            <div className="animate-fadeInUp delay-500" style={{ display: 'flex', gap: '40px', justifyContent: 'center', marginTop: '80px', flexWrap: 'wrap' }}>
-                                {[
-                                    { icon: Shield, label: 'Verified Sources' },
-                                    { icon: Lock, label: 'Zero PII' },
-                                    { icon: Database, label: 'Training Ready' }
-                                ].map((item, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(0,0,0,0.5)', fontSize: '14px', fontWeight: 500 }}>
-                                        <item.icon size={18} color="rgba(0,0,0,0.4)" />
-                                        {item.label}
-                                    </div>
-                                ))}
+                                <button
+                                    onClick={() => navigate('/buyers')}
+                                    className="btn-secondary"
+                                    style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                >
+                                    Explore Datasets <ArrowRight size={16} />
+                                </button>
                             </div>
                         )}
                     </div>
 
-                    {/* Keep Characters on Home Page too (branding) */}
-                    {isVisible && (
-                        <div className="characters-container animate-fadeInUp delay-300">
-                            {(() => {
-                                const containerX = 180;
-                                const containerY = window.innerHeight - 150;
-                                const distance = Math.sqrt(Math.pow(mousePos.x - containerX, 2) + Math.pow(mousePos.y - containerY, 2));
-                                const proximity = Math.max(0, 1 - distance / 400);
-                                const isExcited = proximity > 0.5;
-                                const deltaX = (mousePos.x - containerX) / window.innerWidth;
-                                const deltaY = (mousePos.y - containerY) / window.innerHeight;
-                                const excitedScale = 1 + proximity * 0.08;
-                                const tiltAngle = deltaX * 8;
-
-                                return (
-                                    <>
-                                        <svg className="character char-orange" width="150" height="150" viewBox="0 0 150 150" style={{ transform: `rotate(${tiltAngle * 0.5}deg) scale(${isButtonHovered ? 1.2 : excitedScale})` }}>
-                                            <circle cx="75" cy="75" r="68" fill="#FF7A00" />
-                                            <circle cx={52 + deltaX * 12} cy={65 + deltaY * 8} r={isExcited ? 8 : 7} fill="#000" />
-                                            <circle cx={49 + deltaX * 12} cy={62 + deltaY * 8} r="2.5" fill="#fff" />
-                                            <circle cx={98 + deltaX * 12} cy={65 + deltaY * 8} r={isExcited ? 8 : 7} fill="#000" />
-                                            <circle cx={95 + deltaX * 12} cy={62 + deltaY * 8} r="2.5" fill="#fff" />
-                                            <path d={isExcited ? "M55 85 Q75 105 95 85" : "M60 88 Q75 98 90 88"} stroke="#000" strokeWidth="4" fill="none" strokeLinecap="round" />
-                                            <circle cx="40" cy="80" r="6" fill="#FF5500" opacity="0.2" />
-                                            <circle cx="110" cy="80" r="6" fill="#FF5500" opacity="0.2" />
-                                        </svg>
-                                        <svg className="character char-purple" width="85" height="170" viewBox="0 0 85 170" style={{ transform: `rotate(${tiltAngle * 0.3}deg) scale(${1 + proximity * 0.05})` }}>
-                                            <rect x="0" y="0" width="85" height="165" rx="12" fill="#7B61FF" />
-                                            <circle cx="28" cy="50" r="10" fill="#fff" />
-                                            <circle cx="57" cy="50" r="10" fill="#fff" />
-                                        </svg>
-                                        <svg className="character char-black" width="70" height="130" viewBox="0 0 70 130" style={{ transform: `rotate(${-tiltAngle * 0.2}deg) scale(${1 + proximity * 0.04})` }}>
-                                            <rect x="0" y="0" width="70" height="125" rx="8" fill="#1a1a1a" />
-                                            <circle cx="20" cy="45" r="8" fill="#fff" />
-                                            <circle cx="50" cy="45" r="8" fill="#fff" />
-                                        </svg>
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    )}
+                    {/* Minimal Branding at bottom */}
+                    <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, textAlign: 'center', opacity: 0.4 }}>
+                        <span style={{ fontSize: '12px', color: '#9ca3af', letterSpacing: '0.1em', fontWeight: 600 }}>BACKED BY RESEARCHERS FROM TOP INSTITUTIONS</span>
+                    </div>
                 </section>
 
-                {/* Value Props Section - B2B Focus */}
-                <section style={{ padding: '120px 24px', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                {/* Value Props */}
+                <section style={{ padding: '120px 24px', background: '#fafafa', borderTop: '1px solid #f3f4f6' }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
                             {[
@@ -188,20 +170,20 @@ const LandingPage = () => {
                                 {
                                     icon: Lock,
                                     title: "No Personal Data",
-                                    desc: "MYRAD never collects raw histories, identifiers, or private content. Only aggregated, non-identifying signals are produced."
+                                    desc: "MYRAD never collects raw histories, identifiers, or private content. Only aggregated, non-identifying signals."
                                 },
                                 {
                                     icon: Database,
                                     title: "Built for Real Decisions",
-                                    desc: "Data is delivered as cohort level signals designed for AI training, evaluation, and analytics, not dashboards."
+                                    desc: "Data is delivered as cohort level signals designed for AI training, evaluation, and analytics."
                                 }
                             ].map((card, i) => (
-                                <div key={i} className="card" style={{ padding: '40px', borderRadius: '20px' }}>
-                                    <div style={{ width: '48px', height: '48px', background: 'rgba(79, 70, 229, 0.08)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-                                        <card.icon size={24} color="#4F46E5" />
+                                <div key={i} className="feature-card" style={{ padding: '48px 40px', borderRadius: '16px' }}>
+                                    <div style={{ marginBottom: '24px' }}>
+                                        <card.icon size={28} color="#374151" strokeWidth={1.5} />
                                     </div>
-                                    <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: '#1a1a1a' }}>{card.title}</h3>
-                                    <p style={{ color: 'rgba(0,0,0,0.5)', lineHeight: 1.7 }}>{card.desc}</p>
+                                    <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px', color: '#111827' }}>{card.title}</h3>
+                                    <p style={{ color: '#6b7280', lineHeight: 1.7, fontSize: '15px' }}>{card.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -209,45 +191,31 @@ const LandingPage = () => {
                 </section>
 
                 {/* Who uses MYRAD */}
-                <section style={{ padding: '120px 24px', borderTop: '1px solid rgba(0,0,0,0.08)', background: '#fafafa' }}>
+                <section style={{ padding: '140px 24px', background: '#fff' }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', alignItems: 'center' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
                             <div>
-                                <h2 style={{ fontSize: '42px', fontWeight: 700, marginBottom: '24px', color: '#1a1a1a', fontFamily: 'Space Grotesk, sans-serif' }}>Who Uses MYRAD</h2>
-                                <p style={{ fontSize: '18px', color: 'rgba(0,0,0,0.6)', lineHeight: 1.7, maxWidth: '480px' }}>
+                                <h2 style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#111827', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                                    Who Builds <br /> with MYRAD
+                                </h2>
+                                <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: 1.7, maxWidth: '440px' }}>
                                     Trusted by teams building the next generation of AI, analytics, and consumer insights.
                                 </p>
                             </div>
-                            <div style={{ display: 'grid', gap: '16px' }}>
+                            <div style={{ display: 'grid', gap: '24px' }}>
                                 {[
-                                    { title: "AI & ML Teams", desc: "Training and evaluating models" },
-                                    { title: "Research Institutions", desc: "Working with human behavior data" },
-                                    { title: "Analytics Teams", desc: "Needing reliable preference signals" },
-                                    { title: "Product Teams", desc: "Validating user behavior patterns" }
+                                    { title: "AI & ML Teams", desc: "For training and evaluating models" },
+                                    { title: "Research Institutions", desc: "For unbiased human behavior data" },
+                                    { title: "Analytics Teams", desc: "For reliable preference signals" },
+                                    { title: "Product Teams", desc: "For validating behavioral patterns" }
                                 ].map((item, i) => (
-                                    <div key={i} style={{ background: '#fff', padding: '24px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                        <div style={{ fontWeight: 600, color: '#1a1a1a', minWidth: '160px' }}>{item.title}</div>
-                                        <div style={{ flex: 1, height: '1px', background: '#f3f4f6' }}></div>
-                                        <div style={{ color: 'rgba(0,0,0,0.5)', fontSize: '14px' }}>{item.desc}</div>
+                                    <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '32px', paddingBottom: '24px', borderBottom: '1px solid #f3f4f6' }}>
+                                        <div style={{ fontWeight: 600, color: '#111827', minWidth: '180px', fontSize: '18px' }}>{item.title}</div>
+                                        <div style={{ color: '#9ca3af', fontSize: '15px' }}>{item.desc}</div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    </div>
-                </section>
-
-                {/* CTA Section */}
-                <section style={{ padding: '140px 24px', borderTop: '1px solid rgba(0,0,0,0.08)', textAlign: 'center' }}>
-                    <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-                        <h2 style={{ fontSize: '48px', fontWeight: 700, marginBottom: '20px', letterSpacing: '-0.03em', color: '#1a1a1a', fontFamily: 'Space Grotesk, sans-serif' }}>
-                            Start Building with Verified Data
-                        </h2>
-                        <p style={{ fontSize: '17px', color: 'rgba(0,0,0,0.5)', marginBottom: '40px', lineHeight: 1.7 }}>
-                            Access the world's first diverse, cryptographically verified human behavior dataset.
-                        </p>
-                        <button onClick={() => navigate('/buyers')} className="btn-primary" style={{ padding: '20px 48px', borderRadius: '14px', fontSize: '17px', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                            Get Data Access <ArrowRight size={18} />
-                        </button>
                     </div>
                 </section>
 
