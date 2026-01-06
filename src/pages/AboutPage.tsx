@@ -125,7 +125,7 @@ const AboutPage = () => {
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                             <Target size={24} color={accent} />
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#1a1a1a' }}>Our Mission</h2>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151' }}>Our Mission</h2>
                         </div>
                         <p style={{ color: 'rgba(0,0,0,0.6)', lineHeight: 1.8, fontSize: '16px' }}>
                             MYRAD is building a privacy-first data network where users truly own their data.
@@ -147,7 +147,7 @@ const AboutPage = () => {
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                             <Shield size={24} color={accent} />
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#1a1a1a' }}>The Vision</h2>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151' }}>The Vision</h2>
                         </div>
                         <p style={{ color: 'rgba(0,0,0,0.6)', lineHeight: 1.8, fontSize: '16px' }}>
                             We envision a world where data privacy and value creation go hand in hand.
@@ -168,7 +168,7 @@ const AboutPage = () => {
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                             <Users size={24} color={accent} />
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#1a1a1a' }}>Our Values</h2>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151' }}>Our Values</h2>
                         </div>
                         <div style={{ display: 'grid', gap: '20px' }}>
                             {[
@@ -205,7 +205,7 @@ const AboutPage = () => {
                                 alignItems: 'center',
                                 gap: '8px',
                                 padding: '16px 32px',
-                                background: '#1a1a1a',
+                                background: '#374151',
                                 borderRadius: '12px',
                                 color: '#fff',
                                 textDecoration: 'none',

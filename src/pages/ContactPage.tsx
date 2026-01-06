@@ -19,7 +19,7 @@ import Waves from '../components/DynamicBackground';
 
 
 const ContactPage = () => {
-  const purple = '#000';
+  const purple = '#374151';
 
   const [isVisible, setIsVisible] = useState(false);
 
@@ -107,7 +107,7 @@ const ContactPage = () => {
           justifyContent: 'center',
           padding: '24px',
           fontFamily: "inherit",
-          color: '#000',
+          color: '#374151',
           position: 'relative'
 
 
@@ -160,7 +160,7 @@ const ContactPage = () => {
               alignItems: 'center',
               gap: '8px',
               padding: '14px 28px',
-              background: '#000',
+              background: '#374151',
               borderRadius: '10px',
               color: '#fff',
               textDecoration: 'none',
@@ -229,7 +229,7 @@ const ContactPage = () => {
         .btn-submit {
           width: 100%;
           padding: 18px;
-          background: #000;
+          background: #374151;
           border: none;
           border-radius: 12px;
           color: #fff;

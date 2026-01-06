@@ -11,7 +11,7 @@ const TermsOfServicePage = () => {
         <div style={{
             background: '#fff',
             minHeight: '100vh',
-            color: '#1a1a1a',
+            color: '#374151',
             overflowX: 'hidden',
             position: 'relative'
         }}>
@@ -41,7 +41,7 @@ const TermsOfServicePage = () => {
                         <h1 style={{
                             fontSize: '36px',
                             fontWeight: 700,
-                            color: '#000',
+                            color: '#374151',
                             fontFamily: "'Space Grotesk', sans-serif"
                         }}>
                             Terms and Conditions
@@ -55,7 +55,7 @@ const TermsOfServicePage = () => {
                     <div style={{ color: 'rgba(0,0,0,0.6)', lineHeight: 1.8 }}>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 1. Acceptance of Terms
                             </h2>
                             <p>
@@ -65,7 +65,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 2. Description of Service
                             </h2>
                             <p>
@@ -78,7 +78,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 3. User Responsibilities
                             </h2>
                             <p>You agree to:</p>
@@ -94,7 +94,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 4. Rewards and Compensation
                             </h2>
                             <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
@@ -108,7 +108,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 5. Intellectual Property
                             </h2>
                             <p>
@@ -121,7 +121,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 6. No Warranty
                             </h2>
                             <p>
@@ -133,7 +133,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 7. Limitation of Liability
                             </h2>
                             <p>
@@ -147,7 +147,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 8. Third Party Services
                             </h2>
                             <p>
@@ -157,7 +157,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 9. Termination
                             </h2>
                             <p>
@@ -169,7 +169,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 10. Governing Law
                             </h2>
                             <p>
@@ -179,7 +179,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 11. Changes to Terms
                             </h2>
                             <p>
@@ -189,7 +189,7 @@ const TermsOfServicePage = () => {
                         </section>
 
                         <section>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#000', marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
                                 12. Contact
                             </h2>
                             <p>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Database } from 'lucide-react';
+import { Shield, Lock, Database, ArrowRight } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Waves from '../components/DynamicBackground';
@@ -47,22 +47,22 @@ const LandingPage = () => {
                 }
                 .feature-card:hover { 
                     transform: translateY(-4px); 
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.04); 
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
                     border-color: #e5e7eb;
                 }
 
                 /* Button Styles */
                 .btn-primary { 
-                    background: #1f2937; 
-                    border: 1px solid #1f2937;
+                    background: #374151; 
+                    border: 1px solid #374151;
                     color: #fff; 
                     font-weight: 500; 
                     cursor: pointer; 
                     transition: all 0.2s; 
                 }
                 .btn-primary:hover { 
-                    background: #000; 
-                    border-color: #000;
+                    background: #1f2937; 
+                    border-color: #1f2937;
                     transform: translateY(-1px);
                     box-shadow: 0 10px 20px rgba(0,0,0,0.1);
                 }
@@ -111,7 +111,7 @@ const LandingPage = () => {
                                 lineHeight: 1.1,
                                 marginBottom: '28px',
                                 letterSpacing: '-0.02em',
-                                color: '#111827',
+                                color: '#374151',
                             }}>
                                 Human Data<br />
                                 Without Surveillance
@@ -136,6 +136,13 @@ const LandingPage = () => {
                                     style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
                                 >
                                     Become A Contributor
+                                </button>
+                                <button
+                                    onClick={() => navigate('/contact')}
+                                    className="btn-secondary"
+                                    style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                >
+                                    Explore Datasets <ArrowRight size={16} />
                                 </button>
                             </div>
                         )}
@@ -172,7 +179,7 @@ const LandingPage = () => {
                                     <div style={{ marginBottom: '24px' }}>
                                         <card.icon size={28} color="#374151" strokeWidth={1.5} />
                                     </div>
-                                    <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px', color: '#111827' }}>{card.title}</h3>
+                                    <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>{card.title}</h3>
                                     <p style={{ color: '#6b7280', lineHeight: 1.7, fontSize: '15px' }}>{card.desc}</p>
                                 </div>
                             ))}
@@ -185,7 +192,7 @@ const LandingPage = () => {
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
                             <div>
-                                <h2 style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#111827', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                                <h2 style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#374151', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                                     Who Builds <br /> with MYRAD
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: 1.7, maxWidth: '440px' }}>
@@ -200,7 +207,7 @@ const LandingPage = () => {
                                     { title: "Product Teams", desc: "For validating behavioral patterns" }
                                 ].map((item, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '32px', paddingBottom: '24px', borderBottom: '1px solid #f3f4f6' }}>
-                                        <div style={{ fontWeight: 600, color: '#111827', minWidth: '180px', fontSize: '18px' }}>{item.title}</div>
+                                        <div style={{ fontWeight: 600, color: '#374151', minWidth: '180px', fontSize: '18px' }}>{item.title}</div>
                                         <div style={{ color: '#9ca3af', fontSize: '15px' }}>{item.desc}</div>
                                     </div>
                                 ))}

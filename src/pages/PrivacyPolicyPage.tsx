@@ -11,7 +11,7 @@ const PrivacyPolicyPage = () => {
         <div style={{
             background: '#fff',
             minHeight: '100vh',
-            color: '#1a1a1a',
+            color: '#374151',
             overflowX: 'hidden',
             position: 'relative'
         }}>
@@ -53,7 +53,7 @@ const PrivacyPolicyPage = () => {
                 <div style={{ color: 'rgba(0,0,0,0.6)', lineHeight: 1.8 }}>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             1. Introduction
                         </h2>
                         <p>
@@ -68,7 +68,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             2. Core Privacy Principles
                         </h2>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
@@ -81,7 +81,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             3. Information We Do Not Collect
                         </h2>
                         <p>MYRAD does <strong>not</strong> collect or store:</p>
@@ -98,7 +98,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             4. Information We Process
                         </h2>
                         <p>
@@ -117,7 +117,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             5. Verification and Zero Knowledge Proofs
                         </h2>
                         <p>
@@ -131,7 +131,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             6. Use of Aggregated Insights
                         </h2>
                         <p>
@@ -147,7 +147,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             7. Data Retention
                         </h2>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
@@ -158,7 +158,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             8. User Rights
                         </h2>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
@@ -170,7 +170,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             9. Security Measures
                         </h2>
                         <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
@@ -185,7 +185,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             10. Regulatory Compliance
                         </h2>
                         <p>
@@ -195,7 +195,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             11. Changes to This Policy
                         </h2>
                         <p>
@@ -205,7 +205,7 @@ const PrivacyPolicyPage = () => {
                     </section>
 
                     <section>
-                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#1a1a1a' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>
                             12. Contact
                         </h2>
                         <p>
