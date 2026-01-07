@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import Waves from '../components/DynamicBackground';
 
 const TermsOfServicePage = () => {
-    const accent = '#4F46E5';
+    const accent = '#374151';
 
     return (
         <div style={{
@@ -40,16 +40,16 @@ const TermsOfServicePage = () => {
                         <FileText size={40} color={accent} />
                         <h1 style={{
                             fontSize: '36px',
-                            fontWeight: 700,
-                            color: '#374151',
-                            fontFamily: "'Space Grotesk', sans-serif"
+                            fontWeight: 600,
+                            color: '#111827',
+                            fontFamily: '"Satoshi", sans-serif'
                         }}>
                             Terms and Conditions
                         </h1>
                     </div>
 
                     <p style={{ color: 'rgba(0,0,0,0.6)', marginBottom: '48px' }}>
-                        Last updated: [Date]
+                        Last updated: 07/01/2026
                     </p>
 
                     <div style={{ color: 'rgba(0,0,0,0.6)', lineHeight: 1.8 }}>

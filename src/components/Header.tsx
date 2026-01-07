@@ -101,11 +101,11 @@ const Header = () => {
                     <div style={{ flex: 1 }}>
                         <Link to="/" style={{ textDecoration: 'none' }}>
                             <img
-                                src="/images/navlogo.jpg"
+                                src="myrad.webp"
                                 alt="MYRAD logo"
                                 loading="lazy"
                                 style={{
-                                    height: '30px',
+                                    height: '40px',
                                     objectFit: 'contain'
                                 }}
                             />
@@ -118,6 +118,7 @@ const Header = () => {
                         style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
                     >
                         {[
+                            { label: 'Home', href: '/' },
                             { label: 'Contribute', href: '/contribute' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },
@@ -186,6 +187,7 @@ const Header = () => {
                         padding: '20px 24px'
                     }}>
                         {[
+                            { label: 'Home', href: '/' },
                             { label: 'Contribute', href: '/contribute' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },

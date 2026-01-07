@@ -21,7 +21,7 @@ const Footer = () => {
                 {/* Top content */}
                 <div
                     style={{
-                        maxWidth: "1200px",
+                        maxWidth: "1230px",
                         width: "100%",
                         margin: "0 auto",
                         display: "grid",
@@ -34,10 +34,10 @@ const Footer = () => {
                     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                         {/* Logo */}
                         <img
-                            src="/images/navlogo.jpg"
+                            src="myrad.webp"
                             alt="MYRAD logo"
                             loading="lazy"
-                            style={{ height: "32px", objectFit: "contain", alignSelf: 'flex-start' }}
+                            style={{ height: "40px", objectFit: "contain", alignSelf: 'flex-start' }}
                         />
 
                         {/* Description */}
@@ -48,11 +48,11 @@ const Footer = () => {
                             maxWidth: "280px",
                             margin: 0,
                         }}>
-                            Empowering decentralized data exchange with transparency and trust.
+                            Defining the Future of Trusted, Accurate, and Compliant Data
                         </p>
 
                         <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: 'auto' }}>
-                            © 2024 MYRAD Labs.
+                            © 2025 MYRAD Labs.
                         </div>
                     </div>
 
