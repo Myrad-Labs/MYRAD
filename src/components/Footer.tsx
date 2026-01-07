@@ -2,155 +2,115 @@ const Footer = () => {
     return (
         <footer
             style={{
-                background: "#f8f9fa",
-                color: "#1a1a1a",
-                padding: "50px 24px 25px",
+                background: "#ffffff",
+                color: "#374151",
+                padding: "80px 24px 40px",
                 position: "relative",
                 overflow: "hidden",
-                fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                textAlign: 'left'
+                fontFamily: 'inherit', // Inherits Satoshi
+                textAlign: 'left',
+                borderTop: '1px solid rgba(0,0,0,0.04)'
             }}
         >
-
             <div
                 style={{
                     display: "flex",
-                    justifyContent: "center", // ✅ centers the whole footer group
+                    justifyContent: "center",
                 }}
             >
-
                 {/* Top content */}
                 <div
                     style={{
                         maxWidth: "1200px",
+                        width: "100%",
                         margin: "0 auto",
                         display: "grid",
                         gridTemplateColumns: "1.5fr 1fr 1fr 1fr",
-                        gap: "100px",
+                        gap: "60px",
+                        marginBottom: "100px" // Space before the large text
                     }}
                 >
                     {/* Brand */}
-                    <div
-                        style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "12px",
-                        }}
-                    >
+                    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                         {/* Logo */}
                         <img
                             src="/images/navlogo.jpg"
                             alt="MYRAD logo"
                             loading="lazy"
-                            style={{
-                                height: "30px",
-                                objectFit: "contain",
-                            }}
+                            style={{ height: "32px", objectFit: "contain", alignSelf: 'flex-start' }}
                         />
 
-                        {/* Description (next line) */}
-                        <p
-                            style={{
-                                fontSize: "14px",
-                                lineHeight: "1.6",
-                                color: "rgba(0,0,0,0.6)",
-                                maxWidth: "260px",
-                                margin: 0,
-                            }}
-                        >
+                        {/* Description */}
+                        <p style={{
+                            fontSize: "15px",
+                            lineHeight: "1.6",
+                            color: "#6b7280",
+                            maxWidth: "280px",
+                            margin: 0,
+                        }}>
                             Empowering decentralized data exchange with transparency and trust.
                         </p>
-                    </div>
-                    <div>
-                        <div
-                            style={{
-                                fontSize: "16px",
-                                fontWeight: 600,
-                                marginBottom: "16px",
-                                color: "#1a1a1a"
-                            }}
-                        >
-                            About us
+
+                        <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: 'auto' }}>
+                            © 2024 MYRAD Labs.
                         </div>
-
-                        <a
-                            href="https://linktr.ee/MYRAD_HQ"
-                            target="_blank"
-                            style={{
-                                display: "block",
-                                color: "rgba(0,0,0,0.6)",
-                                textDecoration: "none",
-                                marginBottom: "8px",
-                                fontSize: "14px"
-                            }}
-                        >
-                            Linktree
-                        </a>
-
-                        <a href="/team" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>Team</a>
-
-                        <a href="https://docs.myradhq.xyz/" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>Docs</a>
-
                     </div>
 
-                    {/* Company */}
+                    {/* Links Column 1 */}
                     <div>
-                        <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px", color: "#1a1a1a" }}>Company</div>
-                        <a
-                            href="/terms"
-                            target="_blank"
-                            style={{
-                                display: "block",
-                                color: "rgba(0,0,0,0.6)",
-                                textDecoration: "none",
-                                marginBottom: "8px",
-                                fontSize: "14px"
-                            }}
-                        >
-                            Terms of Service
-                        </a>
-                        <a
-                            href="/privacy"
-                            target="_blank"
-                            style={{
-                                display: "block",
-                                color: "rgba(0,0,0,0.6)",
-                                textDecoration: "none",
-                                marginBottom: "8px",
-                                fontSize: "14px"
-                            }}
-                        >
-                            Privacy Policy
-                        </a>
-                        <a href="/contact" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>Contact</a>
+                        <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "20px", color: "#111827", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            About
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <a href="/team" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Team</a>
+                            <a href="https://docs.myradhq.xyz/" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Docs</a>
+                            <a href="https://linktr.ee/myradhqdotxyz" target="_blank" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Linktree</a>
+                        </div>
                     </div>
 
-                    {/* Connect */}
+                    {/* Links Column 2 */}
                     <div>
-                        <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px", color: "#1a1a1a" }}>Connect</div>
-                        <a href="https://x.com/myrad_hq" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>X</a>
-                        <a href="https://t.me/+KOAn6WDf7AdmNTI1" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>Telegram</a>
-                        <a href="https://github.com/Myrad-Labs/" style={{ display: "block", color: "rgba(0,0,0,0.6)", textDecoration: "none", marginBottom: "8px", fontSize: "14px" }}>GitHub</a>
+                        <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "20px", color: "#111827", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Company
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <a href="/terms" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Terms of Service</a>
+                            <a href="/privacy" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Privacy Policy</a>
+                            <a href="/contact" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Contact</a>
+                        </div>
+                    </div>
+
+                    {/* Links Column 3 */}
+                    <div>
+                        <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "20px", color: "#111827", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Connect
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <a href="https://x.com/myrad_hq" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>X (Twitter)</a>
+                            <a href="https://t.me/+KOAn6WDf7AdmNTI1" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Telegram</a>
+                            <a href="https://github.com/Myrad-Labs/" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>GitHub</a>
+                        </div>
                     </div>
                 </div>
             </div>
+
             {/* Huge MYRAD text */}
             <div
                 style={{
-                    marginTop: "50px",
-                    fontSize: "18vw",
-                    fontWeight: 900,
-                    letterSpacing: "-0.04em",
-                    lineHeight: "0.9",
-                    color: "#000000",
-                    opacity: 0.95,
+                    fontSize: "22vw",
+                    fontWeight: 800,
+                    letterSpacing: "-0.06em",
+                    lineHeight: "0.8",
+                    color: "#374151",
+                    opacity: 0.08, // Subtle watermark effect
                     textAlign: "center",
                     userSelect: "none",
+                    pointerEvents: 'none',
+                    marginBottom: '-2vw' // Slight overlap with bottom
                 }}
             >
                 MYRAD
             </div>
-
         </footer>
     );
 };

@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Loader2, CheckCircle, RefreshCw, Wallet, Copy, X, Sparkles, Award, Clock, ExternalLink, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Copy, X, ExternalLink, AlertCircle, CheckCircle, LogOut } from 'lucide-react';
 import QRCode from 'react-qr-code';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import github from "../assets/github.png";
 import zomato from "../assets/zomato.png";
 import netflix from "../assets/netflix.png";
@@ -324,41 +322,32 @@ const DashboardPage = () => {
         </div>
       )}
 
-      <Header />
-<br></br>
-<br></br>
-<br></br>
+      {/* Custom Dashboard Header */}
+      <header className="dashboard-header">
+        <img src="/images/navlogo.jpg" alt="MYRAD" className="dash-logo" />
+        <div className="header-right">
+          {shortWalletAddress && (
+            <button onClick={copyWalletAddress} className="wallet-badge">
+              {copiedAddress ? 'Copied!' : shortWalletAddress}
+              <Copy size={12} />
+            </button>
+          )}
+          <button onClick={() => fetchUserData(true)} className="btn-refresh" disabled={refreshing}>
+            <RefreshCw size={14} className={refreshing ? 'spin' : ''} />
+          </button>
+          <button onClick={logout} className="btn-logout">
+            <LogOut size={16} />
+            Logout
+          </button>
+        </div>
+      </header>
+
       <main className="dashboard-main">
-        {/* Welcome Section */}
-        <section className="welcome-section">
-          <div className="welcome-text">
-            <h1>Welcome back!</h1>
-
-            {shortWalletAddress && (
-              <button onClick={copyWalletAddress} className="wallet-badge">
-                <Wallet size={14} />
-                {copiedAddress ? 'Copied!' : shortWalletAddress}
-                <Copy size={12} />
-              </button>
-            )}
-          </div>
-
-          {/* ACTION BUTTONS */}
-          <div className="welcome-actions">
-            <button
-              onClick={() => fetchUserData(true)}
-              className="btn-refresh"
-              disabled={refreshing}
-            >
-              <RefreshCw size={16} className={refreshing ? 'spin' : ''} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
-
-            <button onClick={logout} className="btn-logout">
-              Sign Out
-            </button>
-          </div>
-        </section>
+        {/* Welcome */}
+        <div className="welcome-text">
+          <h1>Dashboard</h1>
+          <p>Welcome back</p>
+        </div>
 
 
         {loading ? (
@@ -370,41 +359,24 @@ const DashboardPage = () => {
           <>
             {/* Stats Cards */}
             <section className="stats-grid">
-              <div className="stat-card points-card">
-                <div className="stat-icon">
-                  <Award size={24} />
-                </div>
-                <div className="stat-content">
-                  <span className="stat-label">Total Points</span>
-                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
-                </div>
-              </div>
-
               <div className="stat-card">
-                <div className="stat-icon contributions-icon">
-                  <TrendingUp size={24} />
-                </div>
-                <div className="stat-content">
-                  <span className="stat-label">Contributions</span>
-                  <span className="stat-value">{contributions.length}</span>
-                </div>
+                <span className="stat-label">Total Points</span>
+                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
               </div>
-
               <div className="stat-card">
-                <div className="stat-icon status-icon">
-                  <CheckCircle size={24} />
-                </div>
-                <div className="stat-content">
-                  <span className="stat-label">Status</span>
-                  <span className="stat-value status-active">Active</span>
-                </div>
+                <span className="stat-label">Contributions</span>
+                <span className="stat-value">{contributions.length}</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Status</span>
+                <span className="stat-value">Active</span>
               </div>
             </section>
 
             {/* Contribute Section */}
             <section className="contribute-section">
               <div className="section-header">
-                <h2><Sparkles size={20} /> Contribute & Earn</h2>
+                <h2>Contribute & Earn</h2>
                 <p>Verify your data to earn points</p>
               </div>
 
@@ -412,41 +384,22 @@ const DashboardPage = () => {
                 {PROVIDERS.map((provider) => (
                   <div
                     key={provider.id}
-                    className={`provider-card ${activeProvider === provider.id ? "active" : ""
-                      }`}
-                    style={{ "--provider-color": provider.color } as React.CSSProperties}
+                    className={`provider-card ${activeProvider === provider.id ? "active" : ""}`}
                   >
                     <div className="provider-header">
-                      <div className="provider-info">
-                        <div className="provider-name-row">
-                          <img
-                            src={provider.logo}
-                            alt={`${provider.name} logo`}
-                            className="provider-logo"
-                          />
-                          <h3 className="provider-name">{provider.name}</h3>
-                        </div>
-
-                        <span className="provider-desc">{provider.description}</span>
-                      </div>
-
-                      <div className="provider-reward">
-                        <span className="reward-value">+{provider.points}</span>
-                        <span className="reward-label">points</span>
-                      </div>
+                      <img src={provider.logo} alt={`${provider.name} logo`} className="provider-logo" />
+                      <h3 className="provider-name">{provider.name}</h3>
                     </div>
-
 
                     {/* QR Code Section */}
                     {activeProvider === provider.id && verificationUrl && (
                       <div className="qr-section">
                         <p className="qr-title">Scan to verify</p>
                         <div className="qr-container">
-                          <QRCode value={verificationUrl} size={160} level="M" />
+                          <QRCode value={verificationUrl} size={120} level="M" />
                         </div>
                         <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                          <ExternalLink size={14} />
-                          Open Link
+                          <ExternalLink size={14} /> Open Link
                         </a>
                         <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); }} className="qr-cancel">
                           <X size={14} /> Cancel
@@ -458,23 +411,30 @@ const DashboardPage = () => {
                       onClick={() => handleContribute(provider)}
                       disabled={contributing !== null}
                       className="btn-verify"
-                      style={{ background: contributing === provider.id ? '#333' : provider.bgGradient }}
                     >
                       {contributing === provider.id ? (
                         <><Loader2 size={16} className="spin" /> Verifying...</>
                       ) : (
-                        <> Verify {provider.name}</>
+                        <>Connect</>
                       )}
                     </button>
                   </div>
                 ))}
+
+                {/* Coming Soon Card */}
+                <div className="provider-card coming-soon">
+                  <div className="provider-header">
+                    <span className="coming-soon-text">Coming Soon</span>
+                  </div>
+                  <p className="coming-soon-desc">More integrations on the way</p>
+                </div>
               </div>
             </section>
 
             {/* Recent Activity */}
             <section className="activity-section">
               <div className="section-header">
-                <h2><Clock size={20} /> Recent Activity</h2>
+                <h2>Recent Activity</h2>
               </div>
 
               <div className="activity-list">
@@ -507,7 +467,6 @@ const DashboardPage = () => {
           </>
         )}
       </main>
-      <Footer />
     </div>
   );
 };
@@ -548,21 +507,21 @@ const styles = `
 
   .dashboard {
     min-height: 100vh;
-    background: #f8f9fa;
-    color: #1a1a1a;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #ffffff;
+    color: #111827;
+    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
   }
   
-  .dashboard-loading, .dashboard-auth {
+  .dashboard-loading {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
     gap: 16px;
-    background: #f8f9fa;
-    color: #666;
-    font-family: 'Inter', sans-serif;
+    background: #ffffff;
+    color: #374151;
+    font-family: 'Satoshi', sans-serif;
   }
   
   .auth-card {
@@ -627,29 +586,20 @@ const styles = `
   }
   
   .dashboard-header {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 40px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     position: sticky;
     top: 0;
     z-index: 100;
   }
   
-  .header-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 16px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .logo {
-    font-size: 22px;
-    font-weight: 800;
-    color: #1a1a1a;
-    text-decoration: none;
-    letter-spacing: -0.5px;
+  .dash-logo {
+    height: 24px;
   }
   
   .header-right {
@@ -686,17 +636,20 @@ const styles = `
   }
   
   .btn-logout {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 8px 16px;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: #374151;
+    border: 1px solid #374151;
     border-radius: 8px;
-    color: #666;
+    color: #fff;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
   }
   
-  .btn-logout:hover { background: rgba(0, 0, 0, 0.1); color: #1a1a1a; }
+  .btn-logout:hover { background: #1f2937; }
   
   .dashboard-main {
     max-width: 1200px;
@@ -711,14 +664,19 @@ const styles = `
     margin-bottom: 32px;
   }
   
+  .welcome-text {
+    margin-bottom: 32px;
+  }
+  
   .welcome-text h1 {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 4px;
+    font-size: 32px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 8px;
   }
   
   .welcome-text p {
-    color: #666;
+    color: #6b7280;
     font-size: 14px;
   }
   
@@ -760,41 +718,17 @@ const styles = `
   }
   
   .stat-card {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #f3f4f6;
+    border-radius: 12px;
     padding: 24px;
     display: flex;
-    align-items: center;
-    gap: 16px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    flex-direction: column;
+    gap: 8px;
   }
   
-  .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: rgba(79, 70, 229, 0.08);
-    color: #4F46E5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .points-card { 
-    background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(79, 70, 229, 0.15);
-  }
-  
-  .points-card .stat-icon { background: rgba(79, 70, 229, 0.12); color: #4F46E5; }
-  
-  .contributions-icon { background: rgba(34, 197, 94, 0.1); color: #22C55E; }
-  .status-icon { background: rgba(59, 130, 246, 0.1); color: #3B82F6; }
-  
-  .stat-content { display: flex; flex-direction: column; }
-  .stat-label { font-size: 13px; color: #666; margin-bottom: 4px; }
-  .stat-value { font-size: 28px; font-weight: 700; }
-  .status-active { color: #22C55E; font-size: 16px; }
+  .stat-label { font-size: 14px; color: #6b7280; }
+  .stat-value { font-size: 32px; font-weight: 700; color: #111827; }
   
   .contribute-section, .activity-section {
     margin-bottom: 32px;
@@ -820,51 +754,73 @@ const styles = `
   
   .providers-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
   }
   
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
+    .providers-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
     .providers-grid { grid-template-columns: 1fr; }
   }
   
   .provider-card {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 20px;
-    padding: 24px;
+    background: #ffffff;
+    border: 1px solid #f3f4f6;
+    border-radius: 12px;
+    padding: 20px;
     transition: all 0.3s;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
   }
   
   .provider-card:hover {
-    background: rgba(255, 255, 255, 0.95);
-    border-color: var(--provider-color);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    border-color: #e5e7eb;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.06);
   }
   
   .provider-card.active {
-    border-color: var(--provider-color);
-    background: rgba(255, 255, 255, 0.95);
+    border-color: #374151;
+  }
+  
+  .provider-card.coming-soon {
+    border-style: dashed;
+    background: #f9fafb;
+  }
+  
+  .coming-soon-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #9ca3af;
+  }
+  
+  .coming-soon-desc {
+    font-size: 12px;
+    color: #9ca3af;
   }
   
   .provider-header {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
+    align-items: center;
+    gap: 10px;
   }
   
-  .provider-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
-    background: rgba(0, 0, 0, 0.05);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
+  .provider-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+  
+  .provider-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
   }
   
   .provider-info {
@@ -969,21 +925,22 @@ const styles = `
   
   .btn-verify {
     width: 100%;
-    padding: 14px;
+    padding: 10px 16px;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
+    background: #374151;
     color: #fff;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     transition: all 0.2s;
   }
   
-  .btn-verify:hover { transform: translateY(-2px); }
+  .btn-verify:hover { background: #1f2937; transform: translateY(-1px); }
   .btn-verify:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
   
   .activity-list {

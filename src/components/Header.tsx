@@ -5,9 +5,16 @@ import { usePrivy } from '@privy-io/react-auth';
 
 const Header = () => {
     const navigate = useNavigate();
-    const { login, authenticated } = usePrivy();
+    const { login, authenticated, ready } = usePrivy();
     const [scrollY, setScrollY] = useState(0);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    // Redirect to dashboard when user authenticates
+    useEffect(() => {
+        if (authenticated && ready) {
+            navigate('/dashboard');
+        }
+    }, [authenticated, ready, navigate]);
 
     useEffect(() => {
         const handleScroll = () => setScrollY(window.scrollY);
@@ -44,17 +51,18 @@ const Header = () => {
                 }
                 
                 .btn-primary {
-                    background: #1a1a1a;
-                    border: none;
+                    background: #374151;
+                    border: 1px solid #374151;
                     color: #fff;
-                    font-weight: 600;
+                    font-weight: 500;
                     cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                    transition: all 0.2s ease;
                 }
                 
                 .btn-primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+                    background: #1f2937;
+                    transform: translateY(-1px);
+                    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
                 }
                 
                 @media (max-width: 768px) {
@@ -110,7 +118,7 @@ const Header = () => {
                         style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
                     >
                         {[
-                            { label: 'For Users', href: '/' },
+                            { label: 'Contribute', href: '/contribute' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },
                         ].map((link, i) =>
@@ -178,7 +186,7 @@ const Header = () => {
                         padding: '20px 24px'
                     }}>
                         {[
-                            { label: 'For Users', href: '/' },
+                            { label: 'Contribute', href: '/contribute' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },
                         ].map((link, i) => (
