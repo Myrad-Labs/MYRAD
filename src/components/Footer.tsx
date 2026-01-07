@@ -76,7 +76,7 @@ const Footer = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <a href="/terms" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Terms of Service</a>
                             <a href="/privacy" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Privacy Policy</a>
-                            <a href="/contact" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Contact</a>
+                            <a href="https://calendly.com/carghya10/30min" target="_blank" rel="noopener noreferrer" style={{ color: "#4b5563", textDecoration: "none", fontSize: "15px", transition: 'color 0.2s' }}>Book a Call</a>
                         </div>
                     </div>
 

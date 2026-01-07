@@ -47,7 +47,7 @@ const LandingPage = () => {
                 }
                 .feature-card:hover { 
                     transform: translateY(-4px); 
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
                     border-color: #e5e7eb;
                 }
 
@@ -138,7 +138,7 @@ const LandingPage = () => {
                                     Become A Contributor
                                 </button>
                                 <button
-                                    onClick={() => navigate('/contact')}
+                                    onClick={() => window.open('https://calendly.com/carghya10/30min', '_blank')}
                                     className="btn-secondary"
                                     style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
                                 >

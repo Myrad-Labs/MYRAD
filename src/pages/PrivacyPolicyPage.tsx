@@ -209,10 +209,10 @@ const PrivacyPolicyPage = () => {
                             12. Contact
                         </h2>
                         <p>
-                            For privacy related questions, please contact us through our{' '}
-                            <Link to="/contact" style={{ color: accent }}>
-                                contact form
-                            </Link>.
+                            For privacy related questions, please{' '}
+                            <a href="https://calendly.com/carghya10/30min" target="_blank" rel="noopener noreferrer" style={{ color: accent }}>
+                                book a call with us
+                            </a>.
                         </p>
                     </section>
 

@@ -193,10 +193,10 @@ const TermsOfServicePage = () => {
                                 12. Contact
                             </h2>
                             <p>
-                                For questions regarding these Terms, please contact us through our{' '}
-                                <Link to="/contact" style={{ color: accent }}>
-                                    contact form
-                                </Link>.
+                                For questions regarding these Terms, please{' '}
+                                <a href="https://calendly.com/carghya10/30min" target="_blank" rel="noopener noreferrer" style={{ color: accent }}>
+                                    book a call with us
+                                </a>.
                             </p>
                         </section>
 
