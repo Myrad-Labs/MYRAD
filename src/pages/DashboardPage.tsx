@@ -515,7 +515,7 @@ const DashboardPage = () => {
 
       {/* Custom Dashboard Header */}
       <header className="dashboard-header">
-        <img src="/images/navlogo.jpg" alt="MYRAD" className="dash-logo" />
+        <img src="/myrad.webp" alt="MYRAD" className="dash-logo" />
         <div className="header-right">
           {shortWalletAddress && (
             <button onClick={copyWalletAddress} className="wallet-badge">
@@ -796,7 +796,7 @@ const styles = `
   }
   
   .dash-logo {
-    height: 24px;
+    height: 40px;
   }
   
   .header-right {
