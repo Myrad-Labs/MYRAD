@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Copy, X, ExternalLink, AlertCircle, CheckCircle, LogOut, Key } from 'lucide-react';
+import { Loader2, X, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react';
+import DashboardHeader from '../components/DashboardHeader';
 import QRCode from 'react-qr-code';
 import github from "../assets/github.png";
 import zomato from "../assets/zomato.png";
@@ -513,27 +514,8 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* Custom Dashboard Header */}
-      <header className="dashboard-header">
-        <img src="/myrad.webp" alt="MYRAD" className="dash-logo" />
-        <div className="header-right">
-          {shortWalletAddress && (
-            <button onClick={copyWalletAddress} className="wallet-badge">
-              {copiedAddress ? 'Copied!' : shortWalletAddress}
-              <Copy size={12} />
-            </button>
-          )}
-
-          <button onClick={() => exportWallet()} className="btn-export" title="Export Private Key">
-            <Key size={14} />
-            Export Key
-          </button>
-          <button onClick={logout} className="btn-logout">
-            <LogOut size={16} />
-            Logout
-          </button>
-        </div>
-      </header>
+      {/* Shared Dashboard Header */}
+      <DashboardHeader />
 
       <main className="dashboard-main">
         {/* Welcome */}
@@ -798,6 +780,23 @@ const styles = `
   .dash-logo {
     height: 40px;
   }
+
+  .btn-leaderboard {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    height: 38px;
+    margin-right: 8px;
+  }
+
+  .btn-leaderboard:hover { background: #f3f4f6; }
   
   .header-right {
     display: flex;
