@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
-import { ArrowRight, Shield, Lock, Eye, Gift } from 'lucide-react';
+
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -9,6 +9,32 @@ const ContributorPage = () => {
     const navigate = useNavigate();
     const { login, authenticated, ready } = usePrivy();
     const [isVisible, setIsVisible] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const videoContainerRef = useRef<HTMLDivElement>(null);
+
+    // Scroll-triggered video playback
+    useEffect(() => {
+        const videoElement = videoRef.current;
+        const containerElement = videoContainerRef.current;
+        if (!videoElement || !containerElement) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        videoElement.currentTime = 0;
+                        videoElement.play();
+                    } else {
+                        videoElement.pause();
+                    }
+                });
+            },
+            { threshold: 0.3 }
+        );
+
+        observer.observe(containerElement);
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         setTimeout(() => setIsVisible(true), 100);
@@ -30,25 +56,18 @@ const ContributorPage = () => {
 
     const features = [
         {
-            icon: Lock,
             title: 'Secure Authentication',
             description: 'Sign in instantly with Privy Auth. No complex wallet setup required.'
         },
         {
-            icon: Eye,
             title: 'Privacy Preserved',
             description: 'Your raw data never leaves your device. Only cryptographic proofs are shared.'
         },
         {
-            icon: Shield,
             title: 'Zero-Knowledge Proofs',
             description: 'Verify your activity without revealing personal information.'
         },
-        {
-            icon: Gift,
-            title: 'Instant Rewards',
-            description: 'Earn points for every verified contribution to the data ecosystem.'
-        }
+
     ];
 
     return (
@@ -64,9 +83,12 @@ const ContributorPage = () => {
 
             <style>{`
                 * { box-sizing: border-box; margin: 0; padding: 0; }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
                 .content-wrapper { position: relative; z-index: 10; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes float { 0% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(0px); } 50% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(-20px); } 100% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(0px); } }
                 .animate-fadeInUp { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .animate-float { animation: float 6s ease-in-out infinite; }
                 .delay-100 { animation-delay: 0.1s; }
                 .delay-200 { animation-delay: 0.2s; }
                 .delay-300 { animation-delay: 0.3s; }
@@ -88,6 +110,9 @@ const ContributorPage = () => {
                     border-color: #e5e7eb;
                     border-top-color: #111827;
                 }
+                @media (max-width: 900px) {
+                    .how-to-grid { grid-template-columns: 1fr !important; }
+                }
             `}</style>
 
 
@@ -103,25 +128,21 @@ const ContributorPage = () => {
                         {/* Left: Text Content */}
                         <div style={{ textAlign: 'left', position: 'relative', zIndex: 1 }}>
                             {isVisible && (
-                                <div className="animate-fadeInUp delay-100" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(55, 65, 81, 0.08)', border: '1px solid rgba(55, 65, 81, 0.15)', borderRadius: '100px', fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '32px' }}>
-                                    For Contributors
-                                </div>
-                            )}
-                            {isVisible && (
-                                <h1 className="animate-fadeInUp delay-200" style={{ fontSize: '66px', fontWeight: 600, lineHeight: 1.05, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>
+                                <h1 className="animate-fadeInUp delay-200" style={{ fontSize: '72px', fontWeight: 600, lineHeight: 1.05, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>
                                     Earn from your <br />
-                                    digital activities.
+                                    <span style={{ background: 'linear-gradient(135deg, #111827 0%, #4b5563 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>digital activities.</span>
                                 </h1>
                             )}
                             {isVisible && (
                                 <p className="animate-fadeInUp delay-300" style={{ fontSize: '19px', color: '#4b5563', lineHeight: 1.6, maxWidth: '540px', marginBottom: '40px', fontWeight: 400 }}>
-                                    Your data creates value every day. Capture that value with zero knowledge proofs—keeping your privacy 100% intact.
+                                    Your data creates value every day.<br></br>
+                                    Myrad lets you earn from it without giving up your privacy.
                                 </p>
                             )}
                             {isVisible && (
                                 <div className="animate-fadeInUp delay-400" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                                     <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 36px', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        Start Earning <ArrowRight size={18} />
+                                        Start Earning
                                     </button>
                                 </div>
                             )}
@@ -129,36 +150,55 @@ const ContributorPage = () => {
 
                         {/* Right: Abstract Visual */}
                         <div style={{ position: 'relative', height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {/* Decorative Circles */}
-                            <div style={{ position: 'absolute', width: '400px', height: '400px', background: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)', borderRadius: '50%', filter: 'blur(40px)', opacity: 0.8, top: '10%', right: '10%' }} />
+                            {/* Decorative Circles - Made darker for contrast */}
+                            <div style={{ position: 'absolute', width: '450px', height: '450px', background: 'linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%)', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.6, top: '5%', right: '0%' }} />
+                            <div style={{ position: 'absolute', width: '300px', height: '300px', background: 'linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%)', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4, bottom: '-10%', left: '10%' }} />
 
                             {/* Glass Card */}
-                            <div className="animate-fadeInUp delay-200" style={{
+                            <div style={{
                                 position: 'relative',
-                                width: '360px',
+                                width: '380px',
                                 padding: '40px',
-                                background: 'rgba(255, 255, 255, 0.7)',
-                                backdropFilter: 'blur(20px)',
-                                border: '1px solid rgba(255, 255, 255, 0.8)',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)',
-                                borderRadius: '24px',
-                                transform: 'perspective(1000px) rotateY(-5deg) rotateX(5deg)',
+                                background: 'linear-gradient(145deg, #ffffff 0%, #f9fafb 100%)',
+                                border: '1px solid #d1d5db',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.05)',
+                                borderRadius: '32px',
                                 zIndex: 2
                             }}>
-                                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Lock size={20} color="#fff" />
-                                    </div>
-                                    <div style={{ padding: '4px 12px', background: '#ecfdf5', color: '#059669', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>
-                                        Verified
+                                <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <img src="/logo.png" alt="MYRAD" style={{ width: '35px', height: '35px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                                    <div style={{ padding: '6px 16px', background: '#ecfdf5', color: '#059669', borderRadius: '100px', fontSize: '13px', fontWeight: 600, border: '1px solid #d1fae5' }}>
+                                        Verified Source
                                     </div>
                                 </div>
-                                <div style={{ height: '8px', width: '60%', background: '#e5e7eb', borderRadius: '4px', marginBottom: '12px' }} />
-                                <div style={{ height: '8px', width: '80%', background: '#f3f4f6', borderRadius: '4px', marginBottom: '32px' }} />
 
-                                <div style={{ padding: '20px', background: '#fff', borderRadius: '16px', border: '1px solid #f3f4f6' }}>
-                                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Total Earnings</div>
-                                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#111827' }}>$1,240.50</div>
+                                <div style={{ height: '8px', width: '60%', background: '#e5e7eb', borderRadius: '4px', marginBottom: '16px' }} />
+                                <div style={{ height: '8px', width: '40%', background: '#f3f4f6', borderRadius: '4px', marginBottom: '40px' }} />
+
+                                <div style={{ position: 'relative', padding: '24px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                        {/* USDC Logo */}
+                                        <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="16" cy="16" r="16" fill="#2775CA" />
+                                            <path d="M20.5 18.5c0 2.21-2.01 4-4.5 4s-4.5-1.79-4.5-4c0-2.21 2.01-4 4.5-4s4.5 1.79 4.5 4z" fill="#fff" />
+                                            <path d="M16 9.5c-3.59 0-6.5 2.91-6.5 6.5s2.91 6.5 6.5 6.5 6.5-2.91 6.5-6.5-2.91-6.5-6.5-6.5zm0 11.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="#fff" />
+                                            <path d="M16.75 13.5h-1.5v1h-1v1.5h1v2h-1v1.5h1v1h1.5v-1h1v-1.5h-1v-2h1v-1.5h-1v-1z" fill="#fff" />
+                                        </svg>
+                                        <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>Total Earnings</div>
+                                    </div>
+                                    <div style={{ fontSize: '28px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>1,240.50 USDC</div>
+
+                                    {/* Trend Line Decoration */}
+                                    <svg width="100%" height="40" viewBox="0 0 100 40" style={{ marginTop: '10px', opacity: 0.8 }}>
+                                        <path d="M0 35 C 20 35, 20 10, 40 20 C 60 30, 60 5, 100 0" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" />
+                                        <path d="M100 0 L 100 40 L 0 40 Z" fill="url(#gradient)" style={{ opacity: 0.1 }} />
+                                        <defs>
+                                            <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stopColor="#22c55e" />
+                                                <stop offset="100%" stopColor="#ffffff" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
                                 </div>
                             </div>
 
@@ -190,18 +230,53 @@ const ContributorPage = () => {
                 <section style={{ padding: '100px 24px', borderTop: '1px solid #f3f4f6' }}>
                     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
                         <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-                            <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '12px', letterSpacing: '-0.02em', color: '#111827' }}>How It Works</h2>
-                            <p style={{ color: '#6b7280', fontSize: '16px' }}>Privacy-first data contribution in four simple steps</p>
+                            <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '12px', letterSpacing: '-0.02em', color: '#111827' }}>How to contribute</h2>
+                            <p style={{ color: '#6b7280', fontSize: '16px' }}>Privacy first data contribution in simple steps</p>
                         </div>
 
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-                            {features.map((feature, i) => (
-                                <div key={i} className="feature-card">
-                                    <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '12px', color: '#111827' }}>{feature.title}</h3>
-                                    <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: 1.7 }}>{feature.description}</p>
-                                </div>
-                            ))}
+                        {/* Two-column layout: Features left, Video right */}
+                        <div className="how-to-grid" style={{
+                            display: 'grid',
+                            gridTemplateColumns: '0.8fr 1.5fr',
+                            gap: '48px',
+                            alignItems: 'center'
+                        }}>
+                            {/* Left: Feature Cards (vertical stack) */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                {features.map((feature, i) => (
+                                    <div key={i} className="feature-card" style={{
+                                        background: '#fff',
+                                        border: '1px solid #f3f4f6',
+                                        borderRadius: '16px',
+                                        padding: '24px',
+                                        transition: 'all 0.3s ease'
+                                    }}>
+                                        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#111827' }}>{feature.title}</h3>
+                                        <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{feature.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Right: Video */}
+                            <div ref={videoContainerRef} style={{
+                                borderRadius: '24px',
+                                overflow: 'hidden',
+                                boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.15)',
+                                border: '1px solid rgba(0,0,0,0.05)'
+                            }}>
+                                <video
+                                    ref={videoRef}
+                                    src="tutorial.mp4"
+                                    loop
+                                    muted
+                                    playsInline
+                                    style={{
+                                        width: '100%',
+                                        display: 'block'
+                                    }}
+                                />
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -209,10 +284,10 @@ const ContributorPage = () => {
                 {/* CTA Section */}
                 <section style={{ padding: '100px 24px', borderTop: '1px solid #f3f4f6', textAlign: 'center' }}>
                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                        <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '16px', letterSpacing: '-0.02em', color: '#111827' }}>Ready to Own Your Data?</h2>
+                        <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '16px', letterSpacing: '-0.02em', color: '#111827' }}>Ready to monetize your data?</h2>
                         <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '32px' }}>Join thousands of users earning from their digital footprint.</p>
                         <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 40px', borderRadius: '12px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-                            Get Started Free <ArrowRight size={16} />
+                            Start earning
                         </button>
                     </div>
                 </section>

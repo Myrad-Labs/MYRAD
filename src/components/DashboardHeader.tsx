@@ -24,20 +24,23 @@ const DashboardHeader: React.FC = () => {
   return (
     <>
       <style>{`
+        @import url('https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap');
+
         .dashboard-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: 16px 40px;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(10px);
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(20px);
           border-bottom: 1px solid rgba(0, 0, 0, 0.05);
           position: sticky;
           top: 0;
           z-index: 100;
+          font-family: 'Satoshi', sans-serif;
         }
 
-        .dash-logo { height: 40px; }
+        .dash-logo { height: 32px; object-fit: contain; }
 
         .header-right { display: flex; align-items: center; gap: 12px; }
 
@@ -46,48 +49,63 @@ const DashboardHeader: React.FC = () => {
           align-items: center;
           gap: 6px;
           padding: 8px 12px;
-          background: rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          border-radius: 8px;
-          color: rgba(0, 0, 0, 0.7);
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          color: #374151;
           font-size: 13px;
           font-weight: 500;
           cursor: pointer;
+          transition: all 0.2s;
         }
+        .wallet-badge:hover { background: #f9fafb; border-color: #d1d5db; }
 
         .btn-logout {
           display: flex;
           align-items: center;
           gap: 6px;
           padding: 8px 16px;
-          background: #374151;
-          border: 1px solid #374151;
-          border-radius: 8px;
+          background: #111827;
+          border: 1px solid #111827;
+          border-radius: 10px;
           color: #fff;
           font-size: 13px;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
         }
 
-        .btn-logout:hover { background: #1f2937; }
+        .btn-logout:hover { background: #000000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
         .btn-export {
           display: flex;
           align-items: center;
           gap: 6px;
           padding: 8px 12px;
-          background: #f9fafb;
+          background: #ffffff;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
+          border-radius: 10px;
           color: #374151;
           font-size: 13px;
+          font-weight: 500;
           cursor: pointer;
           transition: all 0.2s;
         }
 
-        .btn-export:hover { background: #f3f4f6; border-color: #d1d5db; }
+        .btn-export:hover { background: #f9fafb; border-color: #d1d5db; }
 
-        .btn-leaderboard { padding: 8px 12px; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; cursor: pointer; font-weight: 600; }
+        .btn-leaderboard { 
+          padding: 8px 14px; 
+          border-radius: 10px; 
+          border: 1px solid #e5e7eb; 
+          background: #ffffff; 
+          color: #111827;
+          cursor: pointer; 
+          font-weight: 600; 
+          font-size: 13px;
+          transition: all 0.2s;
+        }
+        .btn-leaderboard:hover { background: #f9fafb; border-color: #d1d5db; }
 
         @media (max-width: 600px) { .dashboard-header { flex-direction: column; align-items: flex-start; gap: 12px } }
       `}</style>

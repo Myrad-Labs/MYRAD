@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, X, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, X, AlertCircle, CheckCircle } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
 import QRCode from 'react-qr-code';
 import github from "../assets/github.png";
@@ -510,40 +510,41 @@ const DashboardPage = () => {
 
       <main className="dashboard-main">
         {/* Welcome */}
-        <div className="welcome-text">
-          <h1>Dashboard</h1>
-          <p>Welcome back</p>
+        <div className="welcome-section animate-enter">
+          <div className="welcome-text">
+            <h1>Dashboard</h1>
+            <p>Welcome back, track your contributions and rewards.</p>
+          </div>
         </div>
 
-
         {loading ? (
-          <div className="loading-state">
-            <Loader2 className="spin" size={32} color="#fff" />
+          <div className="loading-state animate-enter">
+            <Loader2 className="spin" size={32} color="#111827" />
             <p>Loading your data...</p>
           </div>
         ) : (
           <>
             {/* Stats Cards */}
-            <section className="stats-grid">
+            <section className="stats-grid animate-enter delay-1">
               <div className="stat-card">
                 <span className="stat-label">Total Points</span>
                 <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
               </div>
               <div className="stat-card">
-                <span className="stat-label">Contributions</span>
+                <span className="stat-label">Total Contributions</span>
                 <span className="stat-value">{contributions.length}</span>
               </div>
               <div className="stat-card">
-                <span className="stat-label">Status</span>
-                <span className="stat-value">Active</span>
+                <span className="stat-label">Account Status</span>
+                <span className="stat-value" style={{ color: '#059669' }}>Active</span>
               </div>
             </section>
 
             {/* Contribute Section */}
-            <section className="contribute-section">
+            <section className="contribute-section animate-enter delay-2">
               <div className="section-header">
                 <h2>Contribute & Earn</h2>
-                <p>Verify your data to earn points</p>
+                <p>Connect your accounts to verify data and earn rewards.</p>
               </div>
 
               <div className="providers-grid">
@@ -557,6 +558,8 @@ const DashboardPage = () => {
                       <h3 className="provider-name">{provider.name}</h3>
                     </div>
 
+                    <p className="provider-desc">{provider.description}</p>
+
                     {/* QR Code Section */}
                     {activeProvider === provider.id && verificationUrl && (
                       <div className="qr-section">
@@ -565,10 +568,10 @@ const DashboardPage = () => {
                           <QRCode value={verificationUrl} size={120} level="M" />
                         </div>
                         <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                          <ExternalLink size={14} /> Open Link
+                          Open Link
                         </a>
                         <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); }} className="qr-cancel">
-                          <X size={14} /> Cancel
+                          Cancel
                         </button>
                       </div>
                     )}
@@ -594,15 +597,15 @@ const DashboardPage = () => {
                 {/* Coming Soon Card */}
                 <div className="provider-card coming-soon">
                   <div className="provider-header">
-                    <span className="coming-soon-text">Coming Soon</span>
+                    <span className="coming-soon-text">More Coming Soon</span>
                   </div>
-                  <p className="coming-soon-desc">More integrations on the way</p>
+                  <p className="coming-soon-desc">New integrations are on the way.</p>
                 </div>
               </div>
             </section>
 
             {/* Recent Activity */}
-            <section className="activity-section">
+            <section className="activity-section animate-enter delay-3">
               <div className="section-header">
                 <h2>Recent Activity</h2>
               </div>
@@ -643,671 +646,214 @@ const DashboardPage = () => {
 
 // Styles
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  @import url('https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap');
   
   * { box-sizing: border-box; margin: 0; padding: 0; }
-.provider-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.provider-name-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.provider-logo {
-  width: 26px;
-  height: 26px;
-  object-fit: contain;
-}
-
-.provider-name {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.provider-desc {
-  font-size: 13px;
-  opacity: 0.7;
-}
-
+  
   .dashboard {
     min-height: 100vh;
     background: #ffffff;
     color: #111827;
-    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  
-  .dashboard-loading {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    background: #ffffff;
-    color: #374151;
     font-family: 'Satoshi', sans-serif;
   }
-  
-  .auth-card {
-    text-align: center;
-    padding: 48px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 24px;
-    max-width: 400px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-  }
-  
-  .auth-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 20px;
-    background: rgba(79, 70, 229, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 24px;
-  }
-  
-  .auth-card h1 {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin-bottom: 12px;
-  }
-  
-  .auth-card .brand { color: #4F46E5; }
-  
-  .auth-card p {
-    color: #666;
-    margin-bottom: 32px;
-    line-height: 1.6;
-  }
-  
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 32px;
-    background: #1a1a1a;
-    border: none;
-    border-radius: 12px;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); }
-  
-  .back-link {
-    display: block;
-    margin-top: 24px;
-    color: #666;
-    text-decoration: none;
-    font-size: 14px;
-  }
-  
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 40px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  
-  .dash-logo {
-    height: 40px;
-  }
 
-  .btn-leaderboard {
-    padding: 8px 12px;
-    border-radius: 8px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    color: #374151;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 14px;
-    display: inline-flex;
-    align-items: center;
-    height: 38px;
-    margin-right: 8px;
-  }
-
-  .btn-leaderboard:hover { background: #f3f4f6; }
-  
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .wallet-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    color: rgba(0, 0, 0, 0.7);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  
-  .points-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: rgba(79, 70, 229, 0.08);
-    border: 1px solid rgba(79, 70, 229, 0.2);
-    border-radius: 100px;
-    color: #4F46E5;
-    font-size: 14px;
-    font-weight: 600;
-  }
-  
-  .btn-logout {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: #374151;
-    border: 1px solid #374151;
-    border-radius: 8px;
-    color: #fff;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .btn-logout:hover { background: #1f2937; }
-  
-  .btn-export {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    color: #374151;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .btn-export:hover { background: #f3f4f6; border-color: #d1d5db; }
+  /* Animations */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-enter { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
   
   .dashboard-main {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 32px 24px;
+    padding: 40px 24px;
   }
-  
+
   .welcome-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 48px;
   }
   
-  .welcome-text {
-    margin-bottom: 32px;
-  }
-  
-  .welcome-text h1 {
-    font-size: 32px;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 8px;
-  }
-  
-  .welcome-text p {
-    color: #6b7280;
-    font-size: 14px;
-  }
-  
-  .btn-refresh {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 16px;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    color: #666;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .btn-refresh:hover { background: rgba(0, 0, 0, 0.1); color: #1a1a1a; }
-  
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 80px;
-    gap: 16px;
-    color: #666;
-  }
-  
+  .welcome-text h1 { font-size: 36px; font-weight: 700; color: #111827; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .welcome-text p { color: #6b7280; font-size: 16px; font-weight: 500; }
+
+  /* Stats Grid */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 32px;
+    gap: 20px;
+    margin-bottom: 40px;
   }
-  
-  @media (max-width: 768px) {
-    .stats-grid { grid-template-columns: 1fr; }
-  }
-  
+
   .stat-card {
     background: #ffffff;
     border: 1px solid #f3f4f6;
-    border-radius: 12px;
+    border-radius: 20px;
     padding: 24px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
   }
   
-  .stat-label { font-size: 14px; color: #6b7280; }
-  .stat-value { font-size: 32px; font-weight: 700; color: #111827; }
-  
-  .contribute-section, .activity-section {
-    margin-bottom: 32px;
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08);
+    border-color: #e5e7eb;
   }
   
-  .section-header {
-    margin-bottom: 20px;
-  }
-  
-  .section-header h2 {
-    font-size: 18px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-  
-  .section-header p {
-    color: #666;
-    font-size: 14px;
-  }
-  
+  .stat-label { font-size: 14px; font-weight: 500; color: #6b7280; }
+  .stat-value { font-size: 36px; font-weight: 700; color: #111827; letter-spacing: -0.02em; line-height: 1; }
+
+  /* Contribute Section */
+  .section-header { margin-bottom: 24px; }
+  .section-header h2 { font-size: 24px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .section-header p { color: #6b7280; font-size: 15px; }
+
   .providers-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    gap: 20px;
+    margin-bottom: 48px;
   }
-  
-  @media (max-width: 900px) {
-    .providers-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 600px) {
-    .providers-grid { grid-template-columns: 1fr; }
-  }
-  
+
   .provider-card {
     background: #ffffff;
     border: 1px solid #f3f4f6;
-    border-radius: 12px;
-    padding: 20px;
-    transition: all 0.3s;
+    border-radius: 20px;
+    padding: 24px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 12px;
-  }
-  
-  .provider-card:hover {
-    border-color: #e5e7eb;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.06);
-  }
-  
-  .provider-card.active {
-    border-color: #374151;
-  }
-  
-  .provider-card.coming-soon {
-    border-style: dashed;
-    background: #f9fafb;
-  }
-  
-  .coming-soon-text {
-    font-size: 16px;
-    font-weight: 600;
-    color: #9ca3af;
-  }
-  
-  .coming-soon-desc {
-    font-size: 12px;
-    color: #9ca3af;
-  }
-  
-  .provider-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .provider-logo {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-  }
-  
-  .provider-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #111827;
-    margin: 0;
-  }
-  
-  .provider-info {
-    flex: 1;
-  }
-  
-  .provider-info h3 { 
-    font-size: 18px; 
-    font-weight: 600; 
-    margin-bottom: 4px;
-    color: #1a1a1a;
-  }
-  
-  .provider-info span { 
-    font-size: 13px; 
-    color: #666;
-    display: block;
-  }
-  
-  .provider-reward {
-    margin-left: auto;
-    text-align: right;
-  }
-  
-  .reward-value {
-    display: block;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--provider-color);
-  }
-  
-  .reward-label { font-size: 12px; color: #666; }
-  
-  .qr-section {
-    background: rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 16px;
-    padding: 32px 24px;
-    text-align: center;
-    margin-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     gap: 16px;
+    position: relative;
+    border-top: 4px solid transparent;
   }
-  
-  .qr-title {
-    color: #1a1a1a;
-    font-size: 15px;
-    font-weight: 600;
-    margin: 0;
+
+  .provider-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+    border-color: #e5e7eb;
+    border-top-color: #111827;
   }
+
+  .provider-header { display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }
+  .provider-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 8px; }
+  .provider-name { font-size: 16px; font-weight: 700; color: #111827; margin: 0; }
   
-  .qr-container {
-    background: #fff;
-    padding: 20px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-  }
-  
-  .qr-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: #1a1a1a;
-    border-radius: 10px;
-    color: #fff;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-  
-  .qr-link:hover {
-    background: #333;
-    transform: translateY(-2px);
-  }
-  
-  .qr-cancel {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 20px;
-    background: transparent;
-    border: none;
-    color: #666;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .qr-cancel:hover {
-    color: #1a1a1a;
-  }
-  
+  .provider-desc { font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: auto; }
+
   .btn-verify {
     width: 100%;
-    padding: 10px 16px;
+    padding: 12px;
     border: none;
-    border-radius: 8px;
-    background: #374151;
+    border-radius: 10px;
+    background: #111827;
     color: #fff;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    transition: all 0.2s;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .btn-verify:hover { background: #000000; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .btn-verify:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .provider-card.active { border-color: #111827; background: #fff; }
+  .provider-card.coming-soon { 
+    border-style: dashed; 
+    background: #f9fafb; 
+    align-items: center; 
+    justify-content: center; 
+    opacity: 0.8; 
+    min-height: 200px;
   }
   
-  .btn-verify:hover { background: #1f2937; transform: translateY(-1px); }
-  .btn-verify:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-  
+  .provider-card.coming-soon:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #f3f4f6; /* Keep original subtle border */
+    border-top-color: transparent;
+    cursor: default;
+  }
+
+  .coming-soon-text { font-size: 16px; font-weight: 600; color: #6b7280; margin-bottom: 4px; }
+  .coming-soon-desc { font-size: 13px; color: #9ca3af; text-align: center; margin: 0; }
+
+  /* Activity List */
+  .activity-section { margin-top: 24px; }
   .activity-list {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #f3f4f6;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
   }
-  
+
   .activity-item {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 16px 24px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s;
   }
-  
   .activity-item:last-child { border-bottom: none; }
-  
-  .activity-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-  }
-  
-  .activity-info { flex: 1; }
-  .activity-title { display: block; font-weight: 500; font-size: 14px; margin-bottom: 2px; }
-  .activity-time { font-size: 12px; color: #666; }
-  
-  .activity-points {
-    font-size: 16px;
-    font-weight: 700;
-    color: #22C55E;
-  }
-  
-  .empty-state {
-    padding: 48px;
-    text-align: center;
-  }
-  
-  .empty-icon { font-size: 48px; margin-bottom: 16px; }
-  .empty-state p { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
-  .empty-state span { font-size: 14px; color: #666; }
-  
+  .activity-item:hover { background: #f9fafb; }
+
+  .activity-info { display: flex; flex-direction: column; gap: 2px; }
+  .activity-title { font-weight: 600; font-size: 14px; color: #111827; }
+  .activity-time { font-size: 12px; color: #9ca3af; }
+  .activity-points { font-size: 14px; font-weight: 700; color: #059669; background: #ecfdf5; padding: 4px 10px; border-radius: 100px; }
+
+  /* QR Section */
+  .qr-section { background: #f9fafb; border-radius: 16px; padding: 20px; text-align: center; margin-top: 16px; border: 1px solid #e5e7eb; }
+  .qr-container { background: #fff; padding: 12px; border-radius: 12px; display: inline-block; margin: 12px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .qr-link { display: inline-flex; align-items: center; gap: 6px; color: #111827; font-weight: 600; font-size: 13px; text-decoration: none; margin-bottom: 12px; }
+  .qr-link:hover { text-decoration: underline; }
+  .qr-cancel { background: transparent; border: none; color: #ef4444; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; margin: 0 auto; }
+  .qr-title { font-weight: 600; font-size: 13px; color: #374151; }
+
+  /* Misc */
+  .loading-state { padding: 80px; text-align: center; color: #9ca3af; }
   .spin { animation: spin 1s linear infinite; }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-  /* Toast Notification Styles */
-  .toast {
-    position: fixed;
-    top: 24px;
-    right: 24px;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px 20px;
-    border-radius: 12px;
-    background: rgba(20, 20, 20, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    z-index: 10000;
-    max-width: 400px;
-    animation: slideIn 0.3s ease;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  .empty-state { padding: 64px; text-align: center; color: #6b7280; }
+  
+  @media (max-width: 1024px) {
+    .providers-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  
+  @media (max-width: 768px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .providers-grid { grid-template-columns: repeat(2, 1fr); }
+    .welcome-section { flex-direction: column; align-items: flex-start; gap: 16px; }
+  }
+  
+  @media (max-width: 480px) {
+    .providers-grid { grid-template-columns: 1fr; }
   }
 
-  @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-
-  .toast-success { border-color: #22C55E; }
-  .toast-success .toast-icon { color: #22C55E; }
-
-  .toast-error { border-color: #EF4444; }
-  .toast-error .toast-icon { color: #EF4444; }
-
-  .toast-info { border-color: #3B82F6; }
-  .toast-info .toast-icon { color: #3B82F6; }
-
-  .toast-icon {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .toast-content {
-    flex: 1;
-  }
-
-  .toast-content strong {
-    display: block;
-    font-size: 15px;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 2px;
-  }
-
-  .toast-content p {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.6);
-    margin: 0;
-    line-height: 1.4;
-  }
-
-  .toast-close {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.4);
-    cursor: pointer;
-    padding: 4px;
-    margin: -4px -4px -4px 0;
-    border-radius: 4px;
-    transition: all 0.2s;
-  }
-
-  .toast-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-  }
-
-  /* Welcome section layout */
-.welcome-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-/* Right-side action buttons */
-.welcome-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Make buttons same height */
-.btn-refresh,
-.btn-logout {
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 16px;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .welcome-section {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .welcome-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-
+  /* Keep Toast Styles as is, they are fine */
+  .toast { position: fixed; top: 24px; right: 24px; display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px; border-radius: 12px; background: rgba(20, 20, 20, 0.95); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); z-index: 10000; max-width: 400px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+  .toast-success { border-color: #22C55E; } .toast-success .toast-icon { color: #22C55E; }
+  .toast-error { border-color: #EF4444; } .toast-error .toast-icon { color: #EF4444; }
+  .toast-info { border-color: #3B82F6; } .toast-info .toast-icon { color: #3B82F6; }
+  .toast-icon { flex-shrink: 0; margin-top: 2px; }
+  .toast-content { flex: 1; }
+  .toast-content strong { display: block; font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+  .toast-content p { font-size: 13px; color: rgba(255, 255, 255, 0.6); margin: 0; line-height: 1.4; }
+  .toast-close { flex-shrink: 0; background: none; border: none; color: rgba(255, 255, 255, 0.4); cursor: pointer; padding: 4px; border-radius: 4px; }
+  .toast-close:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 `;
 
 export default DashboardPage;
