@@ -225,7 +225,7 @@ const LandingPage = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
                             <div>
                                 <h2 style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#374151', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                                    Who Builds <br /> with Myrad
+                                    Who builds <br /> with Myrad
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: 1.7, maxWidth: '440px' }}>
                                     Trusted by teams building the next generation of AI, analytics, and consumer insights.
