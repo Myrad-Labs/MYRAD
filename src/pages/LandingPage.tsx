@@ -43,12 +43,15 @@ const LandingPage = () => {
                 .feature-card { 
                     background: #ffffff; 
                     border: 1px solid #f3f4f6; 
+                    border-top: 4px solid transparent;
                     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+                    position: relative;
                 }
                 .feature-card:hover { 
                     transform: translateY(-4px); 
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
                     border-color: #e5e7eb;
+                    border-top-color: #111827;
                 }
 
                 /* Button Styles */
@@ -79,12 +82,43 @@ const LandingPage = () => {
                     color: #111827; 
                     border-color: #d1d5db;
                 }
+
+                /* Usecase Row Styles */
+                .usecase-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 32px;
+                    padding: 24px;
+                    border-bottom: 1px solid #f3f4f6;
+                    transition: all 0.2s ease;
+                    border-radius: 8px;
+                    cursor: default;
+                }
+                .usecase-row:hover {
+                    background: #f9fafb;
+                    transform: translateX(10px);
+                    border-color: transparent;
+                }
+                .usecase-title {
+                    font-weight: 600;
+                    color: #1f2937;
+                    min-width: 200px;
+                    font-size: 18px;
+                }
+                .usecase-desc {
+                    color: #6b7280;
+                    font-size: 16px;
+                    transition: color 0.2s;
+                }
+                .usecase-row:hover .usecase-desc {
+                    color: #374151;
+                }
             `}</style>
 
             {/* Dynamic Waves Background */}
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
                 <Waves
-                    lineColor="rgba(0,0,0,0.04)"
+                    lineColor="rgba(0,0,0,0.06)"
                     backgroundColor="#ffffff"
                     waveSpeedX={0.01}
                     waveSpeedY={0.005}
@@ -135,21 +169,21 @@ const LandingPage = () => {
                                     className="btn-primary"
                                     style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
                                 >
-                                    Become A Contributor
+                                    Become a contributor
                                 </button>
                                 <button
                                     onClick={() => window.open('https://calendly.com/carghya10/30min', '_blank')}
                                     className="btn-secondary"
                                     style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
                                 >
-                                    Explore Datasets <ArrowRight size={16} />
+                                    Talk to us <ArrowRight size={16} />
                                 </button>
                             </div>
                         )}
                     </div>
 
                     {/* Minimal Branding at bottom */}
-                    <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, textAlign: 'center', opacity: 0.4 }}>
+                    <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, textAlign: 'center', opacity: 0.9 }}>
                         <span style={{ fontSize: '12px', color: '#9ca3af', letterSpacing: '0.1em', fontWeight: 600 }}>BACKED BY HUMANS</span>
                     </div>
                 </section>
@@ -167,7 +201,7 @@ const LandingPage = () => {
                                 {
                                     icon: Lock,
                                     title: "No Personal Data",
-                                    desc: "MYRAD never collects raw histories, identifiers, or private content. Only aggregated, non-identifying signals."
+                                    desc: "Myrad never collects raw histories, identifiers, or private content. Only aggregated, non-identifying signals."
                                 },
                                 {
                                     icon: Database,
@@ -176,9 +210,7 @@ const LandingPage = () => {
                                 }
                             ].map((card, i) => (
                                 <div key={i} className="feature-card" style={{ padding: '48px 40px', borderRadius: '16px' }}>
-                                    <div style={{ marginBottom: '24px' }}>
-                                        <card.icon size={28} color="#374151" strokeWidth={1.5} />
-                                    </div>
+
                                     <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>{card.title}</h3>
                                     <p style={{ color: '#6b7280', lineHeight: 1.7, fontSize: '15px' }}>{card.desc}</p>
                                 </div>
@@ -193,22 +225,22 @@ const LandingPage = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
                             <div>
                                 <h2 style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#374151', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                                    Who Builds <br /> with MYRAD
+                                    Who Builds <br /> with Myrad
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: 1.7, maxWidth: '440px' }}>
                                     Trusted by teams building the next generation of AI, analytics, and consumer insights.
                                 </p>
                             </div>
-                            <div style={{ display: 'grid', gap: '24px' }}>
+                            <div style={{ display: 'grid', gap: '8px' }}>
                                 {[
-                                    { title: "AI & ML Teams", desc: "For training and evaluating models" },
-                                    { title: "Research Institutions", desc: "For unbiased human behavior data" },
-                                    { title: "Analytics Teams", desc: "For reliable preference signals" },
-                                    { title: "Product Teams", desc: "For validating behavioral patterns" }
+                                    { title: "AI & ML Teams", desc: "For training and evaluating foundational models" },
+                                    { title: "Research Institutions", desc: "For unbiased, verifying human activity data" },
+                                    { title: "Analytics Teams", desc: "For reliable, high-signal preference datasets" },
+                                    { title: "Product Teams", desc: "For validating behavioral retention patterns" }
                                 ].map((item, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '32px', paddingBottom: '24px', borderBottom: '1px solid #f3f4f6' }}>
-                                        <div style={{ fontWeight: 600, color: '#374151', minWidth: '180px', fontSize: '18px' }}>{item.title}</div>
-                                        <div style={{ color: '#9ca3af', fontSize: '15px' }}>{item.desc}</div>
+                                    <div key={i} className="usecase-row">
+                                        <div className="usecase-title">{item.title}</div>
+                                        <div className="usecase-desc">{item.desc}</div>
                                     </div>
                                 ))}
                             </div>

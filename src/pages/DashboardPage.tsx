@@ -56,7 +56,7 @@ const PROVIDERS = [
 
 
 const DashboardPage = () => {
-  const { ready, authenticated, user, logout, exportWallet } = usePrivy();
+  const { ready, authenticated, user } = usePrivy();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [points, setPoints] = useState<any>(null);
@@ -65,7 +65,7 @@ const DashboardPage = () => {
   const [contributing, setContributing] = useState<string | null>(null);
   const [verificationUrl, setVerificationUrl] = useState<string | null>(null);
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
-  const [copiedAddress, setCopiedAddress] = useState(false);
+
 
   const hasLoadedData = useRef(false);
 
@@ -86,20 +86,11 @@ const DashboardPage = () => {
     }
   }, [ready, authenticated, navigate]);
 
-  // Copy wallet address to clipboard
-  const copyWalletAddress = () => {
-    if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress);
-      setCopiedAddress(true);
-      setTimeout(() => setCopiedAddress(false), 2000);
-    }
-  };
+
 
   // Get wallet address from Privy user
   const walletAddress = user?.wallet?.address || null;
-  const shortWalletAddress = walletAddress
-    ? `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`
-    : null;
+
 
   // Fetch user data
   const fetchUserData = useCallback(async (showRefresh = false) => {
