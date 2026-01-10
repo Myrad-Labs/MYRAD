@@ -285,7 +285,7 @@ const ContributorPage = () => {
                 <section style={{ padding: '100px 24px', borderTop: '1px solid #f3f4f6', textAlign: 'center' }}>
                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
                         <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '16px', letterSpacing: '-0.02em', color: '#111827' }}>Ready to monetize your data?</h2>
-                        <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '32px' }}>Join thousands of users earning from their digital footprint.</p>
+                        <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '32px' }}></p>
                         <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 40px', borderRadius: '12px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
                             Start earning
                         </button>
