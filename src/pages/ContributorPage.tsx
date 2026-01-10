@@ -142,7 +142,7 @@ const ContributorPage = () => {
                             {isVisible && (
                                 <div className="animate-fadeInUp delay-400" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                                     <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 36px', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        Start Earning
+                                        Start earning
                                     </button>
                                 </div>
                             )}
