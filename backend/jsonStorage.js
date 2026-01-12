@@ -1,4 +1,5 @@
-// Simple JSON file storage helper
+// Database-first storage helper
+// All user, points, and contribution data is stored in PostgreSQL database
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,53 +14,24 @@ if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// File paths
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-const POINTS_FILE = path.join(DATA_DIR, 'points.json');
-const CONTRIBUTIONS_FILE = path.join(DATA_DIR, 'contributions.json'); // Legacy - for backwards compat
+// API Keys file (still using JSON for simplicity)
 const API_KEYS_FILE = path.join(DATA_DIR, 'api_keys.json');
 
-// Provider-specific contribution paths
-const ZOMATO_CONTRIBUTIONS_FILE = path.join(DATA_DIR, 'zomato', 'contributions.json');
-const GITHUB_CONTRIBUTIONS_FILE = path.join(DATA_DIR, 'github', 'contributions.json');
-const NETFLIX_CONTRIBUTIONS_FILE = path.join(DATA_DIR, 'netflix', 'contributions.json');
+// Initialize API keys file if it doesn't exist
+if (!fs.existsSync(API_KEYS_FILE)) {
+    fs.writeFileSync(API_KEYS_FILE, JSON.stringify([], null, 2));
+}
 
-// Ensure provider directories exist
-const ZOMATO_DIR = path.join(DATA_DIR, 'zomato');
-const GITHUB_DIR = path.join(DATA_DIR, 'github');
-const NETFLIX_DIR = path.join(DATA_DIR, 'netflix');
-if (!fs.existsSync(ZOMATO_DIR)) fs.mkdirSync(ZOMATO_DIR, { recursive: true });
-if (!fs.existsSync(GITHUB_DIR)) fs.mkdirSync(GITHUB_DIR, { recursive: true });
-if (!fs.existsSync(NETFLIX_DIR)) fs.mkdirSync(NETFLIX_DIR, { recursive: true });
-
-// Initialize files if they don't exist
-const initFile = (filePath, defaultData = []) => {
-    if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2));
-    }
-};
-
-initFile(USERS_FILE, []);
-initFile(POINTS_FILE, []);
-initFile(CONTRIBUTIONS_FILE, []); // Legacy
-initFile(API_KEYS_FILE, []);
-initFile(ZOMATO_CONTRIBUTIONS_FILE, []);
-initFile(GITHUB_CONTRIBUTIONS_FILE, []);
-initFile(NETFLIX_CONTRIBUTIONS_FILE, []);
-
-// Read JSON file
+// Read JSON file (for API keys only)
 const readJSON = (filePath) => {
     try {
         const data = fs.readFileSync(filePath, 'utf8');
-        // Handle empty files gracefully
         if (!data || data.trim() === '') {
-            // Initialize empty file with empty array
             fs.writeFileSync(filePath, JSON.stringify([], null, 2));
             return [];
         }
         return JSON.parse(data);
     } catch (error) {
-        // If file is empty or invalid, initialize it with empty array
         if (error instanceof SyntaxError && fs.existsSync(filePath)) {
             const stats = fs.statSync(filePath);
             if (stats.size === 0) {
@@ -67,7 +39,6 @@ const readJSON = (filePath) => {
                 return [];
             }
         }
-        // Only log non-empty file errors (suppress empty file errors)
         if (fs.existsSync(filePath)) {
             const stats = fs.statSync(filePath);
             if (stats.size > 0) {
@@ -78,7 +49,7 @@ const readJSON = (filePath) => {
     }
 };
 
-// Write JSON file
+// Write JSON file (for API keys only)
 const writeJSON = (filePath, data) => {
     try {
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
@@ -89,238 +60,146 @@ const writeJSON = (filePath, data) => {
     }
 };
 
-// Users
-export const getUsers = () => readJSON(USERS_FILE);
-export const saveUsers = (users) => writeJSON(USERS_FILE, users);
-
-// Check if username is available
-export const isUsernameAvailable = (username) => {
-    const users = getUsers();
-    return !users.some(u => u.username && u.username.toLowerCase() === username.toLowerCase());
-};
-
-export const getUserByPrivyId = (privyId) => {
-    const users = getUsers();
-    return users.find(u => u.privyId === privyId);
-};
-
-export const getUserById = (userId) => {
-    const users = getUsers();
-    return users.find(u => u.id === userId);
-};
-
-export const createUser = (privyId, email, walletAddress = null) => {
-    const users = getUsers();
-    const newUser = {
-        id: Date.now().toString(),
-        privyId,
-        email,
-        walletAddress,
-        username: null,
-        streak: 0,
-        lastContributionDate: null,
-        totalPoints: 100, // Signup bonus
-        league: 'Bronze',
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString()
-    };
-    users.push(newUser);
-    saveUsers(users);
-
-    // Award signup points
-    addPoints(newUser.id, 100, 'signup_bonus');
-
-    return newUser;
-};
-
-export const updateUserWallet = (userId, walletAddress) => {
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-        users[userIndex].walletAddress = walletAddress;
-        saveUsers(users);
-        return users[userIndex];
+// Users & Points - Database-only
+let userService = null;
+const getUserService = async () => {
+    if (!userService) {
+        userService = await import('./database/userService.js');
     }
-    return null;
+    return userService;
 };
 
-export const updateUserActivity = (userId) => {
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-        users[userIndex].lastActiveAt = new Date().toISOString();
-        saveUsers(users);
-    }
-};
-
-export const updateUserProfile = (userId, updates) => {
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-        users[userIndex] = { ...users[userIndex], ...updates };
-        saveUsers(users);
-        return users[userIndex];
-    }
-    return null;
-};
-
-// Points
-export const getPoints = () => readJSON(POINTS_FILE);
-export const savePoints = (points) => writeJSON(POINTS_FILE, points);
-
-export const getUserPoints = (userId) => {
-    const points = getPoints();
-    return points.filter(p => p.userId === userId);
-};
-
-export const getUserTotalPoints = (userId) => {
-    const userPoints = getUserPoints(userId);
-    return userPoints.reduce((sum, p) => sum + p.points, 0);
-};
-
-export const addPoints = (userId, points, reason) => {
-    const pointsData = getPoints();
-    const newEntry = {
-        id: Date.now().toString(),
-        userId,
-        points,
-        reason,
-        createdAt: new Date().toISOString()
-    };
-    pointsData.push(newEntry);
-    savePoints(pointsData);
-
-    // Update user's total points
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-        users[userIndex].totalPoints = getUserTotalPoints(userId);
-        saveUsers(users);
-    }
-
-    return newEntry;
-};
-
-export const getLeaderboard = (limit = 10) => {
-    const users = getUsers();
-    return users
-        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))
-        .slice(0, limit)
-        .map(u => ({
-            id: u.id,
-            email: u.email, // Kept for admin view flexibility
-            username: u.username || `User ${u.id.substr(-4)}`,
-            totalPoints: u.totalPoints || 0,
-            league: u.league || 'Bronze',
-            streak: u.streak || 0,
-            createdAt: u.createdAt
-        }));
-};
-
-export const getWeeklyLeaderboard = (limit = 10) => {
-    const users = getUsers();
-    const points = getPoints();
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-    // Calculate weekly points per user
-    const weeklyPoints = points
-        .filter(p => new Date(p.createdAt) > oneWeekAgo)
-        .reduce((acc, p) => {
-            acc[p.userId] = (acc[p.userId] || 0) + p.points;
-            return acc;
-        }, {});
-
-    // Sort users by weekly points
-    return Object.entries(weeklyPoints)
-        .sort(([, pointsA], [, pointsB]) => pointsB - pointsA)
-        .slice(0, limit)
-        .map(([userId, wPoints]) => {
-            const user = users.find(u => u.id === userId);
-            if (!user) return null;
-            return {
-                id: user.id,
-                username: user.username || `User ${user.id.substr(-4)}`,
-                weeklyPoints: wPoints,
-                totalPoints: user.totalPoints || 0,
-                league: user.league || 'Bronze'
-            };
-        })
-        .filter(u => u !== null);
-};
-
-// Helper to get contribution file based on dataType
-const getContributionFile = (dataType) => {
-    if (dataType === 'zomato_order_history') return ZOMATO_CONTRIBUTIONS_FILE;
-    if (dataType === 'github_profile') return GITHUB_CONTRIBUTIONS_FILE;
-    if (dataType === 'netflix_watch_history') return NETFLIX_CONTRIBUTIONS_FILE;
-    return CONTRIBUTIONS_FILE; // Fallback to legacy
-};
-
-// Contributions - now provider-specific
-export const getContributions = (dataType = null) => {
-    if (dataType) {
-        return readJSON(getContributionFile(dataType));
-    }
-    // Return all contributions from all providers
-    const zomato = readJSON(ZOMATO_CONTRIBUTIONS_FILE);
-    const github = readJSON(GITHUB_CONTRIBUTIONS_FILE);
-    const netflix = readJSON(NETFLIX_CONTRIBUTIONS_FILE);
-    const legacy = readJSON(CONTRIBUTIONS_FILE);
-    return [...zomato, ...github, ...netflix, ...legacy];
-};
-
-export const saveContributions = (contributions, dataType = null) => {
-    if (dataType) {
-        return writeJSON(getContributionFile(dataType), contributions);
-    }
-    // Legacy fallback
-    return writeJSON(CONTRIBUTIONS_FILE, contributions);
-};
-
-export const getUserContributions = async (userId) => {
-    // Use database if enabled, otherwise fallback to JSON (for backwards compatibility)
+export const isUsernameAvailable = async (username) => {
     const config = await import('./config.js');
     if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
-        try {
-            const { getUserContributions: dbGetUserContributions } = await import('./database/contributionService.js');
-            return await dbGetUserContributions(userId);
-        } catch (error) {
-            console.error('Error getting user contributions from database, falling back to JSON:', error);
-            // Fallback to JSON for backwards compatibility
-        }
+        const service = await getUserService();
+        return await service.isUsernameAvailable(username);
     }
-
-    // Fallback to JSON (legacy)
-    const contributions = getContributions();
-    return contributions.filter(c => c.userId === userId);
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
 };
 
-// Alias for compatibility
+export const getUserByPrivyId = async (privyId) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.getUserByPrivyId(privyId);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const getUserById = async (userId) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.getUserById(userId);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const createUser = async (privyId, email, walletAddress = null) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.createUser(privyId, email, walletAddress);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const updateUserWallet = async (userId, walletAddress) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.updateUserWallet(userId, walletAddress);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const updateUserActivity = async (userId) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        await service.updateUserActivity(userId);
+        return;
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const updateUserProfile = async (userId, updates) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.updateUserProfile(userId, updates);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const getUserPoints = async (userId) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.getUserPoints(userId);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const getUserTotalPoints = async (userId) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.getUserTotalPoints(userId);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const addPoints = async (userId, points, reason) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.addPoints(userId, points, reason);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const getLeaderboard = async (limit = 10) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        const users = await service.getAllUsers();
+        return users
+            .slice(0, limit)
+            .map(u => ({
+                id: u.id,
+                email: u.email,
+                username: u.username || `User ${u.id.substr(-4)}`,
+                totalPoints: u.totalPoints || 0,
+                league: u.league || 'Bronze',
+                streak: u.streak || 0,
+                createdAt: u.createdAt
+            }));
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const getWeeklyLeaderboard = async (limit = 10) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.getWeeklyLeaderboard(limit);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+// Contributions - Database-only
+export const getUserContributions = async (userId) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const { getUserContributions: dbGetUserContributions } = await import('./database/contributionService.js');
+        return await dbGetUserContributions(userId);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
 export const getContributionsByUserId = getUserContributions;
-
-// Get cohort size for k-anonymity compliance
-export const getCohortSize = (cohortId) => {
-    const contributions = getContributions();
-    return contributions.filter(c =>
-        c.sellableData?.audience_segment?.segment_id === cohortId
-    ).length;
-};
-
-// Get all unique cohorts with their sizes
-export const getCohortSizes = () => {
-    const contributions = getContributions();
-    const cohortCounts = {};
-
-    contributions.forEach(c => {
-        const cohortId = c.sellableData?.audience_segment?.segment_id;
-        if (cohortId) {
-            cohortCounts[cohortId] = (cohortCounts[cohortId] || 0) + 1;
-        }
-    });
-
-    return cohortCounts;
-};
 
 export const addContribution = async (userId, data) => {
     const dataType = data.dataType || 'general';
@@ -328,16 +207,16 @@ export const addContribution = async (userId, data) => {
         id: Date.now().toString(),
         userId,
         data: data.anonymizedData,
-        sellableData: data.sellableData || null,  // Enterprise-ready format
+        sellableData: data.sellableData || null,
         behavioralInsights: data.behavioralInsights || null,
         dataType,
         reclaimProofId: data.reclaimProofId || null,
         processingMethod: data.processingMethod || 'raw',
         status: 'verified',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        walletAddress: data.walletAddress || null
     };
 
-    // DATABASE-ONLY: Save to PostgreSQL database (primary storage)
     const config = await import('./config.js');
     if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
         try {
@@ -354,25 +233,10 @@ export const addContribution = async (userId, data) => {
         throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
     }
 
-    // Award points for contribution
-    addPoints(userId, 500, 'data_contribution');
-
     return newContribution;
 };
 
-// Get all anonymized data for enterprise API
-export const getAllAnonymizedData = () => {
-    const contributions = getContributions();
-    return contributions.map(c => ({
-        id: c.id,
-        data: c.data,
-        dataType: c.dataType,
-        timestamp: c.createdAt,
-        status: c.status
-    }));
-};
-
-// API Keys
+// API Keys (still using JSON for simplicity)
 export const getApiKeys = () => readJSON(API_KEYS_FILE);
 export const saveApiKeys = (keys) => writeJSON(API_KEYS_FILE, keys);
 
@@ -396,7 +260,6 @@ export const validateApiKey = (key) => {
     const apiKey = keys.find(k => k.key === key && k.isActive);
 
     if (apiKey) {
-        // Update last used timestamp
         const keyIndex = keys.findIndex(k => k.key === key);
         keys[keyIndex].lastUsedAt = new Date().toISOString();
         saveApiKeys(keys);

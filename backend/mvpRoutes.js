@@ -89,17 +89,17 @@ const verifyApiKey = (req, res, next) => {
 // ===================
 
 // Set user username
-router.post('/user/username', verifyPrivyToken, (req, res) => {
+router.post('/user/username', verifyPrivyToken, async (req, res) => {
     try {
-        const user = jsonStorage.getUserByPrivyId(req.user.privyId);
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
         const { username } = req.body;
 
         if (!user) return res.status(404).json({ error: 'User not found' });
         if (!username || username.length < 3) return res.status(400).json({ error: 'Username must be at least 3 characters' });
         if (!/^[a-zA-Z0-9_]+$/.test(username)) return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
 
-        if (jsonStorage.isUsernameAvailable(username)) {
-            const updatedUser = jsonStorage.updateUserProfile(user.id, { username });
+        if (await jsonStorage.isUsernameAvailable(username)) {
+            const updatedUser = await jsonStorage.updateUserProfile(user.id, { username });
             res.json({ success: true, username: updatedUser.username });
         } else {
             res.status(409).json({ error: 'Username already taken' });
@@ -111,14 +111,14 @@ router.post('/user/username', verifyPrivyToken, (req, res) => {
 });
 
 // Verify Privy token and get/create user
-router.post('/auth/verify', verifyPrivyToken, (req, res) => {
+router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
     try {
-        let user = jsonStorage.getUserByPrivyId(req.user.privyId);
+        let user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
-            user = jsonStorage.createUser(req.user.privyId, req.user.email);
+            user = await jsonStorage.createUser(req.user.privyId, req.user.email);
         } else {
-            jsonStorage.updateUserActivity(user.id);
+            await jsonStorage.updateUserActivity(user.id);
         }
 
         res.json({
@@ -143,7 +143,7 @@ router.post('/auth/verify', verifyPrivyToken, (req, res) => {
 // Get user profile
 router.get('/user/profile', verifyPrivyToken, async (req, res) => {
     try {
-        const user = jsonStorage.getUserByPrivyId(req.user.privyId);
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const contributions = await jsonStorage.getUserContributions(user.id);
@@ -169,24 +169,22 @@ router.get('/user/profile', verifyPrivyToken, async (req, res) => {
 });
 
 // Get user points balance and history
-router.get('/user/points', verifyPrivyToken, (req, res) => {
+router.get('/user/points', verifyPrivyToken, async (req, res) => {
     try {
-        const user = jsonStorage.getUserByPrivyId(req.user.privyId);
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const pointsHistory = jsonStorage.getUserPoints(user.id);
-        const totalPoints = jsonStorage.getUserTotalPoints(user.id);
+        const pointsHistory = await jsonStorage.getUserPoints(user.id);
+        const totalPoints = await jsonStorage.getUserTotalPoints(user.id);
 
         res.json({
             success: true,
             points: {
                 balance: totalPoints,
-                history: pointsHistory.sort((a, b) =>
-                    new Date(b.createdAt) - new Date(a.createdAt)
-                ).slice(0, 50) // Last 50 transactions
+                history: pointsHistory.slice(0, 50) // Last 50 transactions (already sorted by DESC)
             }
         });
     } catch (error) {
@@ -198,7 +196,7 @@ router.get('/user/points', verifyPrivyToken, (req, res) => {
 // Get user contributions
 router.get('/user/contributions', verifyPrivyToken, async (req, res) => {
     try {
-        const user = jsonStorage.getUserByPrivyId(req.user.privyId);
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -223,7 +221,7 @@ router.get('/user/contributions', verifyPrivyToken, async (req, res) => {
 // Submit data contribution with enterprise data pipeline
 router.post('/contribute', verifyPrivyToken, async (req, res) => {
     try {
-        const user = jsonStorage.getUserByPrivyId(req.user.privyId);
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -238,7 +236,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         // Extract wallet address from the data if present
         const walletAddress = anonymizedData?.walletAddress || null;
         if (walletAddress && !user.walletAddress) {
-            jsonStorage.updateUserWallet(user.id, walletAddress);
+            await jsonStorage.updateUserWallet(user.id, walletAddress);
             console.log(`💳 Wallet address updated for user ${user.id}: ${walletAddress}`);
         }
 
@@ -365,7 +363,8 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             behavioralInsights,
             dataType,
             reclaimProofId,
-            processingMethod: sellableData ? 'enterprise_pipeline' : 'raw'
+            processingMethod: sellableData ? 'enterprise_pipeline' : 'raw',
+            walletAddress: user.walletAddress || walletAddress || null
         });
 
         // ========================================
@@ -408,43 +407,62 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             });
         }
 
-        // For GitHub, award flat 500 points for valid profile verification
-        // For Netflix, award flat 500 points for valid watch history verification
+        // Calculate rewards based on new points system
         let rewardResult;
         if (dataType === 'github_profile') {
+            // GitHub: 20 points base
             rewardResult = {
-                totalPoints: 500,
+                totalPoints: 20,
                 breakdown: {
-                    base: 500,
-                    quality: 0,
+                    base: 20,
                     bonus: 0
                 }
             };
-            console.log(`🐙 GitHub profile verified for user ${user.id}. Awarding 500 points.`);
+            console.log(`🐙 GitHub profile verified for user ${user.id}. Awarding 20 points.`);
         } else if (dataType === 'netflix_watch_history') {
+            // Netflix: 50 points base + (total_titles_watched * 10) additional
+            const additionalPoints = netflixTitles * 10;
+            const totalPoints = 50 + additionalPoints;
             rewardResult = {
-                totalPoints: 500,
+                totalPoints,
                 breakdown: {
-                    base: 500,
-                    quality: 0,
+                    base: 50,
+                    bonus: additionalPoints
+                }
+            };
+            console.log(`📺 Netflix watch history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${netflixTitles} titles).`);
+        } else if (dataType === 'zomato_order_history') {
+            // Zomato: 50 points base + (total_orders * 10) additional
+            const additionalPoints = orderCount * 10;
+            const totalPoints = 50 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 50,
+                    bonus: additionalPoints
+                }
+            };
+            console.log(`🍽️ Zomato order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${orderCount} orders).`);
+        } else {
+            // Fallback for unknown data types
+            rewardResult = {
+                totalPoints: 0,
+                breakdown: {
+                    base: 0,
                     bonus: 0
                 }
             };
-            console.log(`📺 Netflix watch history verified for user ${user.id}. Awarding 500 points.`);
-        } else {
-            rewardResult = rewardService.calculateRewards({
-                dataQualityScore,
-                orderCount
-            });
+            console.log(`⚠️ Unknown dataType: ${dataType}, no points awarded.`);
         }
 
 
         // Award dynamic points
-        jsonStorage.addPoints(user.id, rewardResult.totalPoints, 'data_contribution');
+        await jsonStorage.addPoints(user.id, rewardResult.totalPoints, 'data_contribution');
 
         // Update user stats (only league, no streaks)
-        const newTotalPoints = (user.totalPoints || 0) + rewardResult.totalPoints;
-        jsonStorage.updateUserProfile(user.id, {
+        const updatedUser = await jsonStorage.getUserById(user.id);
+        const newTotalPoints = (updatedUser?.totalPoints || 0);
+        await jsonStorage.updateUserProfile(user.id, {
             lastContributionDate: new Date().toISOString(),
             league: rewardService.calculateLeague(newTotalPoints)
         });
@@ -457,7 +475,8 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         let cohortSize = 0;
 
         if (cohortId) {
-            cohortSize = await jsonStorage.getCohortSize(cohortId);
+            const { getCohortSize } = await import('./database/contributionService.js');
+            cohortSize = await getCohortSize(cohortId);
             const MIN_K = 10; // k-anonymity threshold
             kAnonymityCompliant = cohortSize >= MIN_K;
 
@@ -522,7 +541,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         console.log(`📋 Consent logged: ${consentEntry.id}`);
 
         // Update user activity
-        jsonStorage.updateUserActivity(user.id);
+        await jsonStorage.updateUserActivity(user.id);
 
         res.json({
             success: true,
@@ -537,7 +556,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 dataQualityScore: sellableData?.metadata?.data_quality?.score || null,
                 hasSellableData: !!sellableData
             },
-            message: 'Contribution received! 500 points awarded.'
+            message: `Contribution received! ${rewardResult.totalPoints} points awarded.`
         });
     } catch (error) {
         console.error('Contribute error:', error);
@@ -546,16 +565,16 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
 });
 
 // Get leaderboard
-router.get('/leaderboard', (req, res) => {
+router.get('/leaderboard', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
         const timeframe = req.query.timeframe || 'all_time'; // 'all_time' or 'weekly'
 
         let leaderboard;
         if (timeframe === 'weekly') {
-            leaderboard = jsonStorage.getWeeklyLeaderboard(limit);
+            leaderboard = await jsonStorage.getWeeklyLeaderboard(limit);
         } else {
-            leaderboard = jsonStorage.getLeaderboard(limit);
+            leaderboard = await jsonStorage.getLeaderboard(limit);
         }
 
         res.json({

@@ -2,7 +2,6 @@
 
 import { queryContributions, queryZomatoContributions, queryGithubContributions, getAggregateStats } from './contributionService.js';
 import config from '../config.js';
-import * as jsonStorage from '../jsonStorage.js';
 
 /**
  * Convert array of objects to CSV string
@@ -99,62 +98,30 @@ function flattenGithubForCSV(contribution) {
  */
 export async function exportContributionsCSV(filters = {}) {
   try {
-    // Try database first
-    if (config.DB_USE_DATABASE && config.DATABASE_URL) {
-      let contributions = [];
-      let flattened = [];
-      
-      if (filters.dataType === 'zomato_order_history') {
-        contributions = await queryZomatoContributions(filters);
-        flattened = contributions.map(flattenZomatoForCSV);
-      } else if (filters.dataType === 'github_profile') {
-        contributions = await queryGithubContributions(filters);
-        flattened = contributions.map(flattenGithubForCSV);
-      } else {
-        // Export both if no dataType specified
-        const zomato = await queryZomatoContributions(filters);
-        const github = await queryGithubContributions(filters);
-        flattened = [
-          ...zomato.map(flattenZomatoForCSV),
-          ...github.map(flattenGithubForCSV)
-        ];
-      }
-      
-      return arrayToCSV(flattened);
-    } else {
-      // Fallback to JSON storage
-      const contributions = jsonStorage.getContributions(filters.dataType);
-      const filtered = contributions.filter(c => {
-        if (filters.minOrders && (!c.sellableData?.transaction_data?.summary?.total_orders || 
-            c.sellableData.transaction_data.summary.total_orders < filters.minOrders)) {
-          return false;
-        }
-        if (filters.startDate && new Date(c.createdAt) < new Date(filters.startDate)) {
-          return false;
-        }
-        if (filters.endDate && new Date(c.createdAt) > new Date(filters.endDate)) {
-          return false;
-        }
-        return true;
-      });
-      
-      const flattened = filtered.map(c => flattenContributionForCSV({
-        id: c.id,
-        user_id: c.userId,
-        data_type: c.dataType,
-        created_at: c.createdAt,
-        total_orders: c.sellableData?.transaction_data?.summary?.total_orders,
-        total_gmv: c.sellableData?.transaction_data?.summary?.total_gmv,
-        avg_order_value: c.sellableData?.transaction_data?.summary?.avg_order_value,
-        frequency_tier: c.sellableData?.transaction_data?.frequency_metrics?.frequency_tier,
-        lifestyle_segment: c.sellableData?.audience_segment?.dmp_attributes?.lifestyle_segment,
-        city_cluster: c.sellableData?.geo_data?.city_cluster,
-        data_quality_score: c.sellableData?.metadata?.data_quality?.score,
-        sellable_data: c.sellableData
-      }));
-      
-      return arrayToCSV(flattened);
+    if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+      throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
     }
+
+    let contributions = [];
+    let flattened = [];
+    
+    if (filters.dataType === 'zomato_order_history') {
+      contributions = await queryZomatoContributions(filters);
+      flattened = contributions.map(flattenZomatoForCSV);
+    } else if (filters.dataType === 'github_profile') {
+      contributions = await queryGithubContributions(filters);
+      flattened = contributions.map(flattenGithubForCSV);
+    } else {
+      // Export all if no dataType specified
+      const zomato = await queryZomatoContributions(filters);
+      const github = await queryGithubContributions(filters);
+      flattened = [
+        ...zomato.map(flattenZomatoForCSV),
+        ...github.map(flattenGithubForCSV)
+      ];
+    }
+    
+    return arrayToCSV(flattened);
   } catch (error) {
     console.error('Error exporting CSV:', error);
     throw error;
@@ -166,26 +133,10 @@ export async function exportContributionsCSV(filters = {}) {
  */
 export async function exportContributionsJSON(filters = {}) {
   try {
-    // Try database first
-    if (config.DB_USE_DATABASE && config.DATABASE_URL) {
-      return await queryContributions(filters);
-    } else {
-      // Fallback to JSON storage
-      const contributions = jsonStorage.getContributions(filters.dataType);
-      return contributions.filter(c => {
-        if (filters.minOrders && (!c.sellableData?.transaction_data?.summary?.total_orders || 
-            c.sellableData.transaction_data.summary.total_orders < filters.minOrders)) {
-          return false;
-        }
-        if (filters.startDate && new Date(c.createdAt) < new Date(filters.startDate)) {
-          return false;
-        }
-        if (filters.endDate && new Date(c.createdAt) > new Date(filters.endDate)) {
-          return false;
-        }
-        return true;
-      });
+    if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+      throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
     }
+    return await queryContributions(filters);
   } catch (error) {
     console.error('Error exporting JSON:', error);
     throw error;

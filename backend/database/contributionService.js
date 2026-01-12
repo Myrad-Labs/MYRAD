@@ -182,7 +182,8 @@ export async function saveContribution(contribution) {
       behavioralInsights,
       status = 'verified',
       processingMethod,
-      createdAt
+      createdAt,
+      walletAddress
     } = contribution;
 
     if (!sellableData) {
@@ -208,10 +209,11 @@ export async function saveContribution(contribution) {
             day_of_week_distribution, time_of_day_curve, peak_ordering_day, peak_ordering_time,
             late_night_eater, price_bucket_distribution, dominant_price_segment,
             discount_usage_rate, offer_dependent, premium_vs_budget_ratio,
-            frequent_dishes, favorite_restaurants, competitor_mapping, repeat_baskets, geo_data
+            frequent_dishes, favorite_restaurants, competitor_mapping, repeat_baskets, geo_data,
+            wallet_address
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36
           )
           ON CONFLICT (id) DO UPDATE SET
             status = EXCLUDED.status,
@@ -236,6 +238,7 @@ export async function saveContribution(contribution) {
             competitor_mapping = EXCLUDED.competitor_mapping,
             repeat_baskets = EXCLUDED.repeat_baskets,
             geo_data = EXCLUDED.geo_data,
+            wallet_address = EXCLUDED.wallet_address,
             updated_at = NOW()`,
           [
             id, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
@@ -269,6 +272,7 @@ export async function saveContribution(contribution) {
             indexedFields.competitor_mapping ? JSON.stringify(indexedFields.competitor_mapping) : null,
             indexedFields.repeat_baskets ? JSON.stringify(indexedFields.repeat_baskets) : null,
             indexedFields.geo_data ? JSON.stringify(indexedFields.geo_data) : null,
+            walletAddress || null,
           ]
         );
 
@@ -281,8 +285,8 @@ export async function saveContribution(contribution) {
             sellable_data, metadata,
             follower_count, contribution_count, developer_tier, follower_tier,
             activity_level, is_influencer, is_active_contributor,
-            data_quality_score, cohort_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            data_quality_score, cohort_id, wallet_address
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
           ON CONFLICT (id) DO UPDATE SET
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
@@ -296,6 +300,7 @@ export async function saveContribution(contribution) {
             is_active_contributor = EXCLUDED.is_active_contributor,
             data_quality_score = EXCLUDED.data_quality_score,
             cohort_id = EXCLUDED.cohort_id,
+            wallet_address = EXCLUDED.wallet_address,
             updated_at = NOW()`,
           [
             id, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
@@ -309,7 +314,8 @@ export async function saveContribution(contribution) {
             indexedFields.is_influencer,
             indexedFields.is_active_contributor,
             indexedFields.data_quality_score,
-            indexedFields.cohort_id
+            indexedFields.cohort_id,
+            walletAddress || null
           ]
         );
 
@@ -327,11 +333,11 @@ export async function saveContribution(contribution) {
             subscription_tier, account_age_years, member_since_year, loyalty_tier, churn_risk,
             kids_content_pct, mature_content_pct, primary_audience,
             segment_id, cohort_id, data_quality_score,
-            movies_watched, top_series
+            movies_watched, top_series, wallet_address
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
             $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33,
-            $34, $35
+            $34, $35, $36
           )
           ON CONFLICT (id) DO UPDATE SET
             status = EXCLUDED.status,
@@ -344,6 +350,7 @@ export async function saveContribution(contribution) {
             top_genres = EXCLUDED.top_genres,
             movies_watched = EXCLUDED.movies_watched,
             top_series = EXCLUDED.top_series,
+            wallet_address = EXCLUDED.wallet_address,
             updated_at = NOW()`,
           [
             id, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
@@ -375,7 +382,8 @@ export async function saveContribution(contribution) {
             indexedFields.cohort_id,
             indexedFields.data_quality_score,
             indexedFields.movies_watched ? JSON.stringify(indexedFields.movies_watched) : null,
-            indexedFields.top_series ? JSON.stringify(indexedFields.top_series) : null
+            indexedFields.top_series ? JSON.stringify(indexedFields.top_series) : null,
+            walletAddress || null
           ]
         );
 

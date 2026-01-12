@@ -10,3 +10,17 @@ CREATE INDEX IF NOT EXISTS idx_netflix_movies_watched ON netflix_contributions U
 CREATE INDEX IF NOT EXISTS idx_netflix_top_series ON netflix_contributions USING GIN (top_series);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

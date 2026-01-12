@@ -614,6 +614,14 @@ const DashboardPage = () => {
                 {contributions.length > 0 ? (
                   contributions.slice(0, 10).map((contrib: any) => {
                     const provider = getProviderInfo(contrib.dataType);
+                    // Match points from points history by timestamp (within 5 minutes)
+                    const contribTime = new Date(contrib.createdAt).getTime();
+                    const matchedPoints = points?.history?.find((p: any) => {
+                      const pointsTime = new Date(p.createdAt).getTime();
+                      const diff = Math.abs(pointsTime - contribTime);
+                      return p.reason === 'data_contribution' && diff < 5 * 60 * 1000; // 5 minutes
+                    });
+                    const pointsAmount = matchedPoints?.points || 0;
                     return (
                       <div key={contrib.id} className="activity-item">
                         <div className="activity-info">
@@ -625,7 +633,9 @@ const DashboardPage = () => {
                             minute: '2-digit'
                           })}</span>
                         </div>
-                        <div className="activity-points">+500</div>
+                        {pointsAmount > 0 && (
+                          <div className="activity-points">+{pointsAmount}</div>
+                        )}
                       </div>
                     );
                   })
