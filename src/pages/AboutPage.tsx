@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -87,31 +86,6 @@ const AboutPage = () => {
                                 Myrad is built by a team focused on security, data integrity, and long term trust. We believe better data should not come at the cost of personal privacy, and that the future of data depends on systems people can confidently opt into.
                             </p>
                         </div>
-                    </section>
-                )}
-
-                {/* Footer CTA */}
-                {isVisible && (
-                    <section className="animate-fadeInUp delay-300" style={{ textAlign: 'center', padding: '0 24px 80px', maxWidth: '800px', margin: '0 auto' }}>
-                        <Link
-                            to="/contribute"
-                            onClick={() => window.scrollTo(0, 0)}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '16px 32px',
-                                background: '#374151',
-                                borderRadius: '12px',
-                                color: '#fff',
-                                textDecoration: 'none',
-                                fontWeight: 500,
-                                fontSize: '15px',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            Get started
-                        </Link>
                     </section>
                 )}
 

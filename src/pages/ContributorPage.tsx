@@ -142,7 +142,7 @@ const ContributorPage = () => {
                             {isVisible && (
                                 <div className="animate-fadeInUp delay-400" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                                     <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 36px', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        Start Earning
+                                        Start earning
                                     </button>
                                 </div>
                             )}
@@ -178,12 +178,7 @@ const ContributorPage = () => {
                                 <div style={{ position: 'relative', padding: '24px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                         {/* USDC Logo */}
-                                        <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="16" cy="16" r="16" fill="#2775CA" />
-                                            <path d="M20.5 18.5c0 2.21-2.01 4-4.5 4s-4.5-1.79-4.5-4c0-2.21 2.01-4 4.5-4s4.5 1.79 4.5 4z" fill="#fff" />
-                                            <path d="M16 9.5c-3.59 0-6.5 2.91-6.5 6.5s2.91 6.5 6.5 6.5 6.5-2.91 6.5-6.5-2.91-6.5-6.5-6.5zm0 11.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="#fff" />
-                                            <path d="M16.75 13.5h-1.5v1h-1v1.5h1v2h-1v1.5h1v1h1.5v-1h1v-1.5h-1v-2h1v-1.5h-1v-1z" fill="#fff" />
-                                        </svg>
+                                        <img src="/usdc.png" alt="USDC" style={{ width: '24px', height: '24px' }} />
                                         <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>Total Earnings</div>
                                     </div>
                                     <div style={{ fontSize: '28px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>1,240.50 USDC</div>
