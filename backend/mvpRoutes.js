@@ -564,24 +564,53 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
     }
 });
 
-// Get leaderboard
+// Get leaderboard (Database-only, no JSON fallback)
 router.get('/leaderboard', async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 100; // Default to 100 for full leaderboard
         const timeframe = req.query.timeframe || 'all_time'; // 'all_time' or 'weekly'
 
-        let leaderboard;
+        // Direct database query - no JSON storage involved
         if (timeframe === 'weekly') {
-            leaderboard = await jsonStorage.getWeeklyLeaderboard(limit);
+            const { getWeeklyLeaderboard } = await import('./database/userService.js');
+            const leaderboard = await getWeeklyLeaderboard(limit);
+            
+            res.json({
+                success: true,
+                leaderboard: leaderboard.map(u => ({
+                    id: u.id,
+                    username: u.username || `User ${u.id?.substr(-4) || 'Unknown'}`,
+                    walletAddress: u.walletAddress || null,
+                    totalPoints: u.totalPoints || 0,
+                    league: u.league || 'Bronze',
+                    weeklyPoints: u.weeklyPoints || 0
+                })),
+                timeframe
+            });
         } else {
-            leaderboard = await jsonStorage.getLeaderboard(limit);
-        }
+            // All-time leaderboard - query users table directly
+            const { getAllUsers } = await import('./database/userService.js');
+            const users = await getAllUsers(limit);
+            
+            const leaderboard = users.map(u => {
+                // Ensure walletAddress is properly extracted
+                const walletAddr = u.walletAddress || u.wallet_address || null;
+                return {
+                    id: u.id,
+                    username: u.username || `User ${u.id?.substr(-4) || 'Unknown'}`,
+                    walletAddress: walletAddr,
+                    totalPoints: u.totalPoints || u.total_points || 0,
+                    league: u.league || 'Bronze',
+                    streak: u.streak || 0
+                };
+            });
 
-        res.json({
-            success: true,
-            leaderboard,
-            timeframe
-        });
+            res.json({
+                success: true,
+                leaderboard,
+                timeframe
+            });
+        }
     } catch (error) {
         console.error('Leaderboard error:', error);
         res.status(500).json({ error: 'Failed to fetch leaderboard' });

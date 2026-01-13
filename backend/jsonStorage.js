@@ -171,6 +171,7 @@ export const getLeaderboard = async (limit = 10) => {
                 id: u.id,
                 email: u.email,
                 username: u.username || `User ${u.id.substr(-4)}`,
+                walletAddress: u.walletAddress || null,
                 totalPoints: u.totalPoints || 0,
                 league: u.league || 'Bronze',
                 streak: u.streak || 0,

@@ -211,16 +211,20 @@ export async function isUsernameAvailable(username) {
 
 /**
  * Get all users (for leaderboard)
+ * @param {number} limit - Maximum number of users to return (optional, returns all if not specified)
  */
-export async function getAllUsers() {
+export async function getAllUsers(limit = null) {
   if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
     return [];
   }
 
   try {
-    const result = await query(
-      'SELECT * FROM users ORDER BY total_points DESC'
-    );
+    let queryText = 'SELECT * FROM users ORDER BY total_points DESC, created_at ASC';
+    if (limit && limit > 0) {
+      queryText += ` LIMIT ${parseInt(limit, 10)}`;
+    }
+    
+    const result = await query(queryText);
 
     return result.rows.map(formatUser);
   } catch (error) {
@@ -345,11 +349,11 @@ export async function getWeeklyLeaderboard(limit = 10) {
 
     const result = await query(
       `SELECT 
-          u.id, u.username, u.total_points, u.league,
+          u.id, u.username, u.wallet_address, u.total_points, u.league,
           COALESCE(SUM(ph.points), 0) as weekly_points
       FROM users u
       LEFT JOIN points_history ph ON u.id = ph.user_id AND ph.created_at > $1
-      GROUP BY u.id, u.username, u.total_points, u.league
+      GROUP BY u.id, u.username, u.wallet_address, u.total_points, u.league
       HAVING COALESCE(SUM(ph.points), 0) > 0
       ORDER BY weekly_points DESC
       LIMIT $2`,
@@ -359,6 +363,7 @@ export async function getWeeklyLeaderboard(limit = 10) {
     return result.rows.map(row => ({
       id: row.id,
       username: row.username || `User ${row.id.substr(-4)}`,
+      walletAddress: row.wallet_address || null,
       weeklyPoints: parseInt(row.weekly_points, 10),
       totalPoints: row.total_points || 0,
       league: row.league || 'Bronze'
