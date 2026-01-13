@@ -154,6 +154,7 @@ export async function updateUserProfile(userId, updates) {
     // Map updates to database column names
     const fieldMapping = {
       username: 'username',
+      email: 'email',
       streak: 'streak',
       lastContributionDate: 'last_contribution_date',
       totalPoints: 'total_points',
@@ -349,11 +350,11 @@ export async function getWeeklyLeaderboard(limit = 10) {
 
     const result = await query(
       `SELECT 
-          u.id, u.username, u.wallet_address, u.total_points, u.league,
+          u.id, u.username, u.email, u.wallet_address, u.total_points, u.league, u.last_contribution_date,
           COALESCE(SUM(ph.points), 0) as weekly_points
       FROM users u
       LEFT JOIN points_history ph ON u.id = ph.user_id AND ph.created_at > $1
-      GROUP BY u.id, u.username, u.wallet_address, u.total_points, u.league
+      GROUP BY u.id, u.username, u.email, u.wallet_address, u.total_points, u.league, u.last_contribution_date
       HAVING COALESCE(SUM(ph.points), 0) > 0
       ORDER BY weekly_points DESC
       LIMIT $2`,
@@ -363,10 +364,12 @@ export async function getWeeklyLeaderboard(limit = 10) {
     return result.rows.map(row => ({
       id: row.id,
       username: row.username || `User ${row.id.substr(-4)}`,
+      email: row.email || null,
       walletAddress: row.wallet_address || null,
       weeklyPoints: parseInt(row.weekly_points, 10),
       totalPoints: row.total_points || 0,
-      league: row.league || 'Bronze'
+      league: row.league || 'Bronze',
+      lastContributionDate: row.last_contribution_date || null
     }));
   } catch (error) {
     console.error('Error getting weekly leaderboard:', error);

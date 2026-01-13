@@ -113,11 +113,35 @@ router.post('/user/username', verifyPrivyToken, async (req, res) => {
 // Verify Privy token and get/create user
 router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
     try {
+        // Get email and wallet address from request body (more reliable than token)
+        const email = req.body.email || req.user.email || null;
+        const walletAddress = req.body.walletAddress || null;
+
         let user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
-            user = await jsonStorage.createUser(req.user.privyId, req.user.email);
+            // Create new user with email and wallet address
+            user = await jsonStorage.createUser(req.user.privyId, email, walletAddress);
         } else {
+            // Update existing user: set email if missing, set wallet if missing
+            let needsRefetch = false;
+            const updates = {};
+            
+            if (email && !user.email) {
+                updates.email = email;
+                needsRefetch = true;
+            }
+            if (walletAddress && !user.walletAddress) {
+                await jsonStorage.updateUserWallet(user.id, walletAddress);
+                needsRefetch = true;
+            }
+            if (Object.keys(updates).length > 0) {
+                await jsonStorage.updateUserProfile(user.id, updates);
+            }
+            // Refetch user to get latest data after updates
+            if (needsRefetch) {
+                user = await jsonStorage.getUserById(user.id);
+            }
             await jsonStorage.updateUserActivity(user.id);
         }
 
@@ -580,10 +604,12 @@ router.get('/leaderboard', async (req, res) => {
                 leaderboard: leaderboard.map(u => ({
                     id: u.id,
                     username: u.username || `User ${u.id?.substr(-4) || 'Unknown'}`,
+                    email: u.email || null,
                     walletAddress: u.walletAddress || null,
                     totalPoints: u.totalPoints || 0,
                     league: u.league || 'Bronze',
-                    weeklyPoints: u.weeklyPoints || 0
+                    weeklyPoints: u.weeklyPoints || 0,
+                    lastContributionDate: u.lastContributionDate || null
                 })),
                 timeframe
             });
@@ -598,10 +624,12 @@ router.get('/leaderboard', async (req, res) => {
                 return {
                     id: u.id,
                     username: u.username || `User ${u.id?.substr(-4) || 'Unknown'}`,
+                    email: u.email || null,
                     walletAddress: walletAddr,
                     totalPoints: u.totalPoints || u.total_points || 0,
                     league: u.league || 'Bronze',
-                    streak: u.streak || 0
+                    streak: u.streak || 0,
+                    lastContributionDate: u.lastContributionDate || u.last_contribution_date || null
                 };
             });
 

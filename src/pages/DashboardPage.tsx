@@ -100,11 +100,20 @@ const DashboardPage = () => {
       if (!showRefresh) setLoading(true);
 
       const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+      const email = user?.email?.address || user?.email || null;
+      const walletAddr = user?.wallet?.address || null;
 
-      // Verify/create user
+      // Verify/create user (send email and wallet address in body)
       await fetch(`${API_URL}/api/auth/verify`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          walletAddress: walletAddr
+        })
       });
 
       // Fetch all data in parallel
