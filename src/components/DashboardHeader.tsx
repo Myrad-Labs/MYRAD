@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { useNavigate } from 'react-router-dom';
 import { Copy, LogOut, Key } from 'lucide-react';
 
 const DashboardHeader: React.FC = () => {
   const { user, logout, exportWallet } = usePrivy();
-  const navigate = useNavigate();
   const [copiedAddress, setCopiedAddress] = useState(false);
 
   const walletAddress = user?.wallet?.address || null;
@@ -31,16 +29,21 @@ const DashboardHeader: React.FC = () => {
           justify-content: space-between;
           align-items: center;
           padding: 16px 40px;
+          margin-left: 70px;
           background: rgba(255, 255, 255, 0.8);
           backdrop-filter: blur(20px);
           border-bottom: 1px solid rgba(0, 0, 0, 0.05);
           position: sticky;
           top: 0;
-          z-index: 100;
+          z-index: 50;
           font-family: 'Satoshi', sans-serif;
         }
 
-        .dash-logo { height: 32px; object-fit: contain; }
+        .dash-logo { 
+          height: 32px; 
+          object-fit: contain;
+          display: none;
+        }
 
         .header-right { display: flex; align-items: center; gap: 12px; }
 
@@ -94,26 +97,42 @@ const DashboardHeader: React.FC = () => {
 
         .btn-export:hover { background: #f9fafb; border-color: #d1d5db; }
 
-        .btn-leaderboard { 
-          padding: 8px 14px; 
-          border-radius: 10px; 
-          border: 1px solid #e5e7eb; 
-          background: #ffffff; 
-          color: #111827;
-          cursor: pointer; 
-          font-weight: 600; 
-          font-size: 13px;
-          transition: all 0.2s;
+        @media (max-width: 768px) { 
+          .dashboard-header { 
+            margin-left: 70px;
+            padding: 16px 24px;
+          }
         }
-        .btn-leaderboard:hover { background: #f9fafb; border-color: #d1d5db; }
-
-        @media (max-width: 600px) { .dashboard-header { flex-direction: column; align-items: flex-start; gap: 12px } }
+        
+        @media (max-width: 600px) { 
+          .dashboard-header { 
+            flex-direction: column; 
+            align-items: flex-start; 
+            gap: 12px;
+            padding: 16px 24px;
+            margin-left: 70px;
+          }
+          
+          .header-right {
+            width: 100%;
+            justify-content: space-between;
+          }
+        }
       `}</style>
 
       <header className="dashboard-header">
-        <img src="/myrad.webp" alt="MYRAD" className="dash-logo" />
+        <div style={{ flex: 1 }}>
+          <h2 style={{ 
+            fontSize: '18px', 
+            fontWeight: 700, 
+            color: '#111827', 
+            margin: 0,
+            letterSpacing: '-0.01em'
+          }}>
+            {/* Page title will be shown here if needed */}
+          </h2>
+        </div>
         <div className="header-right">
-          <button onClick={() => navigate('/leaderboard')} className="btn-leaderboard">Leaderboard</button>
           {shortWalletAddress && (
             <button onClick={copyWalletAddress} className="wallet-badge">
               {copiedAddress ? 'Copied!' : shortWalletAddress}

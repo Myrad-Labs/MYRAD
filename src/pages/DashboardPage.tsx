@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, X, AlertCircle, CheckCircle, PlayCircle } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
+import Sidebar from '../components/Sidebar';
 import QRCode from 'react-qr-code';
 import github from "../assets/github.png";
 import zomato from "../assets/zomato.png";
@@ -65,9 +66,11 @@ const DashboardPage = () => {
   const [contributing, setContributing] = useState<string | null>(null);
   const [verificationUrl, setVerificationUrl] = useState<string | null>(null);
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
-
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isHoveringOnboarding, setIsHoveringOnboarding] = useState(false);
 
   const hasLoadedData = useRef(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Toast notification state
   const [toast, setToast] = useState<ToastState>({ show: false, type: 'info', title: '', message: '' });
@@ -85,6 +88,42 @@ const DashboardPage = () => {
       navigate('/');
     }
   }, [ready, authenticated, navigate]);
+
+  // Show onboarding on each login (unless dismissed in current session)
+  useEffect(() => {
+    console.log('Onboarding effect:', { ready, authenticated, userId: user?.id });
+    if (ready && authenticated && user?.id) {
+      const dismissedThisSession = sessionStorage.getItem('onboardingDismissed');
+      console.log('Dismissed this session:', dismissedThisSession);
+      if (!dismissedThisSession) {
+        // Small delay to ensure user data is fully loaded
+        setTimeout(() => {
+          console.log('Showing onboarding');
+          setShowOnboarding(true);
+        }, 500);
+      }
+    } else if (!authenticated) {
+      // Reset when user logs out and clear session storage
+      console.log('User logged out, resetting onboarding');
+      setShowOnboarding(false);
+      sessionStorage.removeItem('onboardingDismissed');
+    }
+  }, [ready, authenticated, user?.id]);
+
+  // Handle video playback on hover
+  useEffect(() => {
+    if (isHoveringOnboarding && videoRef.current) {
+      videoRef.current.play().catch(err => console.log('Video play error:', err));
+    } else if (!isHoveringOnboarding && videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [isHoveringOnboarding]);
+
+  const dismissOnboarding = () => {
+    setShowOnboarding(false);
+    sessionStorage.setItem('onboardingDismissed', 'true');
+  };
 
 
 
@@ -106,7 +145,7 @@ const DashboardPage = () => {
       // Verify/create user (send email and wallet address in body)
       await fetch(`${API_URL}/api/auth/verify`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
@@ -493,10 +532,11 @@ const DashboardPage = () => {
   }
 
   return (
-
-
     <div className="dashboard">
       <style>{styles}</style>
+
+      {/* Sidebar Navigation */}
+      <Sidebar />
 
       {/* Toast Notification */}
       {toast.show && (
@@ -526,15 +566,71 @@ const DashboardPage = () => {
           </div>
         </div>
 
+        {/* Onboarding Card */}
+        {showOnboarding && (
+          <div
+            className="onboarding-card"
+            onMouseEnter={() => setIsHoveringOnboarding(true)}
+            onMouseLeave={() => setIsHoveringOnboarding(false)}
+          >
+            <button
+              className="onboarding-close"
+              onClick={dismissOnboarding}
+              aria-label="Dismiss onboarding"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="onboarding-content">
+              <div className="onboarding-left">
+                <div className="onboarding-header">
+
+
+                  <div className="onboarding-text">
+                    <h2 className="onboarding-title">How to Contribute</h2>
+                    <br className="onboarding-line-break" />
+                    <ul className="onboarding-description">
+                      <li>Install the Reclaim verified app from the Google Play Store or App Store</li>
+                      <li>Connect your accounts (Zomato, GitHub, Netflix) to verify your data anonymously</li>
+                      <li>Login and complete your verification securely</li>
+                      <li>Start contributing by sharing verified proofs through the app</li>
+                      <li>Each successful contribution earns you points</li>
+                      <li>Earn more points to climb higher on the leaderboard</li>
+                    </ul>
+
+                  </div>
+                </div>
+
+                <div className="onboarding-hover-hint">
+                  <PlayCircle size={16} />
+                  <span>Hover to play tutorial</span>
+                </div>
+              </div>
+
+              <div className="onboarding-video-container">
+                <video
+                  ref={videoRef}
+                  className="onboarding-video"
+                  src="/tutorial.mp4"
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="loading-state animate-enter">
-            <Loader2 className="spin" size={32} color="#111827" />
-            <p>Loading your data...</p>
+            <Loader2 className="spin" size={40} color="#111827" />
+            <p style={{ fontSize: 16, fontWeight: 500 }}>Loading your data...</p>
           </div>
         ) : (
           <>
             {/* Stats Cards */}
-            <section className="stats-grid animate-enter delay-1">
+            <section className="stats-grid animate-enter">
               <div className="stat-card">
                 <span className="stat-label">Total Points</span>
                 <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
@@ -550,7 +646,7 @@ const DashboardPage = () => {
             </section>
 
             {/* Contribute Section */}
-            <section className="contribute-section animate-enter delay-2">
+            <section className="contribute-section animate-enter">
               <div className="section-header">
                 <h2>Contribute & Earn</h2>
                 <p>Connect your accounts to verify data and earn rewards.</p>
@@ -614,7 +710,7 @@ const DashboardPage = () => {
             </section>
 
             {/* Recent Activity */}
-            <section className="activity-section animate-enter delay-3">
+            <section className="activity-section animate-enter">
               <div className="section-header">
                 <h2>Recent Activity</h2>
               </div>
@@ -674,6 +770,8 @@ const styles = `
     background: #ffffff;
     color: #111827;
     font-family: 'Satoshi', sans-serif;
+    padding-left: 70px;
+    transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Animations */
@@ -841,8 +939,262 @@ const styles = `
   .qr-cancel { background: transparent; border: none; color: #ef4444; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; margin: 0 auto; }
   .qr-title { font-weight: 600; font-size: 13px; color: #374151; }
 
+  /* Onboarding Card */
+  .onboarding-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    min-height: 60px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .onboarding-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    opacity: 0.6;
+  }
+
+  @keyframes slideInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .onboarding-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: #d1d5db;
+    padding: 24px;
+    min-height: 200px;
+  }
+
+  .onboarding-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .onboarding-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
+    color: #374151;
+  }
+
+  .onboarding-content {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .onboarding-card:hover .onboarding-content {
+    grid-template-columns: 1fr 500px;
+    gap: 40px;
+  }
+
+  .onboarding-left {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .onboarding-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .onboarding-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+  }
+
+  .onboarding-text {
+    flex: 1;
+    padding-top: 4px;
+  }
+
+  .onboarding-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+
+  .onboarding-description {
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 0;
+    max-width: 600px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-left: 20px;
+    list-style-type: disc;
+  }
+
+  .onboarding-description li {
+    margin-bottom: 8px;
+  }
+
+  .onboarding-description li:last-child {
+    margin-bottom: 0;
+  }
+
+  .onboarding-card:hover .onboarding-description {
+    opacity: 1;
+    max-height: 300px;
+    margin-bottom: 16px;
+  }
+
+  .onboarding-line-break {
+    display: none;
+  }
+
+  .onboarding-card:hover .onboarding-line-break {
+    display: block;
+  }
+
+  .onboarding-video-container {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 0;
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
+    justify-self: center;
+  }
+
+  .onboarding-card:hover .onboarding-video-container {
+    opacity: 1;
+    transform: scale(1);
+    max-height: 225px; /* 400px * 0.5625 for 16:9 */
+    padding-bottom: 56.25%; /* Maintain 16:9 aspect ratio */
+  }
+
+  .onboarding-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 1024px) {
+    .onboarding-card:hover .onboarding-content {
+      grid-template-columns: 1fr 400px;
+      gap: 32px;
+    }
+
+    .onboarding-card:hover .onboarding-video-container {
+      max-height: 225px;
+      padding-bottom: 56.25%;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .onboarding-card {
+      padding: 32px 24px;
+    }
+
+    .onboarding-card:hover .onboarding-content {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .onboarding-header {
+      flex-direction: row;
+      gap: 12px;
+    }
+
+    .onboarding-title {
+      font-size: 24px;
+    }
+
+    .onboarding-description {
+      font-size: 14px;
+    }
+
+    .onboarding-icon {
+      width: 48px;
+      height: 48px;
+    }
+
+    .onboarding-card:hover .onboarding-video-container {
+      max-height: 225px;
+      padding-bottom: 56.25%;
+      transform: scale(1);
+    }
+
+    .onboarding-video-container {
+      transform: translateY(20px) scale(0.95);
+    }
+  }
+
+  .onboarding-hover-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+    font-size: 13px;
+    margin-top: 16px;
+    opacity: 1;
+    max-height: 40px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .onboarding-card:hover .onboarding-hover-hint {
+    opacity: 0;
+    max-height: 0;
+    margin-top: 0;
+  }
+
   /* Misc */
-  .loading-state { padding: 80px; text-align: center; color: #9ca3af; }
+  .loading-state { padding: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af; }
   .spin { animation: spin 1s linear infinite; }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
@@ -856,6 +1208,32 @@ const styles = `
     .stats-grid { grid-template-columns: 1fr; }
     .providers-grid { grid-template-columns: repeat(2, 1fr); }
     .welcome-section { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .onboarding-content {
+      grid-template-columns: 1fr;
+      gap: 20px;
+      min-height: 40px;
+    }
+    .onboarding-card:hover .onboarding-content {
+      align-items: start;
+    }
+    .onboarding-video-container {
+      grid-column: 1;
+      grid-row: auto;
+      max-height: 197px;
+      margin-top: 20px;
+    }
+    .onboarding-card:hover .onboarding-video-container {
+      max-height: 197px;
+    }
+    .onboarding-card {
+      padding: 12px;
+      min-height: 48px;
+      margin-bottom: 20px;
+    }
+    .onboarding-card:hover {
+      padding: 20px;
+      min-height: 180px;
+    }
   }
   
   @media (max-width: 480px) {
