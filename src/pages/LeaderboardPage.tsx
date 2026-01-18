@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { Trophy, Medal, Award, Check, Search, X } from 'lucide-react';
+import { Trophy, Medal, Award, Search, X } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
 import Sidebar from '../components/Sidebar';
 
