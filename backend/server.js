@@ -11,9 +11,18 @@ const { PORT } = config;
 
 const app = express();
 
+// Handle OPTIONS preflight requests explicitly (before any redirects)
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
+  res.header('Access-Control-Max-Age', '86400');
+  res.sendStatus(204);
+});
+
 // Enable CORS for all origins
 app.use(cors({
-  origin: ['https://myradhq.xyz', 'https://www.myradhq.xyz', 'http://localhost:5173'],
+  origin: ['https://myradhq.xyz', 'https://www.myradhq.xyz', 'http://localhost:5173', 'http://localhost:4000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   credentials: false
