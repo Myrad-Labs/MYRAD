@@ -13,7 +13,7 @@ const app = express();
 
 // Enable CORS for all origins
 app.use(cors({
-  origin: '*',
+  origin: ['https://myradhq.xyz', 'https://www.myradhq.xyz', 'http://localhost:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   credentials: false
