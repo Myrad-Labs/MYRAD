@@ -66,7 +66,7 @@ const AboutPage = () => {
                         margin: '0 auto',
                         padding: '0 24px 80px'
                     }}>
-                        <div style={{ color: '#374151', fontSize: '17px', lineHeight: 1.8 }}>
+                        <div style={{ color: '#374151', fontSize: '17px', lineHeight: 1.8, textAlign: 'justify' }}>
                             <p style={{ marginBottom: '24px' }}>
                                 Myrad exists to make human behavior data useful without compromising privacy.
                             </p>

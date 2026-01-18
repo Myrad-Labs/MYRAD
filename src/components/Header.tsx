@@ -101,7 +101,7 @@ const Header = () => {
                     <div style={{ flex: 1 }}>
                         <Link to="/" style={{ textDecoration: 'none' }}>
                             <img
-                                src="myrad.webp"
+                                src="myrad-removebg-preview.png"
                                 alt="MYRAD logo"
                                 loading="lazy"
                                 style={{
@@ -120,6 +120,7 @@ const Header = () => {
                         {[
                             { label: 'Home', href: '/' },
                             { label: 'Contribute', href: '/contribute' },
+                            { label: 'Whitepaper', href: '/whitepaper' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },
                         ].map((link, i) =>
@@ -128,7 +129,7 @@ const Header = () => {
                                     {link.label}
                                 </a>
                             ) : (
-                                <Link key={i} to={link.href} className="nav-link">
+                                <Link key={i} to={link.href} className="nav-link" onClick={() => window.scrollTo(0, 0)}>
                                     {link.label}
                                 </Link>
                             )
@@ -189,13 +190,14 @@ const Header = () => {
                         {[
                             { label: 'Home', href: '/' },
                             { label: 'Contribute', href: '/contribute' },
+                            { label: 'Whitepaper', href: '/whitepaper' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },
                         ].map((link, i) => (
                             link.href.startsWith('#') || link.href.startsWith('http') ? (
                                 <a key={i} href={link.href} className="nav-link" style={{ display: 'block', padding: '14px 0' }} onClick={() => setMobileMenuOpen(false)} target={link.href.startsWith('http') ? "_blank" : "_self"}>{link.label}</a>
                             ) : (
-                                <Link key={i} to={link.href} className="nav-link" style={{ display: 'block', padding: '14px 0' }} onClick={() => setMobileMenuOpen(false)}>{link.label}</Link>
+                                <Link key={i} to={link.href} className="nav-link" style={{ display: 'block', padding: '14px 0' }} onClick={() => { setMobileMenuOpen(false); window.scrollTo(0, 0); }}>{link.label}</Link>
                             )
                         ))}
                     </div>
