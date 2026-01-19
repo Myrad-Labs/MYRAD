@@ -480,27 +480,33 @@ const DashboardPage = () => {
           setVerificationUrl(null);
           setActiveProvider(null);
 
+          // #region agent log - RAW PROOFS RECEIVED
+          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.rawProofs',message:'RAW proofs received from SDK',data:{provider:provider.id,proofsType:typeof proofs,isArray:Array.isArray(proofs),proofsLength:Array.isArray(proofs)?proofs.length:null,proofsKeys:proofs&&typeof proofs==='object'?Object.keys(proofs):[],rawProofsStringified:JSON.stringify(proofs).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'E'})}).catch(()=>{});
+          // #endregion
+
           const proof = Array.isArray(proofs) ? proofs[0] : proofs;
           if (!proof) {
             alert('No proof data received');
             return;
           }
 
+          // #region agent log - FULL PROOF STRUCTURE
+          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.fullProofStructure',message:'FULL proof object structure',data:{provider:provider.id,proofKeys:Object.keys(proof||{}),hasClaimData:!!proof.claimData,claimDataKeys:proof.claimData?Object.keys(proof.claimData):[],hasContext:!!proof.claimData?.context,contextType:typeof proof.claimData?.context,hasExtractedParameterValues:!!proof.extractedParameterValues,extractedParamKeys:proof.extractedParameterValues?Object.keys(proof.extractedParameterValues):[],hasPublicData:!!proof.publicData,publicDataKeys:proof.publicData?Object.keys(proof.publicData):[],identifier:proof.identifier,id:proof.id,proofStringified:JSON.stringify(proof).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
+
           let extractedData: any = {};
           try {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onSuccess.proofStructure',message:'Proof structure received',data:{provider:provider.id,hasClaimData:!!proof.claimData,hasExtractedParameterValues:!!proof.extractedParameterValues,hasPublicData:!!proof.publicData,proofKeys:Object.keys(proof || {})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-
             // Extract from context.extractedParameters
             if (proof.claimData?.context) {
               const context = typeof proof.claimData.context === 'string'
                 ? JSON.parse(proof.claimData.context)
                 : proof.claimData.context;
-              extractedData = context.extractedParameters || {};
-              // #region agent log
-              fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onSuccess.extractFromContext',message:'Data extracted from context',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+              
+              // #region agent log - CONTEXT PARSED
+              fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.contextParsed',message:'Context parsed from claimData',data:{provider:provider.id,contextKeys:Object.keys(context||{}),hasExtractedParams:!!context.extractedParameters,extractedParamKeys:context.extractedParameters?Object.keys(context.extractedParameters):[],contextStringified:JSON.stringify(context).substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
               // #endregion
+              
+              extractedData = context.extractedParameters || {};
             }
 
             // Extract from extractedParameterValues
@@ -519,8 +525,8 @@ const DashboardPage = () => {
               // #endregion
             }
 
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onSuccess.finalExtractedData',message:'Final extracted data before sending to backend',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0,firstOrderSample:Array.isArray(extractedData.orders)&&extractedData.orders.length>0?extractedData.orders[0]:null,proofIdentifier:proof?.identifier,proofId:proof?.id,fullProofKeys:Object.keys(proof||{}),claimDataKeys:proof?.claimData?Object.keys(proof.claimData):[],extractedParameterValuesKeys:proof?.extractedParameterValues?Object.keys(proof.extractedParameterValues):[],publicDataKeys:proof?.publicData?Object.keys(proof.publicData):[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #region agent log - FINAL DATA BEFORE SEND
+            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.finalDataBeforeSend',message:'FINAL extracted data being sent to backend',data:{provider:provider.id,extractedDataKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0,firstOrderSample:Array.isArray(extractedData.orders)&&extractedData.orders.length>0?extractedData.orders[0]:null,extractedDataStringified:JSON.stringify(extractedData).substring(0,2000),proofIdentifier:proof?.identifier,proofId:proof?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
           } catch (e) {
             console.error('Error extracting data');
@@ -552,6 +558,10 @@ const DashboardPage = () => {
           });
 
           const data = await response.json();
+
+          // #region agent log - BACKEND RESPONSE
+          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.backendResponse',message:'Backend response received',data:{provider:provider.id,success:data.success,contributionId:data.contribution?.id,pointsAwarded:data.contribution?.pointsAwarded,orderCount:data.contribution?.orderCount,error:data.error,message:data.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+          // #endregion
 
           if (data.success) {
             // Immediately refresh data
