@@ -44,6 +44,14 @@ const AboutPage = () => {
                     transform: translateY(-4px);
                     box-shadow: 0 12px 40px rgba(0,0,0,0.06);
                 }
+                @media (max-width: 768px) {
+                    .about-hero {
+                        font-size: 36px !important;
+                    }
+                    main {
+                        padding-top: 120px !important;
+                    }
+                }
             `}</style>
 
             <Header />

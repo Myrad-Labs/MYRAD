@@ -124,39 +124,66 @@ const Sidebar = () => {
         }
 
         @media (max-width: 768px) {
-          .sidebar {
-            width: 70px;
-            padding: 24px 12px;
+          .sidebar, .sidebar.expanded {
+            width: 100%;
+            height: 64px;
+            bottom: 0;
+            top: auto;
+            left: 0;
+            right: 0;
+            flex-direction: row;
+            justify-content: space-around;
+            padding: 0;
+            border-right: none;
+            border-top: 1px solid #f3f4f6;
+            transition: none;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
           }
 
-          .sidebar.expanded {
-            width: 70px;
-            padding: 24px 12px;
-          }
-
-          .sidebar-logo {
-            width: 36px;
-            height: 36px;
-          }
-
-          .sidebar.expanded .sidebar-logo {
-            width: 36px;
-            height: 36px;
-            object-fit: cover;
-          }
-
-          .nav-label {
+          .sidebar-header {
             display: none;
           }
 
+          .sidebar-logo {
+            display: none;
+          }
+
+          .nav-container {
+             flex-direction: row;
+             width: 100%;
+             justify-content: space-around;
+             align-items: center;
+             height: 100%;
+             padding: 0;
+             gap: 0;
+          }
+
+          .nav-item {
+             flex-direction: column;
+             gap: 4px;
+             padding: 8px;
+             border-radius: 8px;
+             justify-content: center;
+             width: 100%;
+             height: 100%;
+          }
+
           .nav-icon {
-            width: 24px;
-            height: 24px;
+             width: 22px;
+             height: 22px;
+          }
+
+          .nav-label {
+             display: flex;
+             opacity: 1;
+             visibility: visible;
+             font-size: 10px;
+             font-weight: 500;
           }
         }
       `}</style>
 
-      <aside 
+      <aside
         className={`sidebar ${shouldShowLabels ? 'expanded' : ''}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -164,12 +191,12 @@ const Sidebar = () => {
         <div className="sidebar-header">
           <img src="/myrad.webp" alt="MYRAD" className="sidebar-logo" />
         </div>
-        
+
         <nav className="nav-container">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <Link
                 key={item.path}

@@ -99,8 +99,8 @@ const DashboardHeader: React.FC = () => {
 
         @media (max-width: 768px) { 
           .dashboard-header { 
-            margin-left: 70px;
-            padding: 16px 24px;
+            margin-left: 0px !important;
+            padding: 16px 20px;
           }
         }
         
@@ -109,8 +109,8 @@ const DashboardHeader: React.FC = () => {
             flex-direction: column; 
             align-items: flex-start; 
             gap: 12px;
-            padding: 16px 24px;
-            margin-left: 70px;
+            padding: 16px 20px;
+            margin-left: 0px !important;
           }
           
           .header-right {
@@ -122,10 +122,10 @@ const DashboardHeader: React.FC = () => {
 
       <header className="dashboard-header">
         <div style={{ flex: 1 }}>
-          <h2 style={{ 
-            fontSize: '18px', 
-            fontWeight: 700, 
-            color: '#111827', 
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: 700,
+            color: '#111827',
             margin: 0,
             letterSpacing: '-0.01em'
           }}>

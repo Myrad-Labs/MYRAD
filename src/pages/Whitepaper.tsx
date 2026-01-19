@@ -13,9 +13,22 @@ const WhitepaperPage = () => {
 
             <Header />
 
-            <main style={{ padding: '160px 24px 100px', maxWidth: '720px', margin: '0 auto', lineHeight: 1.8, textAlign: 'justify' }}>
+            <Header />
+
+            <style>{`
+                @media (max-width: 768px) {
+                    .whitepaper-main {
+                        padding: 100px 24px 60px !important;
+                    }
+                    .whitepaper-title {
+                        font-size: 36px !important;
+                    }
+                }
+            `}</style>
+
+            <main className="whitepaper-main" style={{ padding: '160px 24px 100px', maxWidth: '720px', margin: '0 auto', lineHeight: 1.8, textAlign: 'justify' }}>
                 {/* Title */}
-                <h1 style={{ fontSize: '48px', fontWeight: 600, marginBottom: '8px', letterSpacing: '-0.02em' }}>
+                <h1 className="whitepaper-title" style={{ fontSize: '48px', fontWeight: 600, marginBottom: '8px', letterSpacing: '-0.02em' }}>
                     Myrad
                 </h1>
                 <p style={{ fontSize: '20px', marginBottom: '64px' }}>

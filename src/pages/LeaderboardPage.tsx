@@ -115,7 +115,7 @@ const LeaderboardPage: React.FC = () => {
     <div style={{ minHeight: '100vh', background: '#fff', color: '#111827', fontFamily: 'Satoshi, Inter, sans-serif' }}>
       <Sidebar />
       <DashboardHeader />
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: 32, paddingLeft: 70, transition: 'padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <div className="leaderboard-wrapper" style={{ maxWidth: 1000, margin: '0 auto', padding: 32, transition: 'padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
         <style>{`
           @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(10px); }
@@ -125,6 +125,23 @@ const LeaderboardPage: React.FC = () => {
           .animate-enter {
             animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             opacity: 0;
+          }
+
+          .animate-enter {
+            animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+          }
+
+          .leaderboard-wrapper {
+             padding-left: 70px !important;
+          }
+
+          @media (max-width: 768px) {
+              .leaderboard-wrapper {
+                  padding-left: 24px !important; /* Standard padding */
+                  padding-right: 24px !important;
+                  padding-bottom: 90px !important; /* Space for bottom nav */
+              }
           }
 
           .leaderboard-container {

@@ -1205,6 +1205,10 @@ const styles = `
   }
   
   @media (max-width: 768px) {
+    .dashboard {
+        padding-left: 0 !important;
+        padding-bottom: 80px;
+    }
     .stats-grid { grid-template-columns: 1fr; }
     .providers-grid { grid-template-columns: repeat(2, 1fr); }
     .welcome-section { flex-direction: column; align-items: flex-start; gap: 16px; }

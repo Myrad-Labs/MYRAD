@@ -56,3 +56,22 @@ h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: #2a2a2a;
 }
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Prevent horizontal overflow on mobile */
+body {
+  overflow-x: hidden;
+  width: 100%;
+}

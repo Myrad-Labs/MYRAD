@@ -12,6 +12,28 @@ const Footer = () => {
                 borderTop: '1px solid rgba(0,0,0,0.04)'
             }}
         >
+            <style>{`
+                @media (max-width: 900px) {
+                    .footer-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 40px !important;
+                    }
+                    .footer-brand {
+                        align-items: center !important;
+                        text-align: center !important;
+                    }
+                    .footer-brand img {
+                        align-self: center !important;
+                    }
+                    .footer-links {
+                        text-align: center !important;
+                    }
+                    .footer-links a {
+                         display: block;
+                         padding: 4px 0;
+                    }
+                }
+            `}</style>
             <div
                 style={{
                     display: "flex",
@@ -29,9 +51,10 @@ const Footer = () => {
                         gap: "60px",
                         marginBottom: "100px" // Space before the large text
                     }}
+                    className="footer-grid"
                 >
                     {/* Brand */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                    <div className="footer-brand" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                         {/* Logo */}
                         <img
                             src="myrad.webp"
@@ -57,7 +80,7 @@ const Footer = () => {
                     </div>
 
                     {/* Links Column 1 */}
-                    <div>
+                    <div className="footer-links">
                         <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "20px", color: "#111827", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             About
                         </div>
@@ -69,7 +92,7 @@ const Footer = () => {
                     </div>
 
                     {/* Links Column 2 */}
-                    <div>
+                    <div className="footer-links">
                         <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "20px", color: "#111827", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Company
                         </div>
@@ -81,7 +104,7 @@ const Footer = () => {
                     </div>
 
                     {/* Links Column 3 */}
-                    <div>
+                    <div className="footer-links">
                         <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "20px", color: "#111827", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Connect
                         </div>

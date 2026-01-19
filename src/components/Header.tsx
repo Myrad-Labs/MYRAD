@@ -84,7 +84,9 @@ const Header = () => {
                 background: scrollY > 50 ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
                 backdropFilter: scrollY > 50 ? 'blur(20px)' : 'none',
                 borderBottom: scrollY > 50 ? '1px solid rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.4s ease'
+                transition: 'all 0.4s ease',
+                width: '100%',
+                overflowX: 'hidden'
             }}>
                 <div
                     style={{
@@ -146,7 +148,8 @@ const Header = () => {
                                 fontSize: '14px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px'
+                                gap: '8px',
+                                whiteSpace: 'nowrap'
                             }}
                         >
                             {authenticated ? 'Go to Dashboard' : 'Get Started'}

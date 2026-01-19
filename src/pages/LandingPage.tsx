@@ -113,6 +113,44 @@ const LandingPage = () => {
                 .usecase-row:hover .usecase-desc {
                     color: #374151;
                 }
+
+                /* Mobile Optimizations */
+                @media (max-width: 768px) {
+                    .hero-title {
+                        font-size: 40px !important;
+                        margin-bottom: 20px !important;
+                    }
+                    .hero-subtitle {
+                        font-size: 16px !important;
+                        margin-bottom: 32px !important;
+                    }
+                    .hero-buttons {
+                        flex-direction: column;
+                        width: 100%;
+                    }
+                    .hero-buttons button {
+                        width: 100%;
+                        justify-content: center;
+                    }
+                    .section-padding {
+                        padding: 80px 24px !important;
+                    }
+                    .who-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 40px !important;
+                    }
+                    .who-title {
+                        font-size: 36px !important;
+                    }
+                    .usecase-row {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 8px;
+                    }
+                    .feature-grid {
+                         gap: 24px !important;
+                    }
+                }
             `}</style>
 
             {/* Dynamic Waves Background */}
@@ -137,9 +175,9 @@ const LandingPage = () => {
 
                 {/* Hero Section */}
                 <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '160px 24px 100px', position: 'relative' }}>
-                    <div style={{ maxWidth: '1000px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+                    <div style={{ maxWidth: '1000px', textAlign: 'center', position: 'relative', zIndex: 1, width: '100%' }}>
                         {isVisible && (
-                            <h1 className="animate-fadeInUp delay-100" style={{
+                            <h1 className="animate-fadeInUp delay-100 hero-title" style={{
                                 fontSize: '60px',
                                 fontWeight: 600,
                                 lineHeight: 1.1,
@@ -152,7 +190,7 @@ const LandingPage = () => {
                             </h1>
                         )}
                         {isVisible && (
-                            <p className="animate-fadeInUp delay-200" style={{
+                            <p className="animate-fadeInUp delay-200 hero-subtitle" style={{
                                 fontSize: '18px',
                                 color: '#4b5563',
                                 lineHeight: 1.6,
@@ -163,7 +201,7 @@ const LandingPage = () => {
                                 Cryptographically verified human data, without collecting personal information.                        </p>
                         )}
                         {isVisible && (
-                            <div className="animate-fadeInUp delay-300" style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                            <div className="animate-fadeInUp delay-300 hero-buttons" style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
                                 <button
                                     onClick={handleContributorClick}
                                     className="btn-primary"
@@ -189,9 +227,9 @@ const LandingPage = () => {
                 </section>
 
                 {/* Value Props */}
-                <section style={{ padding: '120px 24px', background: '#fafafa', borderTop: '1px solid #f3f4f6' }}>
+                <section className="section-padding" style={{ padding: '120px 24px', background: '#fafafa', borderTop: '1px solid #f3f4f6' }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
+                        <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
                             {[
                                 {
                                     icon: Shield,
@@ -220,11 +258,11 @@ const LandingPage = () => {
                 </section>
 
                 {/* Who uses MYRAD */}
-                <section style={{ padding: '140px 24px', background: '#fff' }}>
+                <section className="section-padding" style={{ padding: '140px 24px', background: '#fff' }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
+                        <div className="who-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
                             <div>
-                                <h2 style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#374151', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                                <h2 className="who-title" style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#374151', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                                     Who builds <br /> with Myrad
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: 1.7, maxWidth: '440px' }}>

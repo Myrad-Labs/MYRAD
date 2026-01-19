@@ -113,6 +113,33 @@ const ContributorPage = () => {
                 @media (max-width: 900px) {
                     .how-to-grid { grid-template-columns: 1fr !important; }
                 }
+                @media (max-width: 768px) {
+                    .hero-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 40px !important;
+                        text-align: center;
+                    }
+                    .hero-grid > div:first-child {
+                        text-align: center;
+                    }
+                    .hero-grid h1 {
+                        font-size: 48px !important;
+                    }
+                    .hero-grid p {
+                        margin-left: auto;
+                        margin-right: auto;
+                    }
+                    .hero-grid button {
+                        justify-content: center;
+                        margin: 0 auto;
+                        width: 100%;
+                    }
+                    .hero-grid > div:nth-child(2) {
+                         /* Handle the visual part on mobile */
+                         transform: scale(0.8);
+                         height: 400px !important;
+                    }
+                }
             `}</style>
 
 
@@ -123,7 +150,7 @@ const ContributorPage = () => {
 
                 {/* Hero Section */}
                 <section style={{ minHeight: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', position: 'relative' }}>
-                    <div style={{ maxWidth: '1200px', width: '100%', display: 'grid', gridTemplateColumns: 'minmax(300px, 1.2fr) minmax(300px, 0.8fr)', gap: '60px', alignItems: 'center' }}>
+                    <div className="hero-grid" style={{ maxWidth: '1200px', width: '100%', display: 'grid', gridTemplateColumns: 'minmax(300px, 1.2fr) minmax(300px, 0.8fr)', gap: '60px', alignItems: 'center' }}>
 
                         {/* Left: Text Content */}
                         <div style={{ textAlign: 'left', position: 'relative', zIndex: 1 }}>
