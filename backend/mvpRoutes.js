@@ -5,6 +5,23 @@ import * as jsonStorage from './jsonStorage.js';
 import * as cohortService from './cohortService.js';
 import * as consentLedger from './consentLedger.js';
 import * as rewardService from './rewardService.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const DEBUG_LOG_PATH = path.join(__dirname, '..', '.cursor', 'debug.log');
+
+function debugLog(data) {
+    try {
+        const logLine = JSON.stringify({...data, timestamp: Date.now()}) + '\n';
+        fs.appendFileSync(DEBUG_LOG_PATH, logLine);
+    } catch (e) {
+        // Ignore log errors
+    }
+}
 
 
 const router = express.Router();
@@ -252,6 +269,10 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         }
 
         const { anonymizedData, dataType, reclaimProofId } = req.body;
+
+        // #region agent log
+        debugLog({location:'mvpRoutes.contribute.received',message:'Data received from frontend',data:{dataType,hasAnonymizedData:!!anonymizedData,anonymizedDataKeys:anonymizedData?Object.keys(anonymizedData):[],hasOrders:!!anonymizedData?.orders,ordersLength:Array.isArray(anonymizedData?.orders)?anonymizedData.orders.length:0},sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+        // #endregion
 
         if (!anonymizedData) {
             return res.status(400).json({ error: 'anonymizedData is required' });

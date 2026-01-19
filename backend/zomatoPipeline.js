@@ -5,6 +5,24 @@
 import 'dotenv/config';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const DEBUG_LOG_PATH = path.join(__dirname, '..', '.cursor', 'debug.log');
+
+function debugLog(data) {
+    try {
+        const logLine = JSON.stringify({...data, timestamp: Date.now()}) + '\n';
+        fs.appendFileSync(DEBUG_LOG_PATH, logLine);
+    } catch (e) {
+        // Ignore log errors
+    }
+}
+
 dayjs.extend(customParseFormat);
 
 // Import production services
@@ -1009,6 +1027,10 @@ export const transformToSellableData = async (rawData, provider, userId) => {
     console.log('📋 DEBUG - Parsed data keys:', Object.keys(parsedData || {}));
     console.log('📋 DEBUG - Full parsed data:', JSON.stringify(parsedData, null, 2).substring(0, 2000));
 
+    // #region agent log
+    debugLog({location:'zomatoPipeline.transformToSellableData.parsedData',message:'Parsed data received in pipeline',data:{parsedDataKeys:Object.keys(parsedData || {}),hasOrders:!!parsedData?.orders,hasOrderHistory:!!parsedData?.orderHistory,hasDataOrders:!!parsedData?.data?.orders,isArray:Array.isArray(parsedData),rawDataType:typeof parsedData},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+    // #endregion
+
     // Step 2: Extract orders - check multiple possible structures
     let orders = parsedData?.orders || parsedData?.orderHistory || parsedData?.data?.orders || [];
 
@@ -1018,6 +1040,10 @@ export const transformToSellableData = async (rawData, provider, userId) => {
     }
 
     console.log('📋 DEBUG - Orders found:', orders.length);
+    
+    // #region agent log
+    debugLog({location:'zomatoPipeline.transformToSellableData.ordersExtracted',message:'Orders extracted from parsed data',data:{ordersLength:orders.length,firstOrderSample:orders.length>0?orders[0]:null,firstOrderKeys:orders.length>0?Object.keys(orders[0]):[]},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+    // #endregion
 
     // Note: Using global parsePrice function defined at top of file
 
@@ -1027,6 +1053,14 @@ export const transformToSellableData = async (rawData, provider, userId) => {
     });
 
     console.log('📋 DEBUG - Valid orders after filtering:', validOrders.length);
+    
+    // #region agent log
+    const invalidOrders = orders.filter(o => {
+        const value = parsePrice(o.price) || o.totalCost || o.order_total || o.amount || o.total || 0;
+        return value <= 0;
+    });
+    debugLog({location:'zomatoPipeline.transformToSellableData.validOrdersFiltered',message:'Orders filtered for validity',data:{validOrdersLength:validOrders.length,invalidOrdersLength:invalidOrders.length,invalidOrderSample:invalidOrders.length>0?invalidOrders[0]:null,invalidOrderPriceField:invalidOrders.length>0?{price:invalidOrders[0].price,totalCost:invalidOrders[0].totalCost,total:invalidOrders[0].total}:null},sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+    // #endregion
 
     // Step 3: Calculate aggregated metrics
     console.log('📊 Step 2: Aggregating metrics...');
