@@ -82,6 +82,30 @@ const DashboardPage = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+  // Helper function to log errors to server (Render logs)
+  const logErrorToServer = async (error: any, context: string, additionalData?: any) => {
+    try {
+      await fetch(`${API_URL}/api/logs/error`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: error?.message || String(error),
+          error: error?.toString() || String(error),
+          stack: error?.stack || null,
+          location: context,
+          userAgent: navigator.userAgent,
+          userId: user?.id || null,
+          timestamp: new Date().toISOString(),
+          context: additionalData || null
+        })
+      }).catch(() => {
+        // Silently fail if logging fails (don't break user experience)
+      });
+    } catch (e) {
+      // Silently fail
+    }
+  };
+
   // Redirect if not authenticated
   useEffect(() => {
     if (ready && !authenticated) {
@@ -264,6 +288,7 @@ const DashboardPage = () => {
 
     } catch (error) {
       console.error('Error fetching user data:', error);
+      logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       setLoading(false);
     }
@@ -306,7 +331,9 @@ const DashboardPage = () => {
 
       const reclaimProofRequest = await ReclaimProofRequest.init(APP_ID, APP_SECRET, provider.providerId, {
         log: true,
-        acceptAiProviders: true
+        acceptAiProviders: true,
+        // Mobile-friendly: Increase timeout for slower mobile networks
+        timeout: 300000, // 5 minutes (default is often 2 minutes)
       });
 
       // Set callback URL to backend endpoint for mobile reliability
@@ -450,6 +477,11 @@ const DashboardPage = () => {
             await fetchUserData(true);
             showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
           } else {
+            // Log backend error to server
+            logErrorToServer(new Error(data.message || 'Unknown error'), `DashboardPage.handleContribute.${provider.id}.backendError`, {
+              provider: provider.id,
+              response: data
+            });
             showToast('error', 'Verification Failed', data.message || 'Unknown error');
           }
         },
@@ -458,6 +490,34 @@ const DashboardPage = () => {
           console.log = originalConsoleLog;
 
           console.error('Reclaim error:', error);
+          
+          // Log to server (Render logs)
+          logErrorToServer(error, `DashboardPage.handleContribute.${provider.id}.onError`, {
+            provider: provider.id,
+            providerName: provider.name,
+            verificationUrl: verificationUrl || null
+          });
+          
+          // Mobile-specific error handling
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          const errorMessage = error?.message || error?.toString() || 'Unknown error';
+          
+          // Check for common mobile-specific errors
+          if (errorMessage.includes('timeout') || errorMessage.includes('network') || errorMessage.includes('fetch')) {
+            showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
+            setVerificationUrl(null);
+            setActiveProvider(null);
+            setContributing(null);
+            return;
+          }
+          
+          if (errorMessage.includes('cancelled') || errorMessage.includes('user')) {
+            showToast('info', 'Verification Cancelled', 'You can try again when ready.');
+            setVerificationUrl(null);
+            setActiveProvider(null);
+            setContributing(null);
+            return;
+          }
 
           // Use captured proof data from SDK logs (Identifier Mismatch workaround)
           // Check both local capture and window global fallback
@@ -518,11 +578,21 @@ const DashboardPage = () => {
                     showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
                     return; // Exit - recovery successful
                   } else {
+                    // Log backend error to server
+                    logErrorToServer(new Error(data.message || 'Backend error'), `DashboardPage.handleContribute.${provider.id}.recoveryBackendError`, {
+                      provider: provider.id,
+                      recoveryType: 'sdkLogs',
+                      response: data
+                    });
                     showToast('error', 'Verification Failed', data.message || 'Backend error');
                   }
                 }
               } catch (recoveryError) {
                 console.error('Error processing captured proof:', recoveryError);
+                logErrorToServer(recoveryError, `DashboardPage.handleContribute.${provider.id}.recoveryError`, {
+                  provider: provider.id,
+                  recoveryType: 'sdkLogs'
+                });
               }
             }
           }
@@ -583,25 +653,59 @@ const DashboardPage = () => {
                     setActiveProvider(null);
                     showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
                     return; // Exit early - recovery successful
+                  } else {
+                    // Log backend error to server
+                    logErrorToServer(new Error(data.message || 'Backend error'), `DashboardPage.handleContribute.${provider.id}.errorObjectBackendError`, {
+                      provider: provider.id,
+                      recoveryType: 'errorObject',
+                      response: data
+                    });
                   }
                 }
               } catch (recoveryError) {
                 console.error('Error recovering proof from error object:', recoveryError);
+                logErrorToServer(recoveryError, `DashboardPage.handleContribute.${provider.id}.errorRecovery`, {
+                  provider: provider.id,
+                  recoveryType: 'errorObject'
+                });
               }
             }
           }
 
           setVerificationUrl(null);
           setActiveProvider(null);
-          showToast('error', 'Verification Failed', 'Reclaim verification issue. Please try again or contact support.');
+          
+          // More helpful error message for mobile
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (isMobile) {
+            showToast('error', 'Verification Failed', 'If verification keeps failing on mobile, try using a desktop browser or ensure you have the Reclaim app installed.');
+          } else {
+            showToast('error', 'Verification Failed', 'Reclaim verification issue. Please try again or contact support.');
+          }
         }
       });
 
     } catch (error: any) {
       console.error('Error:', error);
+      
+      // Log to server (Render logs)
+      logErrorToServer(error, `DashboardPage.handleContribute.${provider?.id || 'unknown'}.catch`, {
+        provider: provider?.id || null,
+        providerName: provider?.name || null
+      });
+      
       setVerificationUrl(null);
       setActiveProvider(null);
-      showToast('error', 'Error', error.message || String(error));
+      
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const errorMsg = error?.message || String(error);
+      
+      // Mobile-specific error messages
+      if (isMobile && (errorMsg.includes('timeout') || errorMsg.includes('network'))) {
+        showToast('error', 'Network Error', 'Mobile connection may be slow. Please try again or use WiFi.');
+      } else {
+        showToast('error', 'Error', errorMsg);
+      }
     } finally {
       setContributing(null);
     }
@@ -764,16 +868,50 @@ const DashboardPage = () => {
                     {/* QR Code Section */}
                     {activeProvider === provider.id && verificationUrl && (
                       <div className="qr-section">
-                        <p className="qr-title">Scan to verify</p>
-                        <div className="qr-container">
-                          <QRCode value={verificationUrl} size={120} level="M" />
-                        </div>
-                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                          Open Link
-                        </a>
-                        <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); }} className="qr-cancel">
-                          Cancel
-                        </button>
+                        {/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? (
+                          // Mobile: Show direct link button instead of QR code
+                          <>
+                            <p className="qr-title" style={{ marginBottom: '16px' }}>Verifying on mobile...</p>
+                            <a 
+                              href={verificationUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="qr-link"
+                              style={{
+                                display: 'inline-block',
+                                padding: '12px 24px',
+                                background: '#000',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                textDecoration: 'none',
+                                fontWeight: 600,
+                                marginBottom: '12px'
+                              }}
+                            >
+                              Open Verification Link
+                            </a>
+                            <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '12px', marginBottom: '16px' }}>
+                              The verification page will open in a new tab. Complete the verification there.
+                            </p>
+                            <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          // Desktop: Show QR code
+                          <>
+                            <p className="qr-title">Scan to verify</p>
+                            <div className="qr-container">
+                              <QRCode value={verificationUrl} size={120} level="M" />
+                            </div>
+                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                              Open Link
+                            </a>
+                            <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
+                              Cancel
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
 
