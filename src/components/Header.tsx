@@ -120,7 +120,6 @@ const Header = () => {
                         {[
                             { label: 'Home', href: '/' },
                             { label: 'Contribute', href: '/contribute' },
-                            { label: 'Whitepaper', href: '/whitepaper' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },
                         ].map((link, i) =>
@@ -190,7 +189,6 @@ const Header = () => {
                         {[
                             { label: 'Home', href: '/' },
                             { label: 'Contribute', href: '/contribute' },
-                            { label: 'Whitepaper', href: '/whitepaper' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },
                         ].map((link, i) => (
