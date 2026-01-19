@@ -126,7 +126,7 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
             // Update existing user: set email if missing, set wallet if missing
             let needsRefetch = false;
             const updates = {};
-            
+
             if (email && !user.email) {
                 updates.email = email;
                 needsRefetch = true;
@@ -599,7 +599,7 @@ router.get('/leaderboard', async (req, res) => {
         if (timeframe === 'weekly') {
             const { getWeeklyLeaderboard } = await import('./database/userService.js');
             const leaderboard = await getWeeklyLeaderboard(limit);
-            
+
             res.json({
                 success: true,
                 leaderboard: leaderboard.map(u => ({
@@ -618,7 +618,7 @@ router.get('/leaderboard', async (req, res) => {
             // All-time leaderboard - query users table directly
             const { getAllUsers } = await import('./database/userService.js');
             const users = await getAllUsers(limit);
-            
+
             const leaderboard = users.map(u => {
                 // Ensure walletAddress is properly extracted
                 const walletAddr = u.walletAddress || u.wallet_address || null;
@@ -1010,6 +1010,39 @@ router.post('/contact', (req, res) => {
         console.error('Contact form error:', error);
         res.status(500).json({ error: 'Failed to submit inquiry' });
     }
+});
+
+// ===================
+// RECLAIM CALLBACK ENDPOINT (for mobile deep-link reliability)
+// ===================
+// This endpoint receives POST data from Reclaim app after verification
+// and redirects the user back to the dashboard with proof data in URL hash
+router.post('/reclaim-callback', async (req, res) => {
+    try {
+        console.log('📲 Reclaim callback received:', Object.keys(req.body));
+
+        // The Reclaim app POSTs proof data here
+        const proofData = req.body;
+
+        // Encode the proof data to pass via URL (base64 to avoid URL encoding issues)
+        const encodedProof = Buffer.from(JSON.stringify(proofData)).toString('base64');
+
+        // Redirect to dashboard with proof data in fragment (not sent to server, only client)
+        // Using fragment (#) so it's only visible to the frontend JavaScript
+        const redirectUrl = `/dashboard#reclaim_proof=${encodedProof}`;
+
+        console.log('✅ Redirecting to dashboard with proof data');
+        res.redirect(302, redirectUrl);
+    } catch (error) {
+        console.error('Reclaim callback error:', error);
+        // Even on error, redirect to dashboard (frontend will handle missing data)
+        res.redirect(302, '/dashboard#reclaim_error=true');
+    }
+});
+
+// Also handle GET for when user manually visits the callback URL
+router.get('/reclaim-callback', (req, res) => {
+    res.redirect(302, '/dashboard');
 });
 
 export default router;

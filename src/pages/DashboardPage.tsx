@@ -89,6 +89,96 @@ const DashboardPage = () => {
     }
   }, [ready, authenticated, navigate]);
 
+  // Handle proof data from Reclaim callback redirect (mobile deep-link recovery)
+  useEffect(() => {
+    const processRedirectProof = async () => {
+      const hash = window.location.hash;
+      if (hash.includes('reclaim_proof=')) {
+        const encodedProof = hash.split('reclaim_proof=')[1]?.split('&')[0];
+        if (encodedProof && user?.id) {
+          try {
+            const proofData = JSON.parse(atob(encodedProof));
+            console.log('📲 Recovered proof from redirect:', proofData);
+
+            // Clear the hash immediately to avoid re-processing
+            window.history.replaceState(null, '', window.location.pathname);
+
+            // Process the proof - extract data and submit to backend
+            let extractedData: any = {};
+            const proof = Array.isArray(proofData) ? proofData[0] : proofData;
+
+            if (proof?.claimData?.context) {
+              const context = typeof proof.claimData.context === 'string'
+                ? JSON.parse(proof.claimData.context)
+                : proof.claimData.context;
+              extractedData = context.extractedParameters || {};
+            }
+            if (proof?.extractedParameterValues) {
+              extractedData = { ...extractedData, ...proof.extractedParameterValues };
+            }
+            if (proof?.publicData) {
+              extractedData = { ...extractedData, ...proof.publicData };
+            }
+
+            // Determine provider from proof data
+            const providerHint = proof?.claimData?.provider || proof?.provider || '';
+            const detectedProvider = PROVIDERS.find(p =>
+              providerHint.toLowerCase().includes(p.id) ||
+              p.providerId === proof?.claimData?.templateId
+            ) || PROVIDERS[0];
+
+            const walletAddress = user?.wallet?.address || null;
+            const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+
+            showToast('info', 'Processing verification...', `Submitting ${detectedProvider.name} data`);
+
+            const response = await fetch(`${API_URL}/api/contribute`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                anonymizedData: {
+                  ...extractedData,
+                  provider: detectedProvider.id,
+                  providerName: detectedProvider.name,
+                  timestamp: new Date().toISOString(),
+                  walletAddress: walletAddress,
+                  recoveredFromMobileRedirect: true
+                },
+                dataType: detectedProvider.dataType,
+                reclaimProofId: proof?.identifier || `reclaim-mobile-${Date.now()}`
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              // Reload page to refresh all data (simpler than calling fetchUserData before it's declared)
+              showToast('success', `${detectedProvider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
+              setTimeout(() => window.location.reload(), 1500);
+            } else {
+              showToast('error', 'Verification Failed', data.message || 'Backend error');
+            }
+          } catch (e) {
+            console.error('Failed to process redirect proof:', e);
+            showToast('error', 'Verification Error', 'Could not process the verification data');
+          }
+        }
+      } else if (hash.includes('reclaim_error=')) {
+        window.history.replaceState(null, '', window.location.pathname);
+        showToast('error', 'Verification Error', 'The verification could not be completed. Please try again.');
+      }
+    };
+
+    // Only process if user is ready
+    if (ready && authenticated && user?.id) {
+      processRedirectProof();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authenticated, user?.id, API_URL]);
+
   // Show onboarding on each login (unless dismissed in current session)
   useEffect(() => {
     console.log('Onboarding effect:', { ready, authenticated, userId: user?.id });
@@ -219,7 +309,11 @@ const DashboardPage = () => {
         acceptAiProviders: true
       });
 
-
+      // Set callback URL to backend endpoint for mobile reliability
+      // The backend will receive the POST and redirect to dashboard with proof in URL hash
+      const callbackUrl = `${API_URL}/api/reclaim-callback`;
+      reclaimProofRequest.setAppCallbackUrl(callbackUrl);
+      console.log('📱 Set callback URL for mobile:', callbackUrl);
 
       const requestUrl = await reclaimProofRequest.getRequestUrl();
       setVerificationUrl(requestUrl);
