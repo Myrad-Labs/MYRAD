@@ -303,52 +303,8 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
         }
 
-        // Check for similar data submission within 24 hours (content-based dedup)
-        // Data-type specific: only apply content-based dedup where it makes sense
-        const existingContributions = await jsonStorage.getContributionsByUserId(user.id);
-        const recentContributions = existingContributions
-            .filter(c => c.dataType === dataType)
-            .filter(c => {
-                const createdAt = c.createdAt || c.created_at;
-                return new Date() - new Date(createdAt) < 24 * 60 * 60 * 1000; // Last 24 hours
-            });
-
-        if (recentContributions.length > 0) {
-            let similarSubmission = null;
-
-            if (dataType === 'zomato_order_history') {
-                // For Zomato: compare order counts (same logic as before)
-                const orderCount = anonymizedData?.orders?.length || 0;
-                similarSubmission = recentContributions.find(c => {
-                    const existingOrderCount = c.data?.orderCount || 0;
-                    // If order counts match exactly, likely duplicate data
-                    return Math.abs(existingOrderCount - orderCount) < 3;
-                });
-            } else if (dataType === 'github_profile') {
-                // For GitHub: Skip content-based dedup
-                // Username is not indexed in the database, and extracting it from sellable_data would be unreliable
-                // The reclaim_proof_id check (above) is sufficient for detecting exact duplicate submissions
-                // Different GitHub accounts with same follower/contribution counts are legitimate submissions
-                similarSubmission = null;
-            } else if (dataType === 'netflix_watch_history') {
-                // For Netflix: compare total titles watched (similar pattern to Zomato)
-                const titlesCount = anonymizedData?.viewingHistory?.length || anonymizedData?.titles?.length || 0;
-                similarSubmission = recentContributions.find(c => {
-                    const existingTitlesCount = c.data?.viewingHistory?.length || c.data?.titles?.length || 0;
-                    // If title counts match exactly, likely duplicate data
-                    return Math.abs(existingTitlesCount - titlesCount) < 3;
-                });
-            }
-
-            if (similarSubmission) {
-                console.log(`⚠️ Similar data submission blocked within 24h for user ${user.id} (${dataType})`);
-                return res.status(429).json({
-                    error: 'Rate limited',
-                    message: 'You have already submitted similar data in the last 24 hours. Please wait before submitting again.',
-                    retryAfter: new Date(new Date(similarSubmission.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
-                });
-            }
-        }
+        // Content-based dedup removed - users can now submit data as often as they want
+        // Only exact duplicate proof IDs are blocked (checked above)
 
         let sellableData = null;
         let processedData = anonymizedData;
