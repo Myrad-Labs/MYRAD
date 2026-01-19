@@ -1073,7 +1073,15 @@ router.post('/contact', (req, res) => {
 // and redirects the user back to the dashboard with proof data in URL hash
 router.post('/reclaim-callback', async (req, res) => {
     try {
-        console.log('📲 Reclaim callback received:', Object.keys(req.body));
+        console.log('📲 Reclaim callback received at /api/reclaim-callback:', Object.keys(req.body));
+        console.log('📲 Callback request details:', {
+            method: req.method,
+            url: req.url,
+            origin: req.headers.origin,
+            referer: req.headers.referer,
+            userAgent: req.headers['user-agent'],
+            bodyKeys: Object.keys(req.body || {})
+        });
 
         // The Reclaim app POSTs proof data here
         const proofData = req.body;
@@ -1083,20 +1091,25 @@ router.post('/reclaim-callback', async (req, res) => {
 
         // Redirect to dashboard with proof data in fragment (not sent to server, only client)
         // Using fragment (#) so it's only visible to the frontend JavaScript
-        const redirectUrl = `/dashboard#reclaim_proof=${encodedProof}`;
+        // Use absolute URL for redirect to work properly on mobile
+        const frontendUrl = process.env.FRONTEND_URL || 'https://www.myradhq.xyz';
+        const redirectUrl = `${frontendUrl}/dashboard#reclaim_proof=${encodedProof}`;
 
-        console.log('✅ Redirecting to dashboard with proof data');
+        console.log('✅ Redirecting to dashboard with proof data:', redirectUrl);
         res.redirect(302, redirectUrl);
     } catch (error) {
         console.error('Reclaim callback error:', error);
         // Even on error, redirect to dashboard (frontend will handle missing data)
-        res.redirect(302, '/dashboard#reclaim_error=true');
+        // Use absolute URL for redirect to work properly on mobile
+        const frontendUrl = process.env.FRONTEND_URL || 'https://www.myradhq.xyz';
+        res.redirect(302, `${frontendUrl}/dashboard#reclaim_error=true`);
     }
 });
 
 // Also handle GET for when user manually visits the callback URL
 router.get('/reclaim-callback', (req, res) => {
-    res.redirect(302, '/dashboard');
+    const frontendUrl = process.env.FRONTEND_URL || 'https://www.myradhq.xyz';
+    res.redirect(302, `${frontendUrl}/dashboard`);
 });
 
 export default router;

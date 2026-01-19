@@ -46,6 +46,40 @@ app.get("/health", (req, res) => {
 // MVP API Routes
 app.use("/api", mvpRoutes);
 
+// Handle Reclaim callback at /dashboard (fallback for when Reclaim app POSTs to dashboard instead of /api/reclaim-callback)
+// This happens when Reclaim SDK uses page URL as callback instead of configured callback URL
+app.post("/dashboard", async (req, res) => {
+  console.log('📲 Reclaim callback received at /dashboard (fallback route)');
+  console.log('📲 Request details:', {
+    method: req.method,
+    url: req.url,
+    origin: req.headers.origin,
+    referer: req.headers.referer,
+    bodyKeys: Object.keys(req.body || {})
+  });
+  
+  try {
+    // The Reclaim app POSTs proof data here
+    const proofData = req.body;
+    
+    // Encode the proof data to pass via URL (base64 to avoid URL encoding issues)
+    const encodedProof = Buffer.from(JSON.stringify(proofData)).toString('base64');
+    
+    // Redirect to dashboard with proof data in fragment (not sent to server, only client)
+    // Using fragment (#) so it's only visible to the frontend JavaScript
+    const frontendUrl = process.env.FRONTEND_URL || req.headers.origin || 'https://www.myradhq.xyz';
+    const redirectUrl = `${frontendUrl}/dashboard#reclaim_proof=${encodedProof}`;
+    
+    console.log('✅ Redirecting to dashboard with proof data:', redirectUrl);
+    res.redirect(302, redirectUrl);
+  } catch (error) {
+    console.error('Reclaim callback error at /dashboard:', error);
+    // Even on error, redirect to dashboard (frontend will handle missing data)
+    const frontendUrl = process.env.FRONTEND_URL || req.headers.origin || 'https://www.myradhq.xyz';
+    res.redirect(302, `${frontendUrl}/dashboard#reclaim_error=true`);
+  }
+});
+
 // Serve frontend for all other routes (SPA support)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));

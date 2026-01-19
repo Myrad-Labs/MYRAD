@@ -68,6 +68,8 @@ const DashboardPage = () => {
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isHoveringOnboarding, setIsHoveringOnboarding] = useState(false);
+  const [isTabVisible, setIsTabVisible] = useState(true);
+  const [verificationStartTime, setVerificationStartTime] = useState<number | null>(null);
 
   const hasLoadedData = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -302,6 +304,33 @@ const DashboardPage = () => {
     }
   }, [authenticated, user?.id, fetchUserData]);
 
+  // Monitor tab visibility changes to handle background verification
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const visible = !document.hidden;
+      setIsTabVisible(visible);
+      
+      // Log tab visibility changes during verification
+      if (activeProvider) {
+        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.visibilityChange',message:'Tab visibility changed',data:{isVisible:visible,activeProvider,hasVerificationUrl:!!verificationUrl,timeSinceStart:verificationStartTime ? Date.now() - verificationStartTime : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        
+        // When tab becomes visible again, check if verification completed successfully
+        if (visible && verificationStartTime && (Date.now() - verificationStartTime) > 10000) {
+          // Tab was hidden for at least 10 seconds - verification might have completed
+          // Check if we have captured proof data
+          const capturedProof = (window as any).__reclaimCapturedProof;
+          if (capturedProof && capturedProof.length > 0) {
+            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.visibilityChange',message:'Tab visible - found captured proof',data:{activeProvider,hasCapturedProof:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // Proof might be available - user can check manually or we can retry
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [activeProvider, verificationUrl, verificationStartTime]);
+
   const handleContribute = async (provider: typeof PROVIDERS[0]) => {
     if (!user) return;
 
@@ -309,6 +338,7 @@ const DashboardPage = () => {
       setContributing(provider.id);
       setActiveProvider(provider.id);
       setVerificationUrl(null);
+      setVerificationStartTime(Date.now());
 
       const { ReclaimProofRequest } = await import('@reclaimprotocol/js-sdk');
 
@@ -331,16 +361,46 @@ const DashboardPage = () => {
 
       const reclaimProofRequest = await ReclaimProofRequest.init(APP_ID, APP_SECRET, provider.providerId, {
         log: true,
-        acceptAiProviders: true,
-        // Mobile-friendly: Increase timeout for slower mobile networks
-        timeout: 300000, // 5 minutes (default is often 2 minutes)
+        acceptAiProviders: true
       });
 
       // Set callback URL to backend endpoint for mobile reliability
       // The backend will receive the POST and redirect to dashboard with proof in URL hash
-      const callbackUrl = `${API_URL}/api/reclaim-callback`;
+      // CRITICAL: Use absolute URL - Reclaim SDK needs full URL, not relative path
+      // The SDK might default to current page origin if callback URL is not properly set
+      let callbackUrl: string;
+      const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+      const windowOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://www.myradhq.xyz';
+      
+      if (isProduction) {
+        // In production, backend is on a different domain (e.g., Render backend URL)
+        // Use the backend API URL directly, or if backend serves /api on same domain, use origin
+        if (API_URL && API_URL.startsWith('http') && !API_URL.includes('localhost')) {
+          // Use provided API_URL if it's a full production URL
+          callbackUrl = `${API_URL}/api/reclaim-callback`;
+        } else {
+          // Backend serves /api on same domain (e.g., Vercel/Netlify proxy)
+          // Or use production backend URL - check environment
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || windowOrigin;
+          callbackUrl = `${backendUrl}/api/reclaim-callback`;
+        }
+      } else {
+        // Development: use API_URL or localhost
+        callbackUrl = `${API_URL}/api/reclaim-callback`;
+      }
+      
+      // Ensure callback URL is absolute and valid
+      if (!callbackUrl.startsWith('http://') && !callbackUrl.startsWith('https://')) {
+        // If somehow we got a relative URL, make it absolute
+        callbackUrl = `${windowOrigin}${callbackUrl.startsWith('/') ? callbackUrl : '/' + callbackUrl}`;
+      }
+      
+      // Log callback URL configuration for debugging
+      fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute',message:'Setting callback URL',data:{callbackUrl,apiUrl:API_URL,windowOrigin,isProduction,hostname:typeof window !== 'undefined' ? window.location.hostname : 'N/A'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      
+      console.log('📱 Setting Reclaim callback URL:', callbackUrl);
       reclaimProofRequest.setAppCallbackUrl(callbackUrl);
-      console.log('📱 Set callback URL for mobile:', callbackUrl);
+      console.log('✅ Callback URL set successfully');
 
       const requestUrl = await reclaimProofRequest.getRequestUrl();
       setVerificationUrl(requestUrl);
@@ -491,31 +551,56 @@ const DashboardPage = () => {
 
           console.error('Reclaim error:', error);
           
-          // Log to server (Render logs)
+          // Check if tab is hidden - if so, don't show error yet (verification might still be in progress)
+          const tabHidden = document.hidden || !isTabVisible;
+          const timeSinceStart = verificationStartTime ? Date.now() - verificationStartTime : 0;
+          
+          // Log to server with tab visibility info
+          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError',message:'Reclaim error triggered',data:{provider:provider.id,errorMessage:error?.message || error?.toString(),tabHidden,isTabVisible,timeSinceStart,verificationUrl:verificationUrl || null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          
           logErrorToServer(error, `DashboardPage.handleContribute.${provider.id}.onError`, {
             provider: provider.id,
             providerName: provider.name,
-            verificationUrl: verificationUrl || null
+            verificationUrl: verificationUrl || null,
+            tabHidden,
+            isTabVisible,
+            timeSinceStart
           });
           
           // Mobile-specific error handling
-          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
+          
+          // CRITICAL FIX: If tab is hidden, don't show error immediately
+          // Verification might still be in progress in Reclaim app
+          // Wait and check again when tab becomes visible
+          if (tabHidden && (timeSinceStart < 120000)) { // Less than 2 minutes - likely still in progress
+            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError',message:'Tab hidden - deferring error display',data:{provider:provider.id,errorMessage,tabHidden,timeSinceStart},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            
+            // Don't clear state or show error - wait for tab to become visible again
+            // The verification might complete successfully
+            return; // Exit early - don't show error while tab is hidden
+          }
           
           // Check for common mobile-specific errors
           if (errorMessage.includes('timeout') || errorMessage.includes('network') || errorMessage.includes('fetch')) {
-            showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-            setVerificationUrl(null);
-            setActiveProvider(null);
-            setContributing(null);
+            // Only show error if tab is visible OR it's been more than 2 minutes
+            if (!tabHidden || timeSinceStart > 120000) {
+              showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
+          setVerificationUrl(null);
+          setActiveProvider(null);
+              setContributing(null);
+            }
             return;
           }
           
           if (errorMessage.includes('cancelled') || errorMessage.includes('user')) {
-            showToast('info', 'Verification Cancelled', 'You can try again when ready.');
-            setVerificationUrl(null);
-            setActiveProvider(null);
-            setContributing(null);
+            // Only show cancellation if tab is visible - user might still be in Reclaim app
+            if (!tabHidden) {
+              showToast('info', 'Verification Cancelled', 'You can try again when ready.');
+              setVerificationUrl(null);
+              setActiveProvider(null);
+              setContributing(null);
+            }
             return;
           }
 
@@ -672,15 +757,27 @@ const DashboardPage = () => {
             }
           }
 
-          setVerificationUrl(null);
-          setActiveProvider(null);
+          // Check if tab was hidden when error occurred - if so, wait and check again
+          const tabHiddenFinal = document.hidden || !isTabVisible;
+          const timeSinceStartFinal = verificationStartTime ? Date.now() - verificationStartTime : 0;
           
-          // More helpful error message for mobile
-          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          if (isMobile) {
-            showToast('error', 'Verification Failed', 'If verification keeps failing on mobile, try using a desktop browser or ensure you have the Reclaim app installed.');
+          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError.final',message:'Final error handling',data:{provider:provider.id,tabHidden:tabHiddenFinal,timeSinceStart:timeSinceStartFinal},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          
+          // Only show error if tab is visible OR it's been more than 2 minutes
+          if (!tabHiddenFinal || timeSinceStartFinal > 120000) {
+            setVerificationUrl(null);
+            setActiveProvider(null);
+            
+            // More helpful error message for mobile
+            const isMobileDeviceFinal = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobileDeviceFinal) {
+              showToast('error', 'Verification Failed', 'If verification keeps failing on mobile, try using a desktop browser or ensure you have the Reclaim app installed.');
+            } else {
+              showToast('error', 'Verification Failed', 'Reclaim verification issue. Please try again or contact support.');
+            }
           } else {
-            showToast('error', 'Verification Failed', 'Reclaim verification issue. Please try again or contact support.');
+            // Tab is hidden and not enough time has passed - don't show error yet
+            // Verification might still be in progress
           }
         }
       });
@@ -697,11 +794,11 @@ const DashboardPage = () => {
       setVerificationUrl(null);
       setActiveProvider(null);
       
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const errorMsg = error?.message || String(error);
       
       // Mobile-specific error messages
-      if (isMobile && (errorMsg.includes('timeout') || errorMsg.includes('network'))) {
+      if (isMobileDevice && (errorMsg.includes('timeout') || errorMsg.includes('network'))) {
         showToast('error', 'Network Error', 'Mobile connection may be slow. Please try again or use WiFi.');
       } else {
         showToast('error', 'Error', errorMsg);
@@ -779,7 +876,7 @@ const DashboardPage = () => {
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-            </button>
+              </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -799,13 +896,13 @@ const DashboardPage = () => {
                     </ul>
 
                   </div>
-                </div>
+            </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-                </div>
-              </div>
+          </div>
+        </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -817,7 +914,7 @@ const DashboardPage = () => {
                   playsInline
                   preload="metadata"
                 />
-              </div>
+          </div>
             </div>
           </div>
         )}
@@ -832,13 +929,13 @@ const DashboardPage = () => {
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card">
-                <span className="stat-label">Total Points</span>
-                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
-              </div>
+                  <span className="stat-label">Total Points</span>
+                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                <span className="stat-value">{contributions.length}</span>
-              </div>
+                  <span className="stat-value">{contributions.length}</span>
+                </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -900,16 +997,16 @@ const DashboardPage = () => {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                            <p className="qr-title">Scan to verify</p>
-                            <div className="qr-container">
+                        <p className="qr-title">Scan to verify</p>
+                        <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                            </div>
-                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                              Open Link
-                            </a>
+                        </div>
+                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                          Open Link
+                        </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                            </button>
+                        </button>
                           </>
                         )}
                       </div>
@@ -917,18 +1014,18 @@ const DashboardPage = () => {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                      <button
-                        onClick={() => handleContribute(provider)}
+                    <button
+                      onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                        className="btn-verify"
+                      className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                      >
-                        {contributing === provider.id ? (
-                          <><Loader2 size={16} className="spin" /> Verifying...</>
-                        ) : (
+                    >
+                      {contributing === provider.id ? (
+                        <><Loader2 size={16} className="spin" /> Verifying...</>
+                      ) : (
                           <>Connect</>
-                        )}
-                      </button>
+                      )}
+                    </button>
                     )}
                   </div>
                 ))}
@@ -1123,7 +1220,7 @@ const styles = `
   .provider-card.coming-soon { 
     border-style: dashed; 
     background: #f9fafb; 
-    align-items: center; 
+    align-items: center;
     justify-content: center; 
     opacity: 0.8; 
     min-height: 200px;
@@ -1271,7 +1368,7 @@ const styles = `
     gap: 16px;
     margin-bottom: 20px;
   }
-
+  
   .onboarding-icon {
     width: 56px;
     height: 56px;
@@ -1324,7 +1421,7 @@ const styles = `
     max-height: 300px;
     margin-bottom: 16px;
   }
-
+  
   .onboarding-line-break {
     display: none;
   }
