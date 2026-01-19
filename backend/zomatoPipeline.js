@@ -1032,34 +1032,90 @@ export const transformToSellableData = async (rawData, provider, userId) => {
     // #endregion
 
     // Step 2: Extract orders - check multiple possible structures
-    let orders = parsedData?.orders || parsedData?.orderHistory || parsedData?.data?.orders || [];
+    let orders = parsedData?.orders || 
+                 parsedData?.orderHistory || 
+                 parsedData?.data?.orders || 
+                 parsedData?.data?.orderHistory ||
+                 parsedData?.orderList ||
+                 parsedData?.order_list ||
+                 [];
 
     // If orders is still empty, check if parsedData itself is the order array
     if (orders.length === 0 && Array.isArray(parsedData)) {
         orders = parsedData;
     }
+    
+    // If still empty, check if parsedData has a nested structure
+    if (orders.length === 0 && parsedData) {
+        // Try to find orders by checking all array properties
+        for (const key in parsedData) {
+            if (Array.isArray(parsedData[key]) && parsedData[key].length > 0) {
+                // Check if it looks like an orders array (has objects with restaurant/item/price fields)
+                const firstItem = parsedData[key][0];
+                if (firstItem && typeof firstItem === 'object' && 
+                    (firstItem.restaurant || firstItem.items || firstItem.timestamp || firstItem.price)) {
+                    orders = parsedData[key];
+                    break;
+                }
+            }
+        }
+    }
 
     console.log('📋 DEBUG - Orders found:', orders.length);
     
     // #region agent log
-    debugLog({location:'zomatoPipeline.transformToSellableData.ordersExtracted',message:'Orders extracted from parsed data',data:{ordersLength:orders.length,firstOrderSample:orders.length>0?orders[0]:null,firstOrderKeys:orders.length>0?Object.keys(orders[0]):[]},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+    debugLog({location:'zomatoPipeline.transformToSellableData.ordersExtracted',message:'Orders extracted from parsed data',data:{ordersLength:orders.length,firstOrderSample:orders.length>0?orders[0]:null,firstOrderKeys:orders.length>0?Object.keys(orders[0]):[],parsedDataKeys:Object.keys(parsedData || {})},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
     // #endregion
 
     // Note: Using global parsePrice function defined at top of file
+    // Enhanced price extraction - check multiple possible price field names
+    const extractPrice = (order) => {
+        if (!order || typeof order !== 'object') return 0;
+        
+        // Check all possible price field names
+        const priceFields = [
+            'price', 'totalPrice', 'total_price', 'orderPrice', 'order_price',
+            'totalCost', 'total_cost', 'orderCost', 'order_cost',
+            'order_total', 'orderTotal', 'total', 'amount', 'totalAmount', 'total_amount',
+            'cost', 'value', 'orderValue', 'order_value', 'finalPrice', 'final_price'
+        ];
+        
+        for (const field of priceFields) {
+            const value = parsePrice(order[field]);
+            if (value > 0) return value;
+        }
+        
+        return 0;
+    };
 
+    // More lenient filtering - accept orders if they have restaurant, items, or timestamp
+    // Only reject if they truly have no useful data
     const validOrders = orders.filter(o => {
-        const value = parsePrice(o.price) || o.totalCost || o.order_total || o.amount || o.total || 0;
-        return value > 0;
+        if (!o || typeof o !== 'object') return false;
+        
+        // Check if order has any useful data
+        const hasRestaurant = !!(o.restaurant || o.restaurantName || o.restaurant_name);
+        const hasItems = !!(o.items || o.order_items || o.item);
+        const hasTimestamp = !!(o.timestamp || o.date || o.orderDate || o.order_date);
+        const hasPrice = extractPrice(o) > 0;
+        
+        // Accept if it has restaurant, items, or timestamp (even without price)
+        // Price is important but not required for order to be valid
+        return hasRestaurant || hasItems || hasTimestamp || hasPrice;
     });
 
     console.log('📋 DEBUG - Valid orders after filtering:', validOrders.length);
     
     // #region agent log
     const invalidOrders = orders.filter(o => {
-        const value = parsePrice(o.price) || o.totalCost || o.order_total || o.amount || o.total || 0;
-        return value <= 0;
+        if (!o || typeof o !== 'object') return false;
+        const hasRestaurant = !!(o.restaurant || o.restaurantName || o.restaurant_name);
+        const hasItems = !!(o.items || o.order_items || o.item);
+        const hasTimestamp = !!(o.timestamp || o.date || o.orderDate || o.order_date);
+        const hasPrice = extractPrice(o) > 0;
+        return !(hasRestaurant || hasItems || hasTimestamp || hasPrice);
     });
-    debugLog({location:'zomatoPipeline.transformToSellableData.validOrdersFiltered',message:'Orders filtered for validity',data:{validOrdersLength:validOrders.length,invalidOrdersLength:invalidOrders.length,invalidOrderSample:invalidOrders.length>0?invalidOrders[0]:null,invalidOrderPriceField:invalidOrders.length>0?{price:invalidOrders[0].price,totalCost:invalidOrders[0].totalCost,total:invalidOrders[0].total}:null},sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
+    debugLog({location:'zomatoPipeline.transformToSellableData.validOrdersFiltered',message:'Orders filtered for validity',data:{validOrdersLength:validOrders.length,invalidOrdersLength:invalidOrders.length,invalidOrderSample:invalidOrders.length>0?invalidOrders[0]:null,firstValidOrderSample:validOrders.length>0?validOrders[0]:null},sessionId:'debug-session',runId:'run1',hypothesisId:'D'});
     // #endregion
 
     // Step 3: Calculate aggregated metrics
@@ -1071,7 +1127,7 @@ export const transformToSellableData = async (rawData, provider, userId) => {
     const basketContents = [];
 
     validOrders.forEach(order => {
-        const value = parsePrice(order.price) || order.totalCost || order.order_total || order.amount || order.total || 0;
+        const value = extractPrice(order);
         totalSpend += value;
 
         // Infer cuisine from items string (Zomato uses items like "1 x Chicken Biryani")
@@ -1099,7 +1155,7 @@ export const transformToSellableData = async (rawData, provider, userId) => {
                 category_l1: category.l1,
                 category_l2: category.l2,
                 brand_inferred: brand,
-                item_price: parsePrice(item.price) || parsePrice(order.price) || 0,
+                item_price: parsePrice(item.price) || extractPrice(order) || 0,
                 quantity: item.quantity || 1,
                 is_veg: item.isVeg || item.is_veg || null,
                 inferred_cuisine: inferredCuisine
