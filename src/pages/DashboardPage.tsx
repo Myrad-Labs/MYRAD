@@ -312,7 +312,7 @@ const DashboardPage = () => {
       
       // Log tab visibility changes during verification
       if (activeProvider) {
-        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.visibilityChange',message:'Tab visibility changed',data:{isVisible:visible,activeProvider,hasVerificationUrl:!!verificationUrl,timeSinceStart:verificationStartTime ? Date.now() - verificationStartTime : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.visibilityChange',message:'Tab visibility changed',data:{isVisible:visible,activeProvider,hasVerificationUrl:!!verificationUrl,timeSinceStart:verificationStartTime ? Date.now() - verificationStartTime : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
         
         // When tab becomes visible again, check if verification completed successfully
         if (visible && verificationStartTime && (Date.now() - verificationStartTime) > 10000) {
@@ -320,7 +320,7 @@ const DashboardPage = () => {
           // Check if we have captured proof data
           const capturedProof = (window as any).__reclaimCapturedProof;
           if (capturedProof && capturedProof.length > 0) {
-            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.visibilityChange',message:'Tab visible - found captured proof',data:{activeProvider,hasCapturedProof:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.visibilityChange',message:'Tab visible - found captured proof',data:{activeProvider,hasCapturedProof:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
             // Proof might be available - user can check manually or we can retry
           }
         }
@@ -396,7 +396,7 @@ const DashboardPage = () => {
       }
       
       // Log callback URL configuration for debugging
-      fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute',message:'Setting callback URL',data:{callbackUrl,apiUrl:API_URL,windowOrigin,isProduction,hostname:typeof window !== 'undefined' ? window.location.hostname : 'N/A'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute',message:'Setting callback URL',data:{callbackUrl,apiUrl:API_URL,windowOrigin,isProduction,hostname:typeof window !== 'undefined' ? window.location.hostname : 'N/A'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
       
       console.log('📱 Setting Reclaim callback URL:', callbackUrl);
       reclaimProofRequest.setAppCallbackUrl(callbackUrl);
@@ -481,7 +481,7 @@ const DashboardPage = () => {
           setActiveProvider(null);
 
           // #region agent log - RAW PROOFS RECEIVED
-          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.rawProofs',message:'RAW proofs received from SDK',data:{provider:provider.id,proofsType:typeof proofs,isArray:Array.isArray(proofs),proofsLength:Array.isArray(proofs)?proofs.length:null,proofsKeys:proofs&&typeof proofs==='object'?Object.keys(proofs):[],rawProofsStringified:JSON.stringify(proofs).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'E'})}).catch(()=>{});
+          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.rawProofs',message:'RAW proofs received from SDK',data:{provider:provider.id,proofsType:typeof proofs,isArray:Array.isArray(proofs),proofsLength:Array.isArray(proofs)?proofs.length:null,proofsKeys:proofs&&typeof proofs==='object'?Object.keys(proofs):[],rawProofsStringified:JSON.stringify(proofs).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'E'})}).catch(()=>{});
           // #endregion
 
           const proof = Array.isArray(proofs) ? proofs[0] : proofs;
@@ -491,7 +491,7 @@ const DashboardPage = () => {
           }
 
           // #region agent log - FULL PROOF STRUCTURE
-          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.fullProofStructure',message:'FULL proof object structure',data:{provider:provider.id,proofKeys:Object.keys(proof||{}),hasClaimData:!!proof.claimData,claimDataKeys:proof.claimData?Object.keys(proof.claimData):[],hasContext:!!proof.claimData?.context,contextType:typeof proof.claimData?.context,hasExtractedParameterValues:!!proof.extractedParameterValues,extractedParamKeys:proof.extractedParameterValues?Object.keys(proof.extractedParameterValues):[],hasPublicData:!!proof.publicData,publicDataKeys:proof.publicData?Object.keys(proof.publicData):[],identifier:proof.identifier,id:proof.id,proofStringified:JSON.stringify(proof).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
+          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.fullProofStructure',message:'FULL proof object structure',data:{provider:provider.id,proofKeys:Object.keys(proof||{}),hasClaimData:!!proof.claimData,claimDataKeys:proof.claimData?Object.keys(proof.claimData):[],hasContext:!!proof.claimData?.context,contextType:typeof proof.claimData?.context,hasExtractedParameterValues:!!proof.extractedParameterValues,extractedParamKeys:proof.extractedParameterValues?Object.keys(proof.extractedParameterValues):[],hasPublicData:!!proof.publicData,publicDataKeys:proof.publicData?Object.keys(proof.publicData):[],identifier:proof.identifier,id:proof.id,proofStringified:JSON.stringify(proof).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
           // #endregion
 
           let extractedData: any = {};
@@ -503,7 +503,7 @@ const DashboardPage = () => {
                 : proof.claimData.context;
               
               // #region agent log - CONTEXT PARSED
-              fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.contextParsed',message:'Context parsed from claimData',data:{provider:provider.id,contextKeys:Object.keys(context||{}),hasExtractedParams:!!context.extractedParameters,extractedParamKeys:context.extractedParameters?Object.keys(context.extractedParameters):[],contextStringified:JSON.stringify(context).substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.contextParsed',message:'Context parsed from claimData',data:{provider:provider.id,contextKeys:Object.keys(context||{}),hasExtractedParams:!!context.extractedParameters,extractedParamKeys:context.extractedParameters?Object.keys(context.extractedParameters):[],contextStringified:JSON.stringify(context).substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
               // #endregion
               
               extractedData = context.extractedParameters || {};
@@ -513,7 +513,7 @@ const DashboardPage = () => {
             if (proof.extractedParameterValues) {
               extractedData = { ...extractedData, ...proof.extractedParameterValues };
               // #region agent log
-              fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onSuccess.extractFromParameterValues',message:'Data merged from extractedParameterValues',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractFromParameterValues',message:'Data merged from extractedParameterValues',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
               // #endregion
             }
 
@@ -521,18 +521,18 @@ const DashboardPage = () => {
             if (proof.publicData) {
               extractedData = { ...extractedData, ...proof.publicData };
               // #region agent log
-              fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onSuccess.extractFromPublicData',message:'Data merged from publicData',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractFromPublicData',message:'Data merged from publicData',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
               // #endregion
             }
 
             // #region agent log - FINAL DATA BEFORE SEND
-            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.finalDataBeforeSend',message:'FINAL extracted data being sent to backend',data:{provider:provider.id,extractedDataKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0,firstOrderSample:Array.isArray(extractedData.orders)&&extractedData.orders.length>0?extractedData.orders[0]:null,extractedDataStringified:JSON.stringify(extractedData).substring(0,2000),proofIdentifier:proof?.identifier,proofId:proof?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.finalDataBeforeSend',message:'FINAL extracted data being sent to backend',data:{provider:provider.id,extractedDataKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0,firstOrderSample:Array.isArray(extractedData.orders)&&extractedData.orders.length>0?extractedData.orders[0]:null,extractedDataStringified:JSON.stringify(extractedData).substring(0,2000),proofIdentifier:proof?.identifier,proofId:proof?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
           } catch (e) {
             console.error('Error extracting data');
             // #region agent log
             const errorMessage = e instanceof Error ? e.message : String(e);
-            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onSuccess.extractionError',message:'Error during data extraction',data:{provider:provider.id,error:errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractionError',message:'Error during data extraction',data:{provider:provider.id,error:errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
           }
 
@@ -560,7 +560,7 @@ const DashboardPage = () => {
           const data = await response.json();
 
           // #region agent log - BACKEND RESPONSE
-          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.backendResponse',message:'Backend response received',data:{provider:provider.id,success:data.success,contributionId:data.contribution?.id,pointsAwarded:data.contribution?.pointsAwarded,orderCount:data.contribution?.orderCount,error:data.error,message:data.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.backendResponse',message:'Backend response received',data:{provider:provider.id,success:data.success,contributionId:data.contribution?.id,pointsAwarded:data.contribution?.pointsAwarded,orderCount:data.contribution?.orderCount,error:data.error,message:data.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'C'})}).catch(()=>{});
           // #endregion
 
           if (data.success) {
@@ -587,7 +587,7 @@ const DashboardPage = () => {
           const timeSinceStart = verificationStartTime ? Date.now() - verificationStartTime : 0;
           
           // Log to server with tab visibility info
-          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError',message:'Reclaim error triggered',data:{provider:provider.id,errorMessage:error?.message || error?.toString(),tabHidden,isTabVisible,timeSinceStart,verificationUrl:verificationUrl || null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError',message:'Reclaim error triggered',data:{provider:provider.id,errorMessage:error?.message || error?.toString(),tabHidden,isTabVisible,timeSinceStart,verificationUrl:verificationUrl || null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
           
           logErrorToServer(error, `DashboardPage.handleContribute.${provider.id}.onError`, {
             provider: provider.id,
@@ -605,7 +605,7 @@ const DashboardPage = () => {
           // Verification might still be in progress in Reclaim app
           // Wait and check again when tab becomes visible
           if (tabHidden && (timeSinceStart < 120000)) { // Less than 2 minutes - likely still in progress
-            fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError',message:'Tab hidden - deferring error display',data:{provider:provider.id,errorMessage,tabHidden,timeSinceStart},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError',message:'Tab hidden - deferring error display',data:{provider:provider.id,errorMessage,tabHidden,timeSinceStart},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
             
             // Don't clear state or show error - wait for tab to become visible again
             // The verification might complete successfully
@@ -792,7 +792,7 @@ const DashboardPage = () => {
           const tabHiddenFinal = document.hidden || !isTabVisible;
           const timeSinceStartFinal = verificationStartTime ? Date.now() - verificationStartTime : 0;
           
-          fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError.final',message:'Final error handling',data:{provider:provider.id,tabHidden:tabHiddenFinal,timeSinceStart:timeSinceStartFinal},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError.final',message:'Final error handling',data:{provider:provider.id,tabHidden:tabHiddenFinal,timeSinceStart:timeSinceStartFinal},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
           
           // Only show error if tab is visible OR it's been more than 2 minutes
           if (!tabHiddenFinal || timeSinceStartFinal > 120000) {

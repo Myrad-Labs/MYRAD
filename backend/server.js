@@ -30,6 +30,7 @@ app.use(cors({
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.text({ limit: "50mb", type: 'text/plain' })); // For Reclaim callbacks that may send as text
 
 // Serve static frontend files from 'dist' folder (production build)
 app.use(express.static(path.join(__dirname, "../dist")));
