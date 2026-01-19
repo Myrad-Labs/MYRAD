@@ -186,18 +186,41 @@ export async function saveContribution(contribution) {
       walletAddress
     } = contribution;
 
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:186',message:'walletAddress received in saveContribution',data:{walletAddress,userId,dataType,hasSellableData:!!sellableData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+
     if (!sellableData) {
       console.warn('⚠️  No sellableData to save, skipping');
       return null;
+    }
+
+    // Check if a contribution with the same data already exists (before transaction)
+    // For Zomato: check by data characteristics (total_orders + total_gmv) to detect same Zomato account data
+    // This prevents the same Zomato account from being shared multiple times from different MYRAD accounts
+    let contributionId = id;
+    if (dataType === 'zomato_order_history') {
+      const indexedFields = extractZomatoFields(sellableData);
+      if (indexedFields.total_orders !== null && indexedFields.total_gmv !== null) {
+        const existingContribution = await findZomatoContributionByData(indexedFields.total_orders, indexedFields.total_gmv);
+        if (existingContribution) {
+          contributionId = existingContribution.id;
+          console.log(`🔄 Found existing Zomato contribution with same data (orders: ${indexedFields.total_orders}, gmv: ${indexedFields.total_gmv}), updating entry ${contributionId}`);
+        }
+      }
     }
 
     // Start transaction
     await query('BEGIN');
 
     try {
+
       // Determine which table to use based on dataType
       if (dataType === 'zomato_order_history') {
         const indexedFields = extractZomatoFields(sellableData);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:215',message:'inserting zomato contribution',data:{walletAddress,userId,dataType,contributionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
 
         await query(
           `INSERT INTO zomato_contributions (
@@ -216,6 +239,7 @@ export async function saveContribution(contribution) {
             $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36
           )
           ON CONFLICT (id) DO UPDATE SET
+            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
             metadata = EXCLUDED.metadata,
@@ -239,9 +263,17 @@ export async function saveContribution(contribution) {
             repeat_baskets = EXCLUDED.repeat_baskets,
             geo_data = EXCLUDED.geo_data,
             wallet_address = EXCLUDED.wallet_address,
+            total_orders = EXCLUDED.total_orders,
+            total_gmv = EXCLUDED.total_gmv,
+            avg_order_value = EXCLUDED.avg_order_value,
+            frequency_tier = EXCLUDED.frequency_tier,
+            lifestyle_segment = EXCLUDED.lifestyle_segment,
+            city_cluster = EXCLUDED.city_cluster,
+            data_quality_score = EXCLUDED.data_quality_score,
+            cohort_id = EXCLUDED.cohort_id,
             updated_at = NOW()`,
           [
-            id, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
             JSON.stringify(sellableData),
             behavioralInsights ? JSON.stringify(behavioralInsights) : null,
             indexedFields.total_orders,
@@ -278,6 +310,9 @@ export async function saveContribution(contribution) {
 
       } else if (dataType === 'github_profile') {
         const indexedFields = extractGithubFields(sellableData, contribution);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:304',message:'inserting github contribution',data:{walletAddress,userId,dataType,contributionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
 
         await query(
           `INSERT INTO github_contributions (
@@ -288,6 +323,7 @@ export async function saveContribution(contribution) {
             data_quality_score, cohort_id, wallet_address
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
           ON CONFLICT (id) DO UPDATE SET
+            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
             metadata = EXCLUDED.metadata,
@@ -303,7 +339,7 @@ export async function saveContribution(contribution) {
             wallet_address = EXCLUDED.wallet_address,
             updated_at = NOW()`,
           [
-            id, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
             JSON.stringify(sellableData),
             behavioralInsights ? JSON.stringify(behavioralInsights) : null,
             indexedFields.follower_count,
@@ -321,6 +357,9 @@ export async function saveContribution(contribution) {
 
       } else if (dataType === 'netflix_watch_history') {
         const indexedFields = extractNetflixFields(sellableData);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:348',message:'inserting netflix contribution',data:{walletAddress,userId,dataType,contributionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
 
         await query(
           `INSERT INTO netflix_contributions (
@@ -340,6 +379,7 @@ export async function saveContribution(contribution) {
             $34, $35, $36
           )
           ON CONFLICT (id) DO UPDATE SET
+            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
             metadata = EXCLUDED.metadata,
@@ -353,7 +393,7 @@ export async function saveContribution(contribution) {
             wallet_address = EXCLUDED.wallet_address,
             updated_at = NOW()`,
           [
-            id, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
             JSON.stringify(sellableData),
             behavioralInsights ? JSON.stringify(behavioralInsights) : null,
             indexedFields.total_titles_watched,
@@ -394,8 +434,11 @@ export async function saveContribution(contribution) {
       }
 
       await query('COMMIT');
-      console.log(`✅ Contribution ${id} saved to ${dataType} table`);
-      return { success: true, id };
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:436',message:'contribution saved successfully',data:{contributionId,dataType,walletAddress,userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+      // #endregion
+      console.log(`✅ Contribution ${contributionId} saved to ${dataType} table`);
+      return { success: true, id: contributionId };
 
     } catch (error) {
       await query('ROLLBACK');
@@ -811,6 +854,28 @@ export async function findContributionByProofId(reclaimProofId) {
     return null;
   } catch (error) {
     console.error('Error finding contribution by proof ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Find existing Zomato contribution by data characteristics (total_orders + total_gmv)
+ * This detects duplicate submissions of the same Zomato account data, even from different user accounts
+ * Returns the existing contribution id if found, null otherwise
+ */
+export async function findZomatoContributionByData(totalOrders, totalGmv) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || totalOrders === null || totalOrders === undefined || totalGmv === null || totalGmv === undefined) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, user_id, reclaim_proof_id FROM zomato_contributions WHERE total_orders = $1 AND total_gmv = $2 ORDER BY created_at DESC LIMIT 1',
+      [totalOrders, totalGmv]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding Zomato contribution by data characteristics:', error);
     return null;
   }
 }

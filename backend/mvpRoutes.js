@@ -246,6 +246,9 @@ router.get('/user/contributions', verifyPrivyToken, async (req, res) => {
 router.post('/contribute', verifyPrivyToken, async (req, res) => {
     try {
         const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'mvpRoutes.js:248',message:'user retrieved from database',data:{userId:user?.id,userWalletAddress:user?.walletAddress,userEmail:user?.email,privyId:req.user.privyId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+        // #endregion
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -259,6 +262,9 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
 
         // Extract wallet address from the data if present
         const walletAddress = anonymizedData?.walletAddress || null;
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'mvpRoutes.js:261',message:'walletAddress extraction',data:{walletAddressFromData:walletAddress,userWalletAddress:user.walletAddress,userId:user.id,dataType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         if (walletAddress && !user.walletAddress) {
             await jsonStorage.updateUserWallet(user.id, walletAddress);
             console.log(`💳 Wallet address updated for user ${user.id}: ${walletAddress}`);
@@ -381,6 +387,10 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         }
 
         // Store contribution with sellable data format
+        const finalWalletAddress = user.walletAddress || walletAddress || null;
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'mvpRoutes.js:391',message:'final walletAddress before saveContribution',data:{finalWalletAddress,userWalletAddress:user.walletAddress,walletAddressFromData:walletAddress,userId:user.id,dataType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         const contribution = await jsonStorage.addContribution(user.id, {
             anonymizedData: processedData,
             sellableData,
@@ -388,7 +398,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             dataType,
             reclaimProofId,
             processingMethod: sellableData ? 'enterprise_pipeline' : 'raw',
-            walletAddress: user.walletAddress || walletAddress || null
+            walletAddress: finalWalletAddress
         });
 
         // ========================================

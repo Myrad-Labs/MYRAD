@@ -13,6 +13,7 @@
     "listen": "node backend/listener.js",
     "server": "node backend/server.js",
     "db:migrate": "node backend/database/migrate.js",
+    "db:setup": "node backend/database/setupProductionDB.js",
     "db:migrate:separate": "node backend/database/migrate.js 002_separate_zomato_github_tables.sql",
     "db:migrate:extended": "node backend/database/migrate.js 003_add_zomato_extended_fields.sql",
     "db:migrate:netflix": "node backend/database/migrate.js 005_add_netflix_content_catalog.sql",
