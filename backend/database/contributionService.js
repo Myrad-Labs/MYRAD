@@ -186,10 +186,6 @@ export async function saveContribution(contribution) {
       walletAddress
     } = contribution;
 
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:186',message:'walletAddress received in saveContribution',data:{walletAddress,userId,dataType,hasSellableData:!!sellableData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-
     if (!sellableData) {
       console.warn('⚠️  No sellableData to save, skipping');
       return null;
@@ -218,9 +214,6 @@ export async function saveContribution(contribution) {
       // Determine which table to use based on dataType
       if (dataType === 'zomato_order_history') {
         const indexedFields = extractZomatoFields(sellableData);
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:215',message:'inserting zomato contribution',data:{walletAddress,userId,dataType,contributionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
 
         await query(
           `INSERT INTO zomato_contributions (
@@ -310,9 +303,6 @@ export async function saveContribution(contribution) {
 
       } else if (dataType === 'github_profile') {
         const indexedFields = extractGithubFields(sellableData, contribution);
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:304',message:'inserting github contribution',data:{walletAddress,userId,dataType,contributionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
 
         await query(
           `INSERT INTO github_contributions (
@@ -357,9 +347,6 @@ export async function saveContribution(contribution) {
 
       } else if (dataType === 'netflix_watch_history') {
         const indexedFields = extractNetflixFields(sellableData);
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:348',message:'inserting netflix contribution',data:{walletAddress,userId,dataType,contributionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-        // #endregion
 
         await query(
           `INSERT INTO netflix_contributions (
@@ -434,9 +421,6 @@ export async function saveContribution(contribution) {
       }
 
       await query('COMMIT');
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/a71f6cf0-9920-4075-8c56-df5400d605a0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'contributionService.js:436',message:'contribution saved successfully',data:{contributionId,dataType,walletAddress,userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-      // #endregion
       console.log(`✅ Contribution ${contributionId} saved to ${dataType} table`);
       return { success: true, id: contributionId };
 

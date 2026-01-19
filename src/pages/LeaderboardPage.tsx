@@ -542,7 +542,8 @@ const LeaderboardPage: React.FC = () => {
               {sortedList.map((row, idx) => {
                 const rank = idx + 1;
                 const isTopThree = rank <= 3;
-                const isCopied = copiedAddress === row.walletAddress;
+                // Only show "Copied!" if address is not null and matches
+                const isCopied = row.walletAddress && copiedAddress === row.walletAddress;
 
                 return (
                   <div
@@ -558,13 +559,14 @@ const LeaderboardPage: React.FC = () => {
                       <div
                         className="wallet-wrapper"
                         onClick={() => copyToClipboard(row.walletAddress)}
-                        title={isCopied ? 'Copied' : 'Click to copy address'}
+                        title={row.walletAddress ? (isCopied ? 'Copied' : 'Click to copy address') : 'No wallet address'}
+                        style={{ cursor: row.walletAddress ? 'pointer' : 'default' }}
                       >
                         <div
                           className="wallet-address"
                           style={{
                             color: row.isYou ? '#4F46E5' : undefined,
-                            cursor: 'pointer'
+                            cursor: row.walletAddress ? 'pointer' : 'default'
                           }}
                         >
                           {isCopied ? 'Copied!' : shortAddress(row.walletAddress)}

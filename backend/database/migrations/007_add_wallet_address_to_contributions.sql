@@ -15,3 +15,5 @@ CREATE INDEX IF NOT EXISTS idx_zomato_wallet_address ON zomato_contributions(wal
 CREATE INDEX IF NOT EXISTS idx_github_wallet_address ON github_contributions(wallet_address);
 CREATE INDEX IF NOT EXISTS idx_netflix_wallet_address ON netflix_contributions(wallet_address);
 
+
+
