@@ -932,12 +932,23 @@ const styles = `
   .activity-points { font-size: 14px; font-weight: 700; color: #059669; background: #ecfdf5; padding: 4px 10px; border-radius: 100px; }
 
   /* QR Section */
-  .qr-section { background: #f9fafb; border-radius: 16px; padding: 20px; text-align: center; margin-top: 16px; border: 1px solid #e5e7eb; }
+  .qr-section { 
+    background: #f9fafb; 
+    border-radius: 16px; 
+    padding: 20px; 
+    text-align: center; 
+    margin-top: 16px; 
+    border: 1px solid #e5e7eb; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
   .qr-container { background: #fff; padding: 12px; border-radius: 12px; display: inline-block; margin: 12px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-  .qr-link { display: inline-flex; align-items: center; gap: 6px; color: #111827; font-weight: 600; font-size: 13px; text-decoration: none; margin-bottom: 12px; }
+  .qr-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: #111827; font-weight: 600; font-size: 13px; text-decoration: none; margin-bottom: 12px; width: 100%; }
   .qr-link:hover { text-decoration: underline; }
-  .qr-cancel { background: transparent; border: none; color: #ef4444; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; margin: 0 auto; }
-  .qr-title { font-weight: 600; font-size: 13px; color: #374151; }
+  .qr-cancel { background: transparent; border: none; color: #ef4444; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; margin: 0 auto; width: 100%; }
+  .qr-title { font-weight: 600; font-size: 13px; color: #374151; width: 100%; }
 
   /* Onboarding Card */
   .onboarding-card {
