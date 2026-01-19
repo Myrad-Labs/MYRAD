@@ -219,6 +219,9 @@ const DashboardPage = () => {
         acceptAiProviders: true
       });
 
+      // Crucial for mobile: Ensure we redirect back to this page after verification
+      reclaimProofRequest.setAppCallbackUrl(window.location.href);
+
       const requestUrl = await reclaimProofRequest.getRequestUrl();
       setVerificationUrl(requestUrl);
 
