@@ -749,8 +749,11 @@ const DashboardPage = () => {
                 setVerificationUrl(null);
                 setActiveProvider(null);
                 
-                if (result.success || result.pointsAwarded > 0) {
-                  showToast('success', 'Success!', `You earned ${result.pointsAwarded || 0} points!`);
+                // Points can be in result.pointsAwarded OR result.contribution.pointsAwarded
+                const pointsAwarded = result.contribution?.pointsAwarded || result.pointsAwarded || 0;
+                
+                if (result.success || pointsAwarded > 0) {
+                  showToast('success', 'Success!', `You earned ${pointsAwarded} points!`);
                   fetchUserData();
                 } else {
                   showToast('error', 'Error', result.message || 'Failed to process contribution');
