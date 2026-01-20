@@ -678,16 +678,27 @@ const DashboardPage = () => {
                         };
                       }
                     }
-                    // For Netflix
+                    // For Netflix - extract full watch history objects with title and date
                     if (providerType === 'netflix') {
+                      // Try to extract full watch history objects first (title + date)
+                      const fullMatches = rawStr.match(/\{"title":"[^"]+","date":"[^"]+"\}/g);
+                      if (fullMatches && fullMatches.length > 0) {
+                        try {
+                          const watchHistory = fullMatches.map((m: string) => JSON.parse(m));
+                          console.log(`📺 Extracted ${watchHistory.length} Netflix titles with dates`);
+                          return { watchHistory };
+                        } catch (e) { /* try fallback */ }
+                      }
+                      // Fallback: extract just titles
                       const titleMatches = rawStr.match(/\{"title":"[^"]+"/g);
                       if (titleMatches && titleMatches.length > 0) {
                         try {
-                          const titles = titleMatches.map((m: string) => {
+                          const watchHistory = titleMatches.map((m: string) => {
                             const titleMatch = m.match(/"title":"([^"]+)"/);
-                            return { title: titleMatch?.[1] || 'Unknown' };
+                            return { title: titleMatch?.[1] || 'Unknown', date: null };
                           });
-                          return { titles };
+                          console.log(`📺 Extracted ${watchHistory.length} Netflix titles (no dates)`);
+                          return { watchHistory };
                         } catch (e) { /* ignore */ }
                       }
                     }
@@ -780,15 +791,26 @@ const DashboardPage = () => {
                       
                       // Check if this key contains Netflix title data
                       if (key.includes('"title"') && providerType === 'netflix') {
-                        const titleMatches = key.match(/\{"title":"[^"]+"/g);
-                        if (titleMatches && titleMatches.length > 0) {
+                        // Try full objects first
+                        const fullMatches = key.match(/\{"title":"[^"]+","date":"[^"]+"\}/g);
+                        if (fullMatches && fullMatches.length > 0) {
                           try {
-                            const parsedTitles = titleMatches.map((m: string) => {
-                              const titleMatch = m.match(/"title":"([^"]+)"/);
-                              return { title: titleMatch?.[1] || 'Unknown' };
-                            });
-                            collectedTitles.push(...parsedTitles);
-                          } catch (e2) { /* ignore */ }
+                            const parsed = fullMatches.map((m: string) => JSON.parse(m));
+                            collectedTitles.push(...parsed);
+                          } catch (e2) { /* try fallback */ }
+                        }
+                        // Fallback to just titles
+                        if (collectedTitles.length === 0) {
+                          const titleMatches = key.match(/\{"title":"[^"]+"/g);
+                          if (titleMatches && titleMatches.length > 0) {
+                            try {
+                              const parsedTitles = titleMatches.map((m: string) => {
+                                const titleMatch = m.match(/"title":"([^"]+)"/);
+                                return { title: titleMatch?.[1] || 'Unknown', date: null };
+                              });
+                              collectedTitles.push(...parsedTitles);
+                            } catch (e2) { /* ignore */ }
+                          }
                         }
                       }
                       
@@ -799,6 +821,7 @@ const DashboardPage = () => {
                           const found = findDataInObject(parsed, depth + 1, providerType);
                           if (found) {
                             if (found.orders) collectedOrders.push(...found.orders);
+                            else if (found.watchHistory) collectedTitles.push(...found.watchHistory);
                             else if (found.titles) collectedTitles.push(...found.titles);
                             else return found;
                           }
@@ -813,15 +836,26 @@ const DashboardPage = () => {
                           }
                           // Try regex extraction for Netflix titles from malformed key
                           if (providerType === 'netflix' && key.includes('"title"')) {
-                            const titleMatches = key.match(/\{"title":"[^"]+"/g);
-                            if (titleMatches && titleMatches.length > 0) {
+                            // Try full objects first
+                            const fullMatches = key.match(/\{"title":"[^"]+","date":"[^"]+"\}/g);
+                            if (fullMatches && fullMatches.length > 0) {
                               try {
-                                const parsedTitles = titleMatches.map((m: string) => {
-                                  const titleMatch = m.match(/"title":"([^"]+)"/);
-                                  return { title: titleMatch?.[1] || 'Unknown' };
-                                });
-                                collectedTitles.push(...parsedTitles);
-                              } catch (e2) { /* ignore */ }
+                                const parsed = fullMatches.map((m: string) => JSON.parse(m));
+                                collectedTitles.push(...parsed);
+                              } catch (e2) { /* try fallback */ }
+                            }
+                            // Fallback to just titles
+                            if (collectedTitles.length === 0) {
+                              const titleMatches = key.match(/\{"title":"[^"]+"/g);
+                              if (titleMatches && titleMatches.length > 0) {
+                                try {
+                                  const parsedTitles = titleMatches.map((m: string) => {
+                                    const titleMatch = m.match(/"title":"([^"]+)"/);
+                                    return { title: titleMatch?.[1] || 'Unknown', date: null };
+                                  });
+                                  collectedTitles.push(...parsedTitles);
+                                } catch (e2) { /* ignore */ }
+                              }
                             }
                           }
                           // Try regex extraction for GitHub from malformed key
@@ -842,6 +876,7 @@ const DashboardPage = () => {
                       const found = findDataInObject(obj[key], depth + 1, providerType);
                       if (found) {
                         if (found.orders) collectedOrders.push(...found.orders);
+                        else if (found.watchHistory) collectedTitles.push(...found.watchHistory);
                         else if (found.titles) collectedTitles.push(...found.titles);
                         else return found;
                       }
@@ -852,7 +887,7 @@ const DashboardPage = () => {
                       return { orders: collectedOrders };
                     }
                     if (collectedTitles.length > 0) {
-                      return { titles: collectedTitles };
+                      return { watchHistory: collectedTitles };
                     }
                   }
                   return null;

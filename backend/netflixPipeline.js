@@ -479,12 +479,18 @@ export async function processNetflixData(extractedData, options = {}) {
     console.log('📺 Processing Netflix data through streaming intelligence pipeline...');
     console.log('🔍 Input data keys:', Object.keys(extractedData));
 
-    // Extract watch history
+    // Extract watch history (accept both 'watchHistory' and 'titles' from frontend)
     let watchHistory = [];
     if (extractedData.watchHistory) {
         watchHistory = Array.isArray(extractedData.watchHistory)
             ? extractedData.watchHistory
             : [extractedData.watchHistory];
+    } else if (extractedData.titles) {
+        // Frontend sends 'titles' from Reclaim proof extraction
+        watchHistory = Array.isArray(extractedData.titles)
+            ? extractedData.titles.map(t => ({ title: t.title || t, date: t.date || null }))
+            : [{ title: extractedData.titles, date: null }];
+        console.log(`📺 Converted ${watchHistory.length} titles to watchHistory format`);
     }
 
     // Extract ratings
