@@ -1072,27 +1072,25 @@ router.post('/contact', (req, res) => {
 // ===================
 // This endpoint receives POST data from Reclaim app after verification
 // and redirects the user back to the dashboard with proof data in URL hash
+// Temporary storage for proofs received via callback (TTL: 5 minutes)
+const pendingProofs = new Map();
+const PROOF_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Clean up old proofs periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of pendingProofs.entries()) {
+        if (now - value.timestamp > PROOF_TTL) {
+            pendingProofs.delete(key);
+        }
+    }
+}, 60 * 1000); // Check every minute
+
 router.post('/reclaim-callback', async (req, res) => {
     try {
-        console.log('📲 Reclaim callback received at /api/reclaim-callback:', Object.keys(req.body));
-        console.log('📲 Callback request details:', {
-            method: req.method,
-            url: req.url,
-            contentType: req.headers['content-type'],
-            origin: req.headers.origin,
-            referer: req.headers.referer,
-            userAgent: req.headers['user-agent'],
-            bodyKeys: Object.keys(req.body || {}),
-            bodyType: typeof req.body,
-            rawBodySample: JSON.stringify(req.body).substring(0, 500)
-        });
-
-        // The Reclaim app may send data in different formats:
-        // 1. As JSON body (Content-Type: application/json) - req.body is the parsed object
-        // 2. As form-urlencoded with JSON as key (Content-Type: application/x-www-form-urlencoded)
-        //    In this case, the JSON string becomes a key in req.body with empty value
-        // 3. As text/plain - req.body might be a string
+        console.log('📲 Reclaim callback received at /api/reclaim-callback');
         
+        // Parse the proof data from various formats
         let proofData = req.body;
         
         // Handle case where JSON is sent as form-urlencoded key
@@ -1100,54 +1098,71 @@ router.post('/reclaim-callback', async (req, res) => {
             const bodyKeys = Object.keys(req.body);
             if (bodyKeys.length > 0) {
                 const firstKey = bodyKeys[0];
-                // Check if the first key looks like JSON (starts with { or [)
                 if (firstKey.startsWith('{') || firstKey.startsWith('[')) {
                     try {
                         proofData = JSON.parse(firstKey);
                         console.log('📲 Parsed proof from form-urlencoded key');
                     } catch (e) {
-                        console.log('📲 Failed to parse first key as JSON, using body as-is');
+                        console.log('📲 Failed to parse first key as JSON');
                     }
                 }
             }
         }
         
-        // Handle case where body is a string (text/plain)
+        // Handle case where body is a string
         if (typeof proofData === 'string') {
             try {
                 proofData = JSON.parse(proofData);
-                console.log('📲 Parsed proof from string body');
             } catch (e) {
                 console.log('📲 Failed to parse string body as JSON');
             }
         }
         
-        console.log('📲 Final proof data structure:', {
-            type: typeof proofData,
-            isArray: Array.isArray(proofData),
-            keys: proofData && typeof proofData === 'object' ? Object.keys(proofData) : [],
-            hasIdentifier: !!proofData?.identifier,
-            hasClaimData: !!proofData?.claimData
+        // Extract session ID from the proof or generate one from identifier
+        const proof = Array.isArray(proofData) ? proofData[0] : proofData;
+        const sessionId = proof?.identifier || proof?.claimData?.identifier || `proof_${Date.now()}`;
+        
+        // Store the proof for frontend to fetch
+        pendingProofs.set(sessionId, {
+            proof: proofData,
+            timestamp: Date.now()
         });
-
-        // Encode the proof data to pass via URL (base64 to avoid URL encoding issues)
-        const encodedProof = Buffer.from(JSON.stringify(proofData)).toString('base64');
-
-        // Redirect to dashboard with proof data in fragment (not sent to server, only client)
-        // Using fragment (#) so it's only visible to the frontend JavaScript
-        // Use absolute URL for redirect to work properly on mobile
-        const frontendUrl = process.env.FRONTEND_URL || 'https://www.myradhq.xyz';
-        const redirectUrl = `${frontendUrl}/dashboard#reclaim_proof=${encodedProof}`;
-
-        console.log('✅ Redirecting to dashboard with proof data:', redirectUrl);
-        res.redirect(302, redirectUrl);
+        
+        console.log('📲 Stored proof with sessionId:', sessionId);
+        console.log('📲 Pending proofs count:', pendingProofs.size);
+        
+        // Return success - the Reclaim app just needs a 200 response
+        // The frontend will poll /api/reclaim-proof/:sessionId to get the data
+        res.status(200).json({ 
+            success: true, 
+            sessionId,
+            message: 'Proof received and stored'
+        });
     } catch (error) {
         console.error('Reclaim callback error:', error);
-        // Even on error, redirect to dashboard (frontend will handle missing data)
-        // Use absolute URL for redirect to work properly on mobile
-        const frontendUrl = process.env.FRONTEND_URL || 'https://www.myradhq.xyz';
-        res.redirect(302, `${frontendUrl}/dashboard#reclaim_error=true`);
+        res.status(500).json({ success: false, error: 'Failed to process proof' });
     }
+});
+
+// Endpoint for frontend to fetch stored proof
+router.get('/reclaim-proof/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+    const stored = pendingProofs.get(sessionId);
+    
+    if (stored) {
+        // Delete after fetching (one-time use)
+        pendingProofs.delete(sessionId);
+        console.log('📲 Proof fetched and deleted for sessionId:', sessionId);
+        res.json({ success: true, proof: stored.proof });
+    } else {
+        res.status(404).json({ success: false, error: 'Proof not found or expired' });
+    }
+});
+
+// Endpoint to list pending proof session IDs (for polling)
+router.get('/reclaim-proofs/pending', (req, res) => {
+    const sessionIds = Array.from(pendingProofs.keys());
+    res.json({ success: true, sessionIds, count: sessionIds.length });
 });
 
 // Also handle GET for when user manually visits the callback URL

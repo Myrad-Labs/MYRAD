@@ -569,20 +569,194 @@ const DashboardPage = () => {
           // #endregion
 
           // CRITICAL: When using callback URL, the SDK returns a string message instead of proof data
-          // The actual proof is sent to the callback URL and will be processed via redirect
-          // In this case, we should NOT submit to backend - let the redirect flow handle it
+          // The actual proof is sent to the callback URL and stored on the backend
+          // We need to poll the backend to fetch the stored proof
           if (typeof proofs === 'string') {
             // #region agent log
-            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.callbackMode',message:'Callback URL mode detected - waiting for redirect',data:{provider:provider.id,message:proofs},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'G'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.callbackMode',message:'Callback URL mode detected - polling for proof',data:{provider:provider.id,message:proofs},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
             // #endregion
             
-            // Show a toast to indicate we're waiting for the redirect
-            showToast('info', 'Processing...', 'Verification complete, processing your data...');
+            showToast('info', 'Processing...', 'Verification complete, fetching your data...');
             
-            // The redirect from /api/reclaim-callback will handle the actual data submission
-            // Just clean up the UI state
-            setVerificationUrl(null);
-            setActiveProvider(null);
+            // Poll the backend for the stored proof
+            let attempts = 0;
+            const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
+            const pollInterval = 2000;
+            
+            const pollForProof = async () => {
+              attempts++;
+              try {
+                // First, get list of pending proofs
+                const pendingRes = await fetch(`${API_URL}/api/reclaim-proofs/pending`);
+                const pendingData = await pendingRes.json();
+                
+                // #region agent log
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.pollForProof',message:'Polling for pending proofs',data:{attempt:attempts,pendingCount:pendingData.count,sessionIds:pendingData.sessionIds},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
+                // #endregion
+                
+                if (pendingData.sessionIds && pendingData.sessionIds.length > 0) {
+                  // Fetch the first available proof (most recent)
+                  const sessionId = pendingData.sessionIds[pendingData.sessionIds.length - 1];
+                  const proofRes = await fetch(`${API_URL}/api/reclaim-proof/${sessionId}`);
+                  const proofData = await proofRes.json();
+                  
+                  if (proofData.success && proofData.proof) {
+                    // #region agent log
+                    fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.pollForProof.found',message:'Proof found via polling',data:{sessionId,proofKeys:Object.keys(proofData.proof||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
+                    // #endregion
+                    
+                    // Process the proof - reuse the redirect processing logic
+                    await processPolledProof(proofData.proof, provider);
+                    return;
+                  }
+                }
+                
+                // Continue polling if not found yet
+                if (attempts < maxAttempts) {
+                  setTimeout(pollForProof, pollInterval);
+                } else {
+                  setVerificationUrl(null);
+                  setActiveProvider(null);
+                  showToast('error', 'Timeout', 'Could not retrieve verification data. Please try again.');
+                }
+              } catch (error) {
+                console.error('Polling error:', error);
+                if (attempts < maxAttempts) {
+                  setTimeout(pollForProof, pollInterval);
+                } else {
+                  setVerificationUrl(null);
+                  setActiveProvider(null);
+                  showToast('error', 'Error', 'Failed to retrieve verification data.');
+                }
+              }
+            };
+            
+            // Helper function to process polled proof
+            const processPolledProof = async (proofData: any, provider: any) => {
+              try {
+                // Helper function to recursively find orders
+                const findOrdersInObject = (obj: any, depth = 0): any[] => {
+                  if (depth > 10 || !obj) return [];
+                  if (Array.isArray(obj)) {
+                    if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && 
+                        (obj[0].items || obj[0].restaurant || obj[0].price || obj[0].timestamp)) {
+                      return obj;
+                    }
+                    for (const item of obj) {
+                      const found = findOrdersInObject(item, depth + 1);
+                      if (found.length > 0) return found;
+                    }
+                  }
+                  if (typeof obj === 'object' && obj !== null) {
+                    if (obj.items && obj.restaurant) return [obj];
+                    if (obj.orders && Array.isArray(obj.orders)) return obj.orders;
+                    for (const key of Object.keys(obj)) {
+                      if (key.length > 100 && key.startsWith('{')) {
+                        try {
+                          const parsed = JSON.parse(key);
+                          const found = findOrdersInObject(parsed, depth + 1);
+                          if (found.length > 0) return found;
+                        } catch (e) {
+                          const orderMatches = key.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
+                          if (orderMatches && orderMatches.length > 0) {
+                            try { return orderMatches.map(m => JSON.parse(m)); } catch (e2) { /* ignore */ }
+                          }
+                        }
+                      }
+                      const found = findOrdersInObject(obj[key], depth + 1);
+                      if (found.length > 0) return found;
+                    }
+                  }
+                  if (typeof obj === 'string' && (obj.startsWith('{') || obj.startsWith('['))) {
+                    try {
+                      const parsed = JSON.parse(obj);
+                      return findOrdersInObject(parsed, depth + 1);
+                    } catch (e) {
+                      const orderMatches = obj.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
+                      if (orderMatches && orderMatches.length > 0) {
+                        try { return orderMatches.map(m => JSON.parse(m)); } catch (e2) { /* ignore */ }
+                      }
+                    }
+                  }
+                  return [];
+                };
+                
+                const proof = Array.isArray(proofData) ? proofData[0] : proofData;
+                let extractedData: any = {};
+                
+                if (proof?.claimData?.context) {
+                  const context = typeof proof.claimData.context === 'string'
+                    ? JSON.parse(proof.claimData.context)
+                    : proof.claimData.context;
+                  extractedData = context.extractedParameters || {};
+                }
+                if (proof?.extractedParameterValues) {
+                  extractedData = { ...extractedData, ...proof.extractedParameterValues };
+                }
+                if (proof?.publicData) {
+                  extractedData = { ...extractedData, ...proof.publicData };
+                }
+                
+                // Deep search for orders
+                if (!extractedData.orders || extractedData.orders.length === 0) {
+                  const foundOrders = findOrdersInObject(proofData);
+                  if (foundOrders.length > 0) {
+                    extractedData.orders = foundOrders;
+                    // #region agent log
+                    fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.foundOrders',message:'Found orders via deep search',data:{ordersFound:foundOrders.length,firstOrder:foundOrders[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
+                    // #endregion
+                  }
+                }
+                
+                const walletAddress = user?.wallet?.address || null;
+                const token = `privy_${user?.id}_${user?.email?.address || 'user'}`;
+                
+                // #region agent log
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.submitting',message:'Submitting polled proof to backend',data:{provider:provider.id,hasOrders:!!extractedData.orders,ordersLength:extractedData.orders?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
+                // #endregion
+                
+                const response = await fetch(`${API_URL}/api/contribute`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({
+                    userId: user?.id,
+                    dataType: provider.dataType,
+                    data: {
+                      ...extractedData,
+                      provider: provider.id,
+                      providerName: provider.name,
+                      timestamp: new Date().toISOString(),
+                      walletAddress
+                    },
+                    reclaimProofId: proof?.identifier || `polled_${Date.now()}`,
+                    walletAddress
+                  })
+                });
+                
+                const result = await response.json();
+                
+                setVerificationUrl(null);
+                setActiveProvider(null);
+                
+                if (result.success || result.pointsAwarded > 0) {
+                  showToast('success', 'Success!', `You earned ${result.pointsAwarded || 0} points!`);
+                  fetchUserData();
+                } else {
+                  showToast('error', 'Error', result.message || 'Failed to process contribution');
+                }
+              } catch (error) {
+                console.error('Process polled proof error:', error);
+                setVerificationUrl(null);
+                setActiveProvider(null);
+                showToast('error', 'Error', 'Failed to process verification data');
+              }
+            };
+            
+            // Start polling after a short delay (give backend time to receive the callback)
+            setTimeout(pollForProof, 3000);
             return;
           }
           
