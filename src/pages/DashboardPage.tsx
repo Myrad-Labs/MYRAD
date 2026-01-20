@@ -195,10 +195,21 @@ const DashboardPage = () => {
 
             // If no orders found, search the entire proof object
             if (!extractedData.orders || extractedData.orders.length === 0) {
+              // #region agent log
+              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processRedirect.searchingOrders',message:'Searching for orders in redirect proof',data:{proofDataKeys:Object.keys(proofData||{}),proofDataStringified:JSON.stringify(proofData).substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H'})}).catch(()=>{});
+              // #endregion
+              
               const foundOrders = findOrdersInObject(proofData);
               if (foundOrders.length > 0) {
                 extractedData.orders = foundOrders;
                 console.log('📲 Found orders via deep search:', foundOrders.length);
+                // #region agent log
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processRedirect.foundOrders',message:'Found orders via deep search',data:{ordersFound:foundOrders.length,firstOrder:foundOrders[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H'})}).catch(()=>{});
+                // #endregion
+              } else {
+                // #region agent log
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processRedirect.noOrdersFound',message:'No orders found in deep search',data:{proofDataStringified:JSON.stringify(proofData).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H'})}).catch(()=>{});
+                // #endregion
               }
             }
 
@@ -532,13 +543,32 @@ const DashboardPage = () => {
         onSuccess: async (proofs: any) => {
           // Restore original console.log
           console.log = originalConsoleLog;
-          // Proof received successfully
+          
+          // #region agent log - RAW PROOFS RECEIVED
+          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.rawProofs',message:'RAW proofs received from SDK',data:{provider:provider.id,proofsType:typeof proofs,isArray:Array.isArray(proofs),proofsLength:Array.isArray(proofs)?proofs.length:null,proofsKeys:proofs&&typeof proofs==='object'?Object.keys(proofs):[],rawProofsStringified:JSON.stringify(proofs).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'E'})}).catch(()=>{});
+          // #endregion
+
+          // CRITICAL: When using callback URL, the SDK returns a string message instead of proof data
+          // The actual proof is sent to the callback URL and will be processed via redirect
+          // In this case, we should NOT submit to backend - let the redirect flow handle it
+          if (typeof proofs === 'string') {
+            // #region agent log
+            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.callbackMode',message:'Callback URL mode detected - waiting for redirect',data:{provider:provider.id,message:proofs},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'G'})}).catch(()=>{});
+            // #endregion
+            
+            // Show a toast to indicate we're waiting for the redirect
+            showToast('info', 'Processing...', 'Verification complete, processing your data...');
+            
+            // The redirect from /api/reclaim-callback will handle the actual data submission
+            // Just clean up the UI state
+            setVerificationUrl(null);
+            setActiveProvider(null);
+            return;
+          }
+          
+          // Proof received successfully (direct mode, not callback URL)
           setVerificationUrl(null);
           setActiveProvider(null);
-
-          // #region agent log - RAW PROOFS RECEIVED
-          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.rawProofs',message:'RAW proofs received from SDK',data:{provider:provider.id,proofsType:typeof proofs,isArray:Array.isArray(proofs),proofsLength:Array.isArray(proofs)?proofs.length:null,proofsKeys:proofs&&typeof proofs==='object'?Object.keys(proofs):[],rawProofsStringified:JSON.stringify(proofs).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'E'})}).catch(()=>{});
-          // #endregion
 
           const proof = Array.isArray(proofs) ? proofs[0] : proofs;
           if (!proof) {
