@@ -783,7 +783,9 @@ const DashboardPage = () => {
                 
                 if (needsDeepSearch) {
                   // #region agent log
-                  fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.deepSearch',message:'Starting deep search for provider data',data:{provider:provider.id,currentKeys:Object.keys(extractedData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run9',hypothesisId:'L'})}).catch(()=>{});
+                  const proofDataStr = JSON.stringify(proofData);
+                  const proofKeys = Object.keys(proofData || {});
+                  fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.deepSearch',message:'Starting deep search for provider data',data:{provider:provider.id,currentKeys:Object.keys(extractedData),proofDataType:typeof proofData,proofDataLength:proofDataStr.length,proofKeyCount:proofKeys.length,firstKeyLength:proofKeys[0]?.length||0,firstKeySample:(proofKeys[0]||'').substring(0,500),hasOrdersInKey:proofKeys[0]?.includes('"items"')},timestamp:Date.now(),sessionId:'debug-session',runId:'run9',hypothesisId:'L'})}).catch(()=>{});
                   // #endregion
                   
                   const foundData = findDataInObject(proofData, 0, provider.id);
