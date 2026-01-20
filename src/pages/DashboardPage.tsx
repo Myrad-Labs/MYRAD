@@ -116,9 +116,15 @@ const DashboardPage = () => {
   }, [ready, authenticated, navigate]);
 
   // Handle proof data from Reclaim callback redirect (mobile deep-link recovery)
+  // Also listen for hash changes since redirect may happen after initial load
   useEffect(() => {
     const processRedirectProof = async () => {
       const hash = window.location.hash;
+      
+      // #region agent log
+      fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processRedirect.entry',message:'processRedirectProof called',data:{hash:hash.substring(0,100),hasReclaimProof:hash.includes('reclaim_proof='),userId:user?.id,ready,authenticated},timestamp:Date.now(),sessionId:'debug-session',runId:'run6',hypothesisId:'I'})}).catch(()=>{});
+      // #endregion
+      
       if (hash.includes('reclaim_proof=')) {
         const encodedProof = hash.split('reclaim_proof=')[1]?.split('&')[0];
         if (encodedProof && user?.id) {
@@ -269,6 +275,20 @@ const DashboardPage = () => {
     if (ready && authenticated && user?.id) {
       processRedirectProof();
     }
+    
+    // Also listen for hash changes (redirect may happen after page is already loaded)
+    const handleHashChange = () => {
+      // #region agent log
+      fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.hashChange',message:'Hash changed event fired',data:{newHash:window.location.hash.substring(0,100),userId:user?.id,ready,authenticated},timestamp:Date.now(),sessionId:'debug-session',runId:'run6',hypothesisId:'I'})}).catch(()=>{});
+      // #endregion
+      
+      if (ready && authenticated && user?.id) {
+        processRedirectProof();
+      }
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, authenticated, user?.id, API_URL]);
 
