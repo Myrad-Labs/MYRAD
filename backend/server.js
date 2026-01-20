@@ -28,28 +28,37 @@ app.use(cors({
   credentials: false
 }));
 
-// Capture raw body for Reclaim callback BEFORE body parsers can truncate it
-// This middleware runs only for the reclaim-callback endpoint
-app.use('/api/reclaim-callback', (req, res, next) => {
-    let data = '';
-    req.setEncoding('utf8');
-    req.on('data', chunk => { data += chunk; });
-    req.on('end', () => {
-        req.rawBody = data;
-        next();
-    });
-});
-
 // Body parsers with very generous limits for Reclaim proofs
 // Reclaim SDK sends proofs as deeply nested JSON-as-keys structures
-app.use(express.json({ limit: "50mb" }));
+// Use verify callback to capture raw body for the reclaim-callback endpoint
+app.use(express.json({ 
+    limit: "50mb",
+    verify: (req, res, buf) => {
+        if (req.originalUrl?.includes('reclaim-callback')) {
+            req.rawBody = buf.toString();
+        }
+    }
+}));
 app.use(express.urlencoded({ 
     limit: "50mb", 
     extended: true, 
     parameterLimit: 100000,
     depth: 100,  // Depth limit for urlencoded - raw body fallback handles deeper proofs
+    verify: (req, res, buf) => {
+        if (req.originalUrl?.includes('reclaim-callback')) {
+            req.rawBody = buf.toString();
+        }
+    }
 }));
-app.use(express.text({ limit: "50mb", type: 'text/plain' }));
+app.use(express.text({ 
+    limit: "50mb", 
+    type: 'text/plain',
+    verify: (req, res, buf) => {
+        if (req.originalUrl?.includes('reclaim-callback')) {
+            req.rawBody = buf.toString();
+        }
+    }
+}));
 
 // Serve static frontend files from 'dist' folder (production build)
 app.use(express.static(path.join(__dirname, "../dist")));
