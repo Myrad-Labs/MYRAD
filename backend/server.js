@@ -28,16 +28,16 @@ app.use(cors({
   credentials: false
 }));
 
-// Body parsers with generous limits for Reclaim proofs
-// The Reclaim SDK sends proofs in various formats depending on the platform
+// Body parsers with very generous limits for Reclaim proofs
+// Reclaim SDK sends proofs as deeply nested JSON-as-keys structures
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ 
     limit: "50mb", 
     extended: true, 
-    parameterLimit: 100000,  // Increased for deeply nested Reclaim proofs
+    parameterLimit: 100000,
+    depth: 100,  // Very high depth limit for deeply nested Reclaim proofs
 }));
-app.use(express.text({ limit: "50mb", type: 'text/plain' })); // For Reclaim callbacks that may send as text
-app.use(express.raw({ limit: "50mb", type: '*/*' })); // Catch-all for any other content types
+app.use(express.text({ limit: "50mb", type: 'text/plain' }));
 
 // Serve static frontend files from 'dist' folder (production build)
 app.use(express.static(path.join(__dirname, "../dist")));

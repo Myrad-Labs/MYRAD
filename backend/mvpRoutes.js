@@ -1147,8 +1147,7 @@ router.post('/reclaim-callback', async (req, res) => {
         const userSessionId = req.query.sessionId;
         console.log('📲 User session ID from query:', userSessionId);
         
-        // IMPORTANT: Always store the raw body for the frontend to parse
-        // The frontend has more sophisticated parsing logic
+        // Parse the proof data from various formats
         let proofData = req.body;
         let extractedIdentifier = null;
         
@@ -1174,8 +1173,7 @@ router.post('/reclaim-callback', async (req, res) => {
                             extractedIdentifier = identifierMatch[1];
                             console.log('📲 Extracted identifier via regex:', extractedIdentifier);
                         }
-                        // Keep proofData as the raw body - frontend will parse it
-                        console.log('📲 Keeping raw body for frontend parsing');
+                        console.log('📲 Keeping body for frontend parsing');
                     }
                 }
             }
@@ -1195,13 +1193,15 @@ router.post('/reclaim-callback', async (req, res) => {
                 if (identifierMatch) {
                     extractedIdentifier = identifierMatch[1];
                 }
-                console.log('📲 Failed to parse string body as JSON, keeping raw');
+                console.log('📲 Failed to parse string body as JSON');
             }
         }
         
         // Use user's session ID (most reliable), then extracted identifier, then fallback
         const proof = Array.isArray(proofData) ? proofData[0] : proofData;
         const sessionId = userSessionId || extractedIdentifier || proof?.identifier || `proof_${Date.now()}`;
+        
+        console.log('📲 Final sessionId:', sessionId);
         
         // Store the proof for frontend to fetch - keyed by the user's session ID
         pendingProofs.set(sessionId, {
