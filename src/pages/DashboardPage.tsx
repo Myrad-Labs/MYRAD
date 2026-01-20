@@ -129,6 +129,53 @@ const DashboardPage = () => {
             // Clear the hash immediately to avoid re-processing
             window.history.replaceState(null, '', window.location.pathname);
 
+            // Helper function to recursively find orders in deeply nested structures
+            const findOrdersInObject = (obj: any, depth = 0): any[] => {
+              if (depth > 10 || !obj) return [];
+              if (Array.isArray(obj)) {
+                if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && 
+                    (obj[0].items || obj[0].restaurant || obj[0].price || obj[0].timestamp)) {
+                  return obj;
+                }
+                for (const item of obj) {
+                  const found = findOrdersInObject(item, depth + 1);
+                  if (found.length > 0) return found;
+                }
+              }
+              if (typeof obj === 'object' && obj !== null) {
+                if (obj.items && obj.restaurant) return [obj];
+                if (obj.orders && Array.isArray(obj.orders)) return obj.orders;
+                for (const key of Object.keys(obj)) {
+                  if (key.length > 100 && key.startsWith('{')) {
+                    try {
+                      const parsed = JSON.parse(key);
+                      const found = findOrdersInObject(parsed, depth + 1);
+                      if (found.length > 0) return found;
+                    } catch (e) {
+                      const orderMatches = key.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
+                      if (orderMatches && orderMatches.length > 0) {
+                        try { return orderMatches.map(m => JSON.parse(m)); } catch (e2) { /* ignore */ }
+                      }
+                    }
+                  }
+                  const found = findOrdersInObject(obj[key], depth + 1);
+                  if (found.length > 0) return found;
+                }
+              }
+              if (typeof obj === 'string' && (obj.startsWith('{') || obj.startsWith('['))) {
+                try {
+                  const parsed = JSON.parse(obj);
+                  return findOrdersInObject(parsed, depth + 1);
+                } catch (e) {
+                  const orderMatches = obj.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
+                  if (orderMatches && orderMatches.length > 0) {
+                    try { return orderMatches.map(m => JSON.parse(m)); } catch (e2) { /* ignore */ }
+                  }
+                }
+              }
+              return [];
+            };
+
             // Process the proof - extract data and submit to backend
             let extractedData: any = {};
             const proof = Array.isArray(proofData) ? proofData[0] : proofData;
@@ -144,6 +191,15 @@ const DashboardPage = () => {
             }
             if (proof?.publicData) {
               extractedData = { ...extractedData, ...proof.publicData };
+            }
+
+            // If no orders found, search the entire proof object
+            if (!extractedData.orders || extractedData.orders.length === 0) {
+              const foundOrders = findOrdersInObject(proofData);
+              if (foundOrders.length > 0) {
+                extractedData.orders = foundOrders;
+                console.log('📲 Found orders via deep search:', foundOrders.length);
+              }
             }
 
             // Determine provider from proof data
@@ -496,6 +552,78 @@ const DashboardPage = () => {
 
           let extractedData: any = {};
           try {
+            // Helper function to recursively find orders in deeply nested structures
+            const findOrdersInObject = (obj: any, depth = 0): any[] => {
+              if (depth > 10 || !obj) return []; // Prevent infinite recursion
+              
+              // If it's an array of order-like objects, return it
+              if (Array.isArray(obj)) {
+                if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && 
+                    (obj[0].items || obj[0].restaurant || obj[0].price || obj[0].timestamp)) {
+                  return obj;
+                }
+                // Search inside array elements
+                for (const item of obj) {
+                  const found = findOrdersInObject(item, depth + 1);
+                  if (found.length > 0) return found;
+                }
+              }
+              
+              // If it's an object, search its values
+              if (typeof obj === 'object' && obj !== null) {
+                // Check if this object itself looks like an order
+                if (obj.items && obj.restaurant) {
+                  return [obj];
+                }
+                
+                // Check for 'orders' key
+                if (obj.orders && Array.isArray(obj.orders)) {
+                  return obj.orders;
+                }
+                
+                // Search all values
+                for (const key of Object.keys(obj)) {
+                  // Skip if key is a long JSON string (malformed structure)
+                  if (key.length > 100 && key.startsWith('{')) {
+                    try {
+                      const parsed = JSON.parse(key);
+                      const found = findOrdersInObject(parsed, depth + 1);
+                      if (found.length > 0) return found;
+                    } catch (e) {
+                      // Try to extract orders from the key string directly
+                      const orderMatches = key.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
+                      if (orderMatches && orderMatches.length > 0) {
+                        try {
+                          return orderMatches.map(m => JSON.parse(m));
+                        } catch (e2) { /* ignore */ }
+                      }
+                    }
+                  }
+                  
+                  const found = findOrdersInObject(obj[key], depth + 1);
+                  if (found.length > 0) return found;
+                }
+              }
+              
+              // If it's a string that looks like JSON, try to parse it
+              if (typeof obj === 'string' && (obj.startsWith('{') || obj.startsWith('['))) {
+                try {
+                  const parsed = JSON.parse(obj);
+                  return findOrdersInObject(parsed, depth + 1);
+                } catch (e) {
+                  // Try to extract orders from the string directly using regex
+                  const orderMatches = obj.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
+                  if (orderMatches && orderMatches.length > 0) {
+                    try {
+                      return orderMatches.map(m => JSON.parse(m));
+                    } catch (e2) { /* ignore */ }
+                  }
+                }
+              }
+              
+              return [];
+            };
+
             // Extract from context.extractedParameters
             if (proof.claimData?.context) {
               const context = typeof proof.claimData.context === 'string'
@@ -503,7 +631,7 @@ const DashboardPage = () => {
                 : proof.claimData.context;
               
               // #region agent log - CONTEXT PARSED
-              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.contextParsed',message:'Context parsed from claimData',data:{provider:provider.id,contextKeys:Object.keys(context||{}),hasExtractedParams:!!context.extractedParameters,extractedParamKeys:context.extractedParameters?Object.keys(context.extractedParameters):[],contextStringified:JSON.stringify(context).substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.contextParsed',message:'Context parsed from claimData',data:{provider:provider.id,contextKeys:Object.keys(context||{}),hasExtractedParams:!!context.extractedParameters,extractedParamKeys:context.extractedParameters?Object.keys(context.extractedParameters):[],contextStringified:JSON.stringify(context).substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'A'})}).catch(()=>{});
               // #endregion
               
               extractedData = context.extractedParameters || {};
@@ -513,7 +641,7 @@ const DashboardPage = () => {
             if (proof.extractedParameterValues) {
               extractedData = { ...extractedData, ...proof.extractedParameterValues };
               // #region agent log
-              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractFromParameterValues',message:'Data merged from extractedParameterValues',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractFromParameterValues',message:'Data merged from extractedParameterValues',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'A'})}).catch(()=>{});
               // #endregion
             }
 
@@ -521,12 +649,27 @@ const DashboardPage = () => {
             if (proof.publicData) {
               extractedData = { ...extractedData, ...proof.publicData };
               // #region agent log
-              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractFromPublicData',message:'Data merged from publicData',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractFromPublicData',message:'Data merged from publicData',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'A'})}).catch(()=>{});
               // #endregion
             }
 
+            // If no orders found yet, search the entire proof object for orders
+            if (!extractedData.orders || extractedData.orders.length === 0) {
+              // #region agent log
+              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.searchingForOrders',message:'No orders in standard locations, searching entire proof',data:{provider:provider.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'F'})}).catch(()=>{});
+              // #endregion
+              
+              const foundOrders = findOrdersInObject(proof);
+              if (foundOrders.length > 0) {
+                extractedData.orders = foundOrders;
+                // #region agent log
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.foundOrdersDeep',message:'Found orders in deep search',data:{provider:provider.id,ordersFound:foundOrders.length,firstOrder:foundOrders[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'F'})}).catch(()=>{});
+                // #endregion
+              }
+            }
+
             // #region agent log - FINAL DATA BEFORE SEND
-            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.finalDataBeforeSend',message:'FINAL extracted data being sent to backend',data:{provider:provider.id,extractedDataKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0,firstOrderSample:Array.isArray(extractedData.orders)&&extractedData.orders.length>0?extractedData.orders[0]:null,extractedDataStringified:JSON.stringify(extractedData).substring(0,2000),proofIdentifier:proof?.identifier,proofId:proof?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.finalDataBeforeSend',message:'FINAL extracted data being sent to backend',data:{provider:provider.id,extractedDataKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0,firstOrderSample:Array.isArray(extractedData.orders)&&extractedData.orders.length>0?extractedData.orders[0]:null,extractedDataStringified:JSON.stringify(extractedData).substring(0,2000),proofIdentifier:proof?.identifier,proofId:proof?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'A'})}).catch(()=>{});
             // #endregion
           } catch (e) {
             console.error('Error extracting data');
