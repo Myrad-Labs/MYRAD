@@ -645,6 +645,11 @@ const DashboardPage = () => {
             // Helper function to process polled proof
             const processPolledProof = async (proofData: any, provider: any) => {
               try {
+                // #region agent log - Log the FULL proof structure
+                const proofStr = JSON.stringify(proofData);
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.entry',message:'Full proof data received',data:{provider:provider.id,proofType:typeof proofData,isArray:Array.isArray(proofData),proofKeys:Object.keys(proofData||{}),proofLength:proofStr.length,proofSample:proofStr.substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run11',hypothesisId:'N'})}).catch(()=>{});
+                // #endregion
+                
                 // Helper function to recursively find data in deeply nested structures
                 const findDataInObject = (obj: any, depth = 0, providerType?: string): any => {
                   if (depth > 15 || !obj) return null;
