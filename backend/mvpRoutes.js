@@ -1147,74 +1147,35 @@ router.post('/reclaim-callback', async (req, res) => {
         const userSessionId = req.query.sessionId;
         console.log('📲 User session ID from query:', userSessionId);
         
-        
-        // Parse the proof data from various formats
+        // IMPORTANT: Always store the raw body for the frontend to parse
+        // The frontend has more sophisticated parsing logic
         let proofData = req.body;
+        let extractedIdentifier = null;
         
-        // Helper function to recursively extract all JSON strings from nested key structure
-        const extractJsonFromNestedKeys = (obj, depth = 0) => {
-            if (depth > 10 || !obj || typeof obj !== 'object') return [];
-            const results = [];
-            for (const key of Object.keys(obj)) {
-                // Try to parse the key as JSON
-                if (key.startsWith('{') || key.startsWith('[') || key.startsWith('"')) {
-                    try {
-                        // Remove surrounding quotes if present
-                        const cleanKey = key.startsWith('"') && key.endsWith('"') ? key.slice(1, -1) : key;
-                        const parsed = JSON.parse(cleanKey.startsWith('{') || cleanKey.startsWith('[') ? cleanKey : key);
-                        results.push(parsed);
-                    } catch (e) {
-                        // Key might be partial JSON, store it for later reconstruction
-                        results.push({ _rawKey: key });
-                    }
-                }
-                // Recurse into nested objects
-                if (typeof obj[key] === 'object' && obj[key] !== null) {
-                    results.push(...extractJsonFromNestedKeys(obj[key], depth + 1));
-                }
-            }
-            return results;
-        };
-        
-        // Handle case where JSON is sent as form-urlencoded with nested key structure
+        // Try to extract the identifier from the first key if it looks like JSON
         if (typeof req.body === 'object' && !Array.isArray(req.body)) {
             const bodyKeys = Object.keys(req.body);
             if (bodyKeys.length > 0) {
                 const firstKey = bodyKeys[0];
-                if (firstKey.startsWith('{') || firstKey.startsWith('[')) {
+                
+                // Try to parse the first key as JSON to get the identifier
+                if (firstKey.startsWith('{')) {
                     try {
-                        proofData = JSON.parse(firstKey);
-                        console.log('📲 Parsed proof from form-urlencoded key');
-                    } catch (e) {
-                        console.log('📲 First key not valid JSON, extracting from nested structure');
-                        // Extract all JSON objects from the nested key structure
-                        const extracted = extractJsonFromNestedKeys(req.body);
-                        // Find the main proof object (has identifier and claimData)
-                        const mainProof = extracted.find(obj => obj && obj.identifier && obj.claimData);
-                        if (mainProof) {
-                            proofData = mainProof;
-                            console.log('📲 Extracted proof from nested structure');
-                        } else {
-                            // Reconstruct from raw keys by concatenating them
-                            const allKeys = [];
-                            const collectKeys = (obj) => {
-                                for (const key of Object.keys(obj)) {
-                                    allKeys.push(key);
-                                    if (typeof obj[key] === 'object' && obj[key] !== null) {
-                                        collectKeys(obj[key]);
-                                    }
-                                }
-                            };
-                            collectKeys(req.body);
-                            // Try to reconstruct the full JSON by joining keys
-                            const fullJson = allKeys.join('');
-                            try {
-                                proofData = JSON.parse(fullJson);
-                                console.log('📲 Reconstructed proof from concatenated keys');
-                            } catch (e2) {
-                                console.log('📲 Could not reconstruct proof from keys');
-                            }
+                        const parsed = JSON.parse(firstKey);
+                        if (parsed.identifier) {
+                            extractedIdentifier = parsed.identifier;
+                            proofData = parsed;
+                            console.log('📲 Parsed proof from form-urlencoded key, identifier:', extractedIdentifier);
                         }
+                    } catch (e) {
+                        // Try to extract identifier using regex from the raw key
+                        const identifierMatch = firstKey.match(/"identifier"\s*:\s*"(0x[a-fA-F0-9]+)"/);
+                        if (identifierMatch) {
+                            extractedIdentifier = identifierMatch[1];
+                            console.log('📲 Extracted identifier via regex:', extractedIdentifier);
+                        }
+                        // Keep proofData as the raw body - frontend will parse it
+                        console.log('📲 Keeping raw body for frontend parsing');
                     }
                 }
             }
@@ -1223,15 +1184,24 @@ router.post('/reclaim-callback', async (req, res) => {
         // Handle case where body is a string
         if (typeof proofData === 'string') {
             try {
-                proofData = JSON.parse(proofData);
+                const parsed = JSON.parse(proofData);
+                proofData = parsed;
+                if (parsed.identifier) {
+                    extractedIdentifier = parsed.identifier;
+                }
             } catch (e) {
-                console.log('📲 Failed to parse string body as JSON');
+                // Try regex extraction
+                const identifierMatch = proofData.match(/"identifier"\s*:\s*"(0x[a-fA-F0-9]+)"/);
+                if (identifierMatch) {
+                    extractedIdentifier = identifierMatch[1];
+                }
+                console.log('📲 Failed to parse string body as JSON, keeping raw');
             }
         }
         
-        // Use user's session ID if provided, otherwise fall back to proof identifier
+        // Use user's session ID (most reliable), then extracted identifier, then fallback
         const proof = Array.isArray(proofData) ? proofData[0] : proofData;
-        const sessionId = userSessionId || proof?.identifier || proof?.claimData?.identifier || `proof_${Date.now()}`;
+        const sessionId = userSessionId || extractedIdentifier || proof?.identifier || `proof_${Date.now()}`;
         
         // Store the proof for frontend to fetch - keyed by the user's session ID
         pendingProofs.set(sessionId, {

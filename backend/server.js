@@ -28,9 +28,16 @@ app.use(cors({
   credentials: false
 }));
 
+// Body parsers with generous limits for Reclaim proofs
+// The Reclaim SDK sends proofs in various formats depending on the platform
 app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.urlencoded({ 
+    limit: "50mb", 
+    extended: true, 
+    parameterLimit: 100000,  // Increased for deeply nested Reclaim proofs
+}));
 app.use(express.text({ limit: "50mb", type: 'text/plain' })); // For Reclaim callbacks that may send as text
+app.use(express.raw({ limit: "50mb", type: '*/*' })); // Catch-all for any other content types
 
 // Serve static frontend files from 'dist' folder (production build)
 app.use(express.static(path.join(__dirname, "../dist")));
@@ -96,6 +103,30 @@ if (config.DB_USE_DATABASE && config.DATABASE_URL) {
     console.warn('⚠️  Could not load database module:', err.message);
   });
 }
+
+// Global error handler - ensures JSON responses instead of HTML error pages
+app.use((err, req, res, next) => {
+  console.error('Global error handler caught:', err.message);
+  console.error('Error stack:', err.stack);
+  
+  // For Reclaim callbacks, always return 200 to prevent the Reclaim app from showing errors
+  if (req.path.includes('reclaim-callback')) {
+    console.log('📲 Error in Reclaim callback, returning success to prevent app error');
+    const sessionId = req.query.sessionId || `error_${Date.now()}`;
+    return res.status(200).json({ 
+      success: true, 
+      sessionId,
+      message: 'Proof received',
+      warning: 'Processing had issues'
+    });
+  }
+  
+  // For other routes, return proper JSON error
+  res.status(err.status || 500).json({ 
+    error: err.message || 'Internal server error',
+    path: req.path
+  });
+});
 
 // Start server
 const server = app.listen(PORT, () => {
