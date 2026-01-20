@@ -654,6 +654,45 @@ const DashboardPage = () => {
                 const findDataInObject = (obj: any, depth = 0, providerType?: string): any => {
                   if (depth > 15 || !obj) return null;
                   
+                  // Handle _rawProofString from backend (contains full undecoded proof)
+                  if (obj._rawProofString && typeof obj._rawProofString === 'string') {
+                    const rawStr = obj._rawProofString;
+                    // Extract ALL orders using regex from the raw string
+                    const orderMatches = rawStr.match(/\{"items":"[^"]+","price":"[^"]+","timestamp":"[^"]+","restaurant":"[^"]+"\}/g);
+                    if (orderMatches && orderMatches.length > 0) {
+                      try {
+                        const orders = orderMatches.map((m: string) => JSON.parse(m));
+                        return { orders };
+                      } catch (e) { /* ignore parse errors */ }
+                    }
+                    // For GitHub
+                    if (providerType === 'github') {
+                      const usernameMatch = rawStr.match(/"username":\s*"([^"]+)"/);
+                      const followersMatch = rawStr.match(/"followers":\s*"?(\d+)"?/);
+                      const contribMatch = rawStr.match(/"contributions":\s*"?(\d+)"?/);
+                      if (usernameMatch || followersMatch) {
+                        return {
+                          username: usernameMatch?.[1] || 'unknown',
+                          followers: followersMatch?.[1] || '0',
+                          contributions: contribMatch?.[1] || '0'
+                        };
+                      }
+                    }
+                    // For Netflix
+                    if (providerType === 'netflix') {
+                      const titleMatches = rawStr.match(/\{"title":"[^"]+"/g);
+                      if (titleMatches && titleMatches.length > 0) {
+                        try {
+                          const titles = titleMatches.map((m: string) => {
+                            const titleMatch = m.match(/"title":"([^"]+)"/);
+                            return { title: titleMatch?.[1] || 'Unknown' };
+                          });
+                          return { titles };
+                        } catch (e) { /* ignore */ }
+                      }
+                    }
+                  }
+                  
                   // Try to parse JSON strings
                   if (typeof obj === 'string') {
                     if (obj.startsWith('{') || obj.startsWith('[')) {

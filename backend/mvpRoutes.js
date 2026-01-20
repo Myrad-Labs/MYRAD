@@ -1160,34 +1160,19 @@ router.post('/reclaim-callback', async (req, res) => {
             const decoded = decodeURIComponent(req.rawBody);
             console.log('📲 Decoded raw body length:', decoded.length);
             
-            // The format is: {json_key}={json_value}&{json_key2}={json_value2}...
-            // We need to reconstruct the object
-            const reconstructed = {};
-            const pairs = decoded.split('&');
-            for (const pair of pairs) {
-                const eqIndex = pair.indexOf('=');
-                if (eqIndex > 0) {
-                    const key = pair.substring(0, eqIndex);
-                    const value = pair.substring(eqIndex + 1);
-                    reconstructed[key] = value;
-                } else if (pair.length > 0) {
-                    // Key without value
-                    reconstructed[pair] = '';
-                }
-            }
-            proofData = reconstructed;
-            console.log('📲 Reconstructed proof keys count:', Object.keys(reconstructed).length);
+            // Instead of trying to reconstruct the malformed object structure,
+            // store the entire decoded string as a single key for the frontend to parse
+            // This preserves ALL the data without splitting on = signs
+            proofData = { _rawProofString: decoded };
             
-            // Extract identifier from the reconstructed data
-            const bodyKeys = Object.keys(reconstructed);
-            if (bodyKeys.length > 0) {
-                const firstKey = bodyKeys[0];
-                const identifierMatch = firstKey.match(/"identifier"\s*:\s*"(0x[a-fA-F0-9]+)"/);
-                if (identifierMatch) {
-                    extractedIdentifier = identifierMatch[1];
-                    console.log('📲 Extracted identifier from raw body:', extractedIdentifier);
-                }
+            // Extract identifier using regex from the full string
+            const identifierMatch = decoded.match(/"identifier"\s*:\s*"(0x[a-fA-F0-9]+)"/);
+            if (identifierMatch) {
+                extractedIdentifier = identifierMatch[1];
+                console.log('📲 Extracted identifier from raw body:', extractedIdentifier);
             }
+            
+            console.log('📲 Stored raw proof string, length:', decoded.length);
         }
         
         // FALLBACK: Use parsed body if raw body didn't work
