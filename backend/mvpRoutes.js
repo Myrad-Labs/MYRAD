@@ -1147,18 +1147,36 @@ router.post('/reclaim-callback', async (req, res) => {
         const userSessionId = req.query.sessionId;
         console.log('📲 User session ID from query:', userSessionId);
         
-        // DEBUG: Log the FULL raw body for analysis
-        const rawBodyStr = JSON.stringify(req.body);
-        console.log('📲 DEBUG FULL RAW BODY LENGTH:', rawBodyStr.length);
-        // Log in chunks to see full data
-        for (let i = 0; i < Math.min(rawBodyStr.length, 15000); i += 3000) {
-            console.log(`📲 DEBUG RAW BODY CHUNK ${i/3000}:`, rawBodyStr.substring(i, i + 3000));
-        }
         
         // Parse the proof data from various formats
         let proofData = req.body;
         
-        // Handle case where JSON is sent as form-urlencoded key
+        // Helper function to recursively extract all JSON strings from nested key structure
+        const extractJsonFromNestedKeys = (obj, depth = 0) => {
+            if (depth > 10 || !obj || typeof obj !== 'object') return [];
+            const results = [];
+            for (const key of Object.keys(obj)) {
+                // Try to parse the key as JSON
+                if (key.startsWith('{') || key.startsWith('[') || key.startsWith('"')) {
+                    try {
+                        // Remove surrounding quotes if present
+                        const cleanKey = key.startsWith('"') && key.endsWith('"') ? key.slice(1, -1) : key;
+                        const parsed = JSON.parse(cleanKey.startsWith('{') || cleanKey.startsWith('[') ? cleanKey : key);
+                        results.push(parsed);
+                    } catch (e) {
+                        // Key might be partial JSON, store it for later reconstruction
+                        results.push({ _rawKey: key });
+                    }
+                }
+                // Recurse into nested objects
+                if (typeof obj[key] === 'object' && obj[key] !== null) {
+                    results.push(...extractJsonFromNestedKeys(obj[key], depth + 1));
+                }
+            }
+            return results;
+        };
+        
+        // Handle case where JSON is sent as form-urlencoded with nested key structure
         if (typeof req.body === 'object' && !Array.isArray(req.body)) {
             const bodyKeys = Object.keys(req.body);
             if (bodyKeys.length > 0) {
@@ -1168,7 +1186,35 @@ router.post('/reclaim-callback', async (req, res) => {
                         proofData = JSON.parse(firstKey);
                         console.log('📲 Parsed proof from form-urlencoded key');
                     } catch (e) {
-                        console.log('📲 Failed to parse first key as JSON');
+                        console.log('📲 First key not valid JSON, extracting from nested structure');
+                        // Extract all JSON objects from the nested key structure
+                        const extracted = extractJsonFromNestedKeys(req.body);
+                        // Find the main proof object (has identifier and claimData)
+                        const mainProof = extracted.find(obj => obj && obj.identifier && obj.claimData);
+                        if (mainProof) {
+                            proofData = mainProof;
+                            console.log('📲 Extracted proof from nested structure');
+                        } else {
+                            // Reconstruct from raw keys by concatenating them
+                            const allKeys = [];
+                            const collectKeys = (obj) => {
+                                for (const key of Object.keys(obj)) {
+                                    allKeys.push(key);
+                                    if (typeof obj[key] === 'object' && obj[key] !== null) {
+                                        collectKeys(obj[key]);
+                                    }
+                                }
+                            };
+                            collectKeys(req.body);
+                            // Try to reconstruct the full JSON by joining keys
+                            const fullJson = allKeys.join('');
+                            try {
+                                proofData = JSON.parse(fullJson);
+                                console.log('📲 Reconstructed proof from concatenated keys');
+                            } catch (e2) {
+                                console.log('📲 Could not reconstruct proof from keys');
+                            }
+                        }
                     }
                 }
             }

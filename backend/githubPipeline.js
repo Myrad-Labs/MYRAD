@@ -32,10 +32,20 @@ export function processGithubData(extractedData, options = {}) {
     console.log('🔍 Input data:', JSON.stringify(extractedData, null, 2));
 
     // Extract fields from proof
-    const username = extractedData.username || extractedData.login || 'unknown';
+    // Note: Current Reclaim GitHub provider only verifies account ownership
+    // It extracts 'lang' but not profile metrics. If username/followers/contributions
+    // are missing, this is expected behavior - the user's GitHub account is verified
+    // but detailed metrics aren't available from this provider.
+    const username = extractedData.username || extractedData.login || null;
     const followers = parseInt(extractedData.followers || '0', 10);
     const createdAt = extractedData.created_at || extractedData.createdAt || null;
     const contributions = parseInt(extractedData.contributions || extractedData.contributionsLastYear || '0', 10);
+    
+    // Log if we're missing expected data (for debugging provider config)
+    if (!username && followers === 0 && contributions === 0) {
+        console.log('ℹ️ GitHub provider returned minimal data (account verification only)');
+        console.log('ℹ️ To get full profile data, update the Reclaim provider to extract username, followers, and contributions');
+    }
 
     // Parse creation date
     let accountAge = null;
