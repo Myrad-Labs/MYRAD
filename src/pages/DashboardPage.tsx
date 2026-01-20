@@ -722,19 +722,40 @@ const DashboardPage = () => {
                     if (obj.titles && Array.isArray(obj.titles)) return { titles: obj.titles };
                     if (obj.watchHistory && Array.isArray(obj.watchHistory)) return { titles: obj.watchHistory };
                     
-                    // Recurse into object keys
-                    for (const key of Object.keys(obj)) {
+                    // Recurse into object keys - check ALL keys for order data
+                    const allKeys = Object.keys(obj);
+                    let collectedOrders: any[] = [];
+                    
+                    for (const key of allKeys) {
+                      // Check if this key contains order data (items, price, restaurant pattern)
+                      if (key.includes('"items"') && key.includes('"price"') && key.includes('"restaurant"')) {
+                        // Extract orders from this key using regex
+                        const orderMatches = key.match(/\{"items":"[^"]+","price":"[^"]+","timestamp":"[^"]+","restaurant":"[^"]+"\}/g);
+                        if (orderMatches && orderMatches.length > 0) {
+                          try {
+                            const parsedOrders = orderMatches.map(m => JSON.parse(m));
+                            collectedOrders.push(...parsedOrders);
+                          } catch (e2) { /* ignore parse errors */ }
+                        }
+                      }
+                      
                       // Handle malformed keys that are actually JSON strings
                       if (key.length > 50 && (key.startsWith('{') || key.startsWith('['))) {
                         try {
                           const parsed = JSON.parse(key);
                           const found = findDataInObject(parsed, depth + 1, providerType);
-                          if (found) return found;
+                          if (found) {
+                            if (found.orders) collectedOrders.push(...found.orders);
+                            else return found;
+                          }
                         } catch (e) {
-                          // Try regex extraction for orders
-                          const orderMatches = key.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
+                          // Try regex extraction for orders from malformed JSON key
+                          const orderMatches = key.match(/\{"items":"[^"]+","price":"[^"]+","timestamp":"[^"]+","restaurant":"[^"]+"\}/g);
                           if (orderMatches && orderMatches.length > 0) {
-                            try { return { orders: orderMatches.map(m => JSON.parse(m)) }; } catch (e2) { /* ignore */ }
+                            try {
+                              const parsedOrders = orderMatches.map(m => JSON.parse(m));
+                              collectedOrders.push(...parsedOrders);
+                            } catch (e2) { /* ignore */ }
                           }
                           // Try regex extraction for GitHub from malformed key
                           if (providerType === 'github') {
@@ -752,7 +773,15 @@ const DashboardPage = () => {
                         }
                       }
                       const found = findDataInObject(obj[key], depth + 1, providerType);
-                      if (found) return found;
+                      if (found) {
+                        if (found.orders) collectedOrders.push(...found.orders);
+                        else return found;
+                      }
+                    }
+                    
+                    // Return collected orders if any were found
+                    if (collectedOrders.length > 0) {
+                      return { orders: collectedOrders };
                     }
                   }
                   return null;
