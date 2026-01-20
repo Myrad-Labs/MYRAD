@@ -1147,6 +1147,11 @@ router.post('/reclaim-callback', async (req, res) => {
         const userSessionId = req.query.sessionId;
         console.log('📲 User session ID from query:', userSessionId);
         
+        // DEBUG: Log the FULL raw body for analysis
+        const rawBodyStr = JSON.stringify(req.body);
+        console.log('📲 DEBUG FULL RAW BODY LENGTH:', rawBodyStr.length);
+        console.log('📲 DEBUG FULL RAW BODY (first 5000 chars):', rawBodyStr.substring(0, 5000));
+        
         // Parse the proof data from various formats
         let proofData = req.body;
         
