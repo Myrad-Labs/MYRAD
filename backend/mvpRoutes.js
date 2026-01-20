@@ -1119,6 +1119,10 @@ router.post('/reclaim-callback', async (req, res) => {
     try {
         console.log('📲 Reclaim callback received at /api/reclaim-callback');
         
+        // Get the user's session ID from query parameter (passed by frontend when setting callback URL)
+        const userSessionId = req.query.sessionId;
+        console.log('📲 User session ID from query:', userSessionId);
+        
         // Parse the proof data from various formats
         let proofData = req.body;
         
@@ -1147,11 +1151,11 @@ router.post('/reclaim-callback', async (req, res) => {
             }
         }
         
-        // Extract session ID from the proof or generate one from identifier
+        // Use user's session ID if provided, otherwise fall back to proof identifier
         const proof = Array.isArray(proofData) ? proofData[0] : proofData;
-        const sessionId = proof?.identifier || proof?.claimData?.identifier || `proof_${Date.now()}`;
+        const sessionId = userSessionId || proof?.identifier || proof?.claimData?.identifier || `proof_${Date.now()}`;
         
-        // Store the proof for frontend to fetch
+        // Store the proof for frontend to fetch - keyed by the user's session ID
         pendingProofs.set(sessionId, {
             proof: proofData,
             timestamp: Date.now()

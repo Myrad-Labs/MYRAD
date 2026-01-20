@@ -482,12 +482,22 @@ const DashboardPage = () => {
         callbackUrl = `${windowOrigin}${callbackUrl.startsWith('/') ? callbackUrl : '/' + callbackUrl}`;
       }
       
+      // Generate a unique session ID for this verification request
+      // This ensures multiple concurrent users don't interfere with each other
+      const verificationSessionId = `${user?.id || 'anon'}_${provider.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
+      // Add session ID to callback URL so backend can associate the proof with this user
+      callbackUrl = `${callbackUrl}?sessionId=${encodeURIComponent(verificationSessionId)}`;
+      
+      // Store the session ID so we can poll for it later
+      (window as any).__currentVerificationSessionId = verificationSessionId;
+      
       // Log callback URL configuration for debugging
-      fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute',message:'Setting callback URL',data:{callbackUrl,apiUrl:API_URL,windowOrigin,isProduction,hostname:typeof window !== 'undefined' ? window.location.hostname : 'N/A'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute',message:'Setting callback URL with session',data:{callbackUrl,verificationSessionId,apiUrl:API_URL,windowOrigin,isProduction,hostname:typeof window !== 'undefined' ? window.location.hostname : 'N/A'},timestamp:Date.now(),sessionId:'debug-session',runId:'run10',hypothesisId:'M'})}).catch(()=>{});
       
       console.log('📱 Setting Reclaim callback URL:', callbackUrl);
       reclaimProofRequest.setAppCallbackUrl(callbackUrl);
-      console.log('✅ Callback URL set successfully');
+      console.log('✅ Callback URL set successfully with sessionId:', verificationSessionId);
 
       const requestUrl = await reclaimProofRequest.getRequestUrl();
       setVerificationUrl(requestUrl);
@@ -578,45 +588,45 @@ const DashboardPage = () => {
             
             showToast('info', 'Processing...', 'Verification complete, fetching your data...');
             
-            // Poll the backend for the stored proof
+            // Poll the backend for the stored proof using THIS user's specific session ID
             let attempts = 0;
             const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
             const pollInterval = 2000;
             
+            // Get the session ID that was set when starting this verification
+            const mySessionId = (window as any).__currentVerificationSessionId;
+            
             const pollForProof = async () => {
               attempts++;
               try {
-                // First, get list of pending proofs
-                const pendingRes = await fetch(`${API_URL}/api/reclaim-proofs/pending`);
-                const pendingData = await pendingRes.json();
-                
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.pollForProof',message:'Polling for pending proofs',data:{attempt:attempts,pendingCount:pendingData.count,sessionIds:pendingData.sessionIds},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.pollForProof',message:'Polling for MY specific proof',data:{attempt:attempts,mySessionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run10',hypothesisId:'M'})}).catch(()=>{});
                 // #endregion
                 
-                if (pendingData.sessionIds && pendingData.sessionIds.length > 0) {
-                  // Fetch the first available proof (most recent)
-                  const sessionId = pendingData.sessionIds[pendingData.sessionIds.length - 1];
-                  const proofRes = await fetch(`${API_URL}/api/reclaim-proof/${sessionId}`);
-                  const proofData = await proofRes.json();
+                // Directly fetch THIS user's proof using their specific session ID
+                const proofRes = await fetch(`${API_URL}/api/reclaim-proof/${encodeURIComponent(mySessionId)}`);
+                const proofData = await proofRes.json();
+                
+                if (proofData.success && proofData.proof) {
+                  // #region agent log
+                  fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.pollForProof.found',message:'MY proof found via polling',data:{mySessionId,proofKeys:Object.keys(proofData.proof||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run10',hypothesisId:'M'})}).catch(()=>{});
+                  // #endregion
                   
-                  if (proofData.success && proofData.proof) {
-                    // #region agent log
-                    fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.pollForProof.found',message:'Proof found via polling',data:{sessionId,proofKeys:Object.keys(proofData.proof||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
-                    // #endregion
-                    
-                    // Process the proof - reuse the redirect processing logic
-                    await processPolledProof(proofData.proof, provider);
-                    return;
-                  }
+                  // Clear the session ID
+                  (window as any).__currentVerificationSessionId = null;
+                  
+                  // Process the proof - reuse the redirect processing logic
+                  await processPolledProof(proofData.proof, provider);
+                  return;
                 }
                 
-                // Continue polling if not found yet
+                // Continue polling if not found yet (proof might not have arrived yet)
                 if (attempts < maxAttempts) {
                   setTimeout(pollForProof, pollInterval);
                 } else {
                   setVerificationUrl(null);
                   setActiveProvider(null);
+                  (window as any).__currentVerificationSessionId = null;
                   showToast('error', 'Timeout', 'Could not retrieve verification data. Please try again.');
                 }
               } catch (error) {
@@ -626,6 +636,7 @@ const DashboardPage = () => {
                 } else {
                   setVerificationUrl(null);
                   setActiveProvider(null);
+                  (window as any).__currentVerificationSessionId = null;
                   showToast('error', 'Error', 'Failed to retrieve verification data.');
                 }
               }
