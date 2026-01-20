@@ -1204,6 +1204,12 @@ router.post('/reclaim-callback', async (req, res) => {
         console.log('📲 Final sessionId:', sessionId);
         
         // Store the proof for frontend to fetch - keyed by the user's session ID
+        const proofDataStr = JSON.stringify(proofData);
+        console.log('📲 STORING proofData type:', typeof proofData);
+        console.log('📲 STORING proofData keys:', Object.keys(proofData || {}));
+        console.log('📲 STORING proofData length:', proofDataStr.length);
+        console.log('📲 STORING proofData sample (first 1000 chars):', proofDataStr.substring(0, 1000));
+        
         pendingProofs.set(sessionId, {
             proof: proofData,
             timestamp: Date.now()
@@ -1233,9 +1239,15 @@ router.get('/reclaim-proof/:sessionId', (req, res) => {
     if (stored) {
         // Delete after fetching (one-time use)
         pendingProofs.delete(sessionId);
-        console.log('📲 Proof fetched and deleted for sessionId:', sessionId);
+        const proofStr = JSON.stringify(stored.proof);
+        console.log('📲 FETCHING proof for sessionId:', sessionId);
+        console.log('📲 FETCHING proof type:', typeof stored.proof);
+        console.log('📲 FETCHING proof keys:', Object.keys(stored.proof || {}));
+        console.log('📲 FETCHING proof length:', proofStr.length);
+        console.log('📲 FETCHING proof sample (first 1000 chars):', proofStr.substring(0, 1000));
         res.json({ success: true, proof: stored.proof });
     } else {
+        console.log('📲 Proof NOT FOUND for sessionId:', sessionId);
         res.status(404).json({ success: false, error: 'Proof not found or expired' });
     }
 });
