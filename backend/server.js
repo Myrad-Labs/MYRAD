@@ -28,6 +28,18 @@ app.use(cors({
   credentials: false
 }));
 
+// Capture raw body for Reclaim callback BEFORE body parsers can truncate it
+// This middleware runs only for the reclaim-callback endpoint
+app.use('/api/reclaim-callback', (req, res, next) => {
+    let data = '';
+    req.setEncoding('utf8');
+    req.on('data', chunk => { data += chunk; });
+    req.on('end', () => {
+        req.rawBody = data;
+        next();
+    });
+});
+
 // Body parsers with very generous limits for Reclaim proofs
 // Reclaim SDK sends proofs as deeply nested JSON-as-keys structures
 app.use(express.json({ limit: "50mb" }));
@@ -35,7 +47,7 @@ app.use(express.urlencoded({
     limit: "50mb", 
     extended: true, 
     parameterLimit: 100000,
-    depth: 100,  // Very high depth limit for deeply nested Reclaim proofs
+    depth: 100,  // Depth limit for urlencoded - raw body fallback handles deeper proofs
 }));
 app.use(express.text({ limit: "50mb", type: 'text/plain' }));
 

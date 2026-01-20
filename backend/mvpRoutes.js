@@ -1146,34 +1146,79 @@ router.post('/reclaim-callback', async (req, res) => {
         // Get the user's session ID from query parameter (passed by frontend when setting callback URL)
         const userSessionId = req.query.sessionId;
         console.log('📲 User session ID from query:', userSessionId);
+        console.log('📲 Raw body available:', !!req.rawBody);
+        console.log('📲 Raw body length:', req.rawBody?.length || 0);
         
-        // Parse the proof data from various formats
-        let proofData = req.body;
+        // Parse the proof data - prefer raw body to avoid depth truncation
+        let proofData = null;
         let extractedIdentifier = null;
         
-        // Try to extract the identifier from the first key if it looks like JSON
-        if (typeof req.body === 'object' && !Array.isArray(req.body)) {
-            const bodyKeys = Object.keys(req.body);
+        // FIRST: Try to use the raw body (captured before body parsers could truncate it)
+        if (req.rawBody && req.rawBody.length > 0) {
+            console.log('📲 Using raw body for parsing (avoids depth truncation)');
+            // Raw body is URL-encoded, decode it first
+            const decoded = decodeURIComponent(req.rawBody);
+            console.log('📲 Decoded raw body length:', decoded.length);
+            
+            // The format is: {json_key}={json_value}&{json_key2}={json_value2}...
+            // We need to reconstruct the object
+            const reconstructed = {};
+            const pairs = decoded.split('&');
+            for (const pair of pairs) {
+                const eqIndex = pair.indexOf('=');
+                if (eqIndex > 0) {
+                    const key = pair.substring(0, eqIndex);
+                    const value = pair.substring(eqIndex + 1);
+                    reconstructed[key] = value;
+                } else if (pair.length > 0) {
+                    // Key without value
+                    reconstructed[pair] = '';
+                }
+            }
+            proofData = reconstructed;
+            console.log('📲 Reconstructed proof keys count:', Object.keys(reconstructed).length);
+            
+            // Extract identifier from the reconstructed data
+            const bodyKeys = Object.keys(reconstructed);
             if (bodyKeys.length > 0) {
                 const firstKey = bodyKeys[0];
-                
-                // Try to parse the first key as JSON to get the identifier
-                if (firstKey.startsWith('{')) {
-                    try {
-                        const parsed = JSON.parse(firstKey);
-                        if (parsed.identifier) {
-                            extractedIdentifier = parsed.identifier;
-                            proofData = parsed;
-                            console.log('📲 Parsed proof from form-urlencoded key, identifier:', extractedIdentifier);
+                const identifierMatch = firstKey.match(/"identifier"\s*:\s*"(0x[a-fA-F0-9]+)"/);
+                if (identifierMatch) {
+                    extractedIdentifier = identifierMatch[1];
+                    console.log('📲 Extracted identifier from raw body:', extractedIdentifier);
+                }
+            }
+        }
+        
+        // FALLBACK: Use parsed body if raw body didn't work
+        if (!proofData || Object.keys(proofData).length === 0) {
+            console.log('📲 Falling back to parsed body');
+            proofData = req.body;
+            
+            // Try to extract the identifier from the first key if it looks like JSON
+            if (typeof req.body === 'object' && !Array.isArray(req.body)) {
+                const bodyKeys = Object.keys(req.body);
+                if (bodyKeys.length > 0) {
+                    const firstKey = bodyKeys[0];
+                    
+                    // Try to parse the first key as JSON to get the identifier
+                    if (firstKey.startsWith('{')) {
+                        try {
+                            const parsed = JSON.parse(firstKey);
+                            if (parsed.identifier) {
+                                extractedIdentifier = parsed.identifier;
+                                proofData = parsed;
+                                console.log('📲 Parsed proof from form-urlencoded key, identifier:', extractedIdentifier);
+                            }
+                        } catch (e) {
+                            // Try to extract identifier using regex from the raw key
+                            const identifierMatch = firstKey.match(/"identifier"\s*:\s*"(0x[a-fA-F0-9]+)"/);
+                            if (identifierMatch) {
+                                extractedIdentifier = identifierMatch[1];
+                                console.log('📲 Extracted identifier via regex:', extractedIdentifier);
+                            }
+                            console.log('📲 Keeping body for frontend parsing');
                         }
-                    } catch (e) {
-                        // Try to extract identifier using regex from the raw key
-                        const identifierMatch = firstKey.match(/"identifier"\s*:\s*"(0x[a-fA-F0-9]+)"/);
-                        if (identifierMatch) {
-                            extractedIdentifier = identifierMatch[1];
-                            console.log('📲 Extracted identifier via regex:', extractedIdentifier);
-                        }
-                        console.log('📲 Keeping body for frontend parsing');
                     }
                 }
             }
