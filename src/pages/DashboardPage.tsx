@@ -736,7 +736,15 @@ const DashboardPage = () => {
                   })
                 });
                 
+                // #region agent log
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.responseStatus',message:'Backend response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run8',hypothesisId:'K'})}).catch(()=>{});
+                // #endregion
+                
                 const result = await response.json();
+                
+                // #region agent log
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.result',message:'Backend result parsed',data:{success:result.success,pointsAwarded:result.pointsAwarded,error:result.error,message:result.message,contributionId:result.contribution?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run8',hypothesisId:'K'})}).catch(()=>{});
+                // #endregion
                 
                 setVerificationUrl(null);
                 setActiveProvider(null);
@@ -747,7 +755,11 @@ const DashboardPage = () => {
                 } else {
                   showToast('error', 'Error', result.message || 'Failed to process contribution');
                 }
-              } catch (error) {
+              } catch (error: any) {
+                // #region agent log
+                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.error',message:'Error in processPolledProof',data:{errorMessage:error?.message||String(error),errorStack:error?.stack?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run8',hypothesisId:'K'})}).catch(()=>{});
+                // #endregion
+                
                 console.error('Process polled proof error:', error);
                 setVerificationUrl(null);
                 setActiveProvider(null);
