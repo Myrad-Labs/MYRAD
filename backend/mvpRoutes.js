@@ -1150,7 +1150,10 @@ router.post('/reclaim-callback', async (req, res) => {
         // DEBUG: Log the FULL raw body for analysis
         const rawBodyStr = JSON.stringify(req.body);
         console.log('📲 DEBUG FULL RAW BODY LENGTH:', rawBodyStr.length);
-        console.log('📲 DEBUG FULL RAW BODY (first 5000 chars):', rawBodyStr.substring(0, 5000));
+        // Log in chunks to see full data
+        for (let i = 0; i < Math.min(rawBodyStr.length, 15000); i += 3000) {
+            console.log(`📲 DEBUG RAW BODY CHUNK ${i/3000}:`, rawBodyStr.substring(i, i + 3000));
+        }
         
         // Parse the proof data from various formats
         let proofData = req.body;
