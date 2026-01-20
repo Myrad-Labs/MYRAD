@@ -223,6 +223,18 @@ export const addContribution = async (userId, data) => {
         try {
             const { saveContribution } = await import('./database/contributionService.js');
             const result = await saveContribution(newContribution);
+            
+            // Check if it's a duplicate rejection
+            if (result?.isDuplicate) {
+                // Return the duplicate info so mvpRoutes can handle it
+                return {
+                    ...newContribution,
+                    isDuplicate: true,
+                    existingId: result.existingId,
+                    message: result.message
+                };
+            }
+            
             if (!result?.success) {
                 throw new Error('Database save failed');
             }

@@ -195,13 +195,51 @@ export async function saveContribution(contribution) {
     // For Zomato: check by data characteristics (total_orders + total_gmv) to detect same Zomato account data
     // This prevents the same Zomato account from being shared multiple times from different MYRAD accounts
     let contributionId = id;
+    let isDuplicate = false;
+    let existingContributionData = null;
+    
     if (dataType === 'zomato_order_history') {
       const indexedFields = extractZomatoFields(sellableData);
       if (indexedFields.total_orders !== null && indexedFields.total_gmv !== null) {
         const existingContribution = await findZomatoContributionByData(indexedFields.total_orders, indexedFields.total_gmv);
         if (existingContribution) {
-          contributionId = existingContribution.id;
-          console.log(`🔄 Found existing Zomato contribution with same data (orders: ${indexedFields.total_orders}, gmv: ${indexedFields.total_gmv}), updating entry ${contributionId}`);
+          // Check if the new data has MORE orders than existing (allow updates with more data)
+          if (indexedFields.total_orders > (existingContribution.total_orders || 0)) {
+            contributionId = existingContribution.id;
+            console.log(`🔄 Updating Zomato contribution with MORE data (old: ${existingContribution.total_orders}, new: ${indexedFields.total_orders})`);
+          } else {
+            // Same or fewer orders = duplicate, reject
+            isDuplicate = true;
+            existingContributionData = existingContribution;
+            console.log(`⚠️ DUPLICATE Zomato data detected (orders: ${indexedFields.total_orders}, gmv: ${indexedFields.total_gmv}), rejecting`);
+            return { success: false, isDuplicate: true, existingId: existingContribution.id, message: 'This Zomato data has already been submitted.' };
+          }
+        }
+      }
+    }
+    
+    // For GitHub: check by username
+    if (dataType === 'github_profile') {
+      const username = sellableData?.data?.username || contribution.data?.username;
+      if (username) {
+        const existingGithub = await findGithubContributionByUsername(username);
+        if (existingGithub) {
+          isDuplicate = true;
+          console.log(`⚠️ DUPLICATE GitHub data detected (username: ${username}), rejecting`);
+          return { success: false, isDuplicate: true, existingId: existingGithub.id, message: 'This GitHub profile has already been submitted.' };
+        }
+      }
+    }
+    
+    // For Netflix: check by title count (rough duplicate detection)
+    if (dataType === 'netflix_watch_history') {
+      const titleCount = sellableData?.viewing_summary?.total_titles_watched;
+      if (titleCount && titleCount > 0) {
+        const existingNetflix = await findNetflixContributionByTitleCount(titleCount);
+        if (existingNetflix) {
+          isDuplicate = true;
+          console.log(`⚠️ DUPLICATE Netflix data detected (titles: ${titleCount}), rejecting`);
+          return { success: false, isDuplicate: true, existingId: existingNetflix.id, message: 'This Netflix watch history has already been submitted.' };
         }
       }
     }
@@ -845,7 +883,7 @@ export async function findContributionByProofId(reclaimProofId) {
 /**
  * Find existing Zomato contribution by data characteristics (total_orders + total_gmv)
  * This detects duplicate submissions of the same Zomato account data, even from different user accounts
- * Returns the existing contribution id if found, null otherwise
+ * Returns the existing contribution if found, null otherwise
  */
 export async function findZomatoContributionByData(totalOrders, totalGmv) {
   if (!config.DB_USE_DATABASE || !config.DATABASE_URL || totalOrders === null || totalOrders === undefined || totalGmv === null || totalGmv === undefined) {
@@ -854,12 +892,59 @@ export async function findZomatoContributionByData(totalOrders, totalGmv) {
 
   try {
     const result = await query(
-      'SELECT id, user_id, reclaim_proof_id FROM zomato_contributions WHERE total_orders = $1 AND total_gmv = $2 ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, user_id, reclaim_proof_id, total_orders, total_gmv FROM zomato_contributions WHERE total_orders = $1 AND total_gmv = $2 ORDER BY created_at DESC LIMIT 1',
       [totalOrders, totalGmv]
     );
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
     console.error('Error finding Zomato contribution by data characteristics:', error);
+    return null;
+  }
+}
+
+/**
+ * Find existing GitHub contribution by username
+ */
+export async function findGithubContributionByUsername(username) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || !username) {
+    return null;
+  }
+
+  try {
+    // Search in sellable_data JSON for the username
+    const result = await query(
+      `SELECT id, user_id, follower_count, contribution_count 
+       FROM github_contributions 
+       WHERE sellable_data::text LIKE $1
+       ORDER BY created_at DESC LIMIT 1`,
+      [`%"username":"${username}"%`]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding GitHub contribution by username:', error);
+    return null;
+  }
+}
+
+/**
+ * Find existing Netflix contribution by title count
+ */
+export async function findNetflixContributionByTitleCount(titleCount) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || !titleCount) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      `SELECT id, user_id, total_titles_watched 
+       FROM netflix_contributions 
+       WHERE total_titles_watched = $1
+       ORDER BY created_at DESC LIMIT 1`,
+      [titleCount]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding Netflix contribution by title count:', error);
     return null;
   }
 }

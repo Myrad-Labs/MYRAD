@@ -646,7 +646,7 @@ const DashboardPage = () => {
             const processPolledProof = async (proofData: any, provider: any) => {
               try {
                 // Helper function to recursively find data in deeply nested structures
-                const findDataInObject = (obj: any, depth = 0): any => {
+                const findDataInObject = (obj: any, depth = 0, providerType?: string): any => {
                   if (depth > 15 || !obj) return null;
                   
                   // Try to parse JSON strings
@@ -654,8 +654,21 @@ const DashboardPage = () => {
                     if (obj.startsWith('{') || obj.startsWith('[')) {
                       try {
                         const parsed = JSON.parse(obj);
-                        return findDataInObject(parsed, depth + 1);
+                        return findDataInObject(parsed, depth + 1, providerType);
                       } catch (e) { /* not JSON */ }
+                    }
+                    // For GitHub: extract from paramValues in the string
+                    if (providerType === 'github' && obj.includes('paramValues')) {
+                      const usernameMatch = obj.match(/"username":\s*"([^"]+)"/);
+                      const followersMatch = obj.match(/"followers":\s*"?(\d+)"?/);
+                      const contribMatch = obj.match(/"contributions":\s*"?(\d+)"?/) || obj.match(/"contributionsLastYear":\s*"?(\d+)"?/);
+                      if (usernameMatch || followersMatch) {
+                        return {
+                          username: usernameMatch?.[1] || 'unknown',
+                          followers: followersMatch?.[1] || '0',
+                          contributions: contribMatch?.[1] || '0'
+                        };
+                      }
                     }
                     return null;
                   }
@@ -674,16 +687,27 @@ const DashboardPage = () => {
                     }
                     // Recurse into array items
                     for (const item of obj) {
-                      const found = findDataInObject(item, depth + 1);
+                      const found = findDataInObject(item, depth + 1, providerType);
                       if (found) return found;
                     }
                   } else {
-                    // Check for GitHub data
+                    // Check for paramValues (common in Reclaim proofs)
+                    if (obj.paramValues) {
+                      const pv = typeof obj.paramValues === 'string' ? JSON.parse(obj.paramValues) : obj.paramValues;
+                      if (pv.username || pv.login || pv.followers !== undefined) {
+                        return {
+                          username: pv.username || pv.login,
+                          followers: pv.followers || '0',
+                          contributions: pv.contributions || pv.contributionsLastYear || '0'
+                        };
+                      }
+                    }
+                    // Check for GitHub data directly
                     if (obj.username || obj.login || obj.followers !== undefined || obj.contributions !== undefined) {
                       return {
                         username: obj.username || obj.login,
-                        followers: obj.followers,
-                        contributions: obj.contributions || obj.contributionsLastYear,
+                        followers: obj.followers || '0',
+                        contributions: obj.contributions || obj.contributionsLastYear || '0',
                         created_at: obj.created_at || obj.createdAt
                       };
                     }
@@ -699,7 +723,7 @@ const DashboardPage = () => {
                       if (key.length > 50 && (key.startsWith('{') || key.startsWith('['))) {
                         try {
                           const parsed = JSON.parse(key);
-                          const found = findDataInObject(parsed, depth + 1);
+                          const found = findDataInObject(parsed, depth + 1, providerType);
                           if (found) return found;
                         } catch (e) {
                           // Try regex extraction for orders
@@ -707,9 +731,22 @@ const DashboardPage = () => {
                           if (orderMatches && orderMatches.length > 0) {
                             try { return { orders: orderMatches.map(m => JSON.parse(m)) }; } catch (e2) { /* ignore */ }
                           }
+                          // Try regex extraction for GitHub from malformed key
+                          if (providerType === 'github') {
+                            const usernameMatch = key.match(/"username":\s*"([^"]+)"/);
+                            const followersMatch = key.match(/"followers":\s*"?(\d+)"?/);
+                            const contribMatch = key.match(/"contributions":\s*"?(\d+)"?/);
+                            if (usernameMatch || followersMatch) {
+                              return {
+                                username: usernameMatch?.[1] || 'unknown',
+                                followers: followersMatch?.[1] || '0',
+                                contributions: contribMatch?.[1] || '0'
+                              };
+                            }
+                          }
                         }
                       }
-                      const found = findDataInObject(obj[key], depth + 1);
+                      const found = findDataInObject(obj[key], depth + 1, providerType);
                       if (found) return found;
                     }
                   }
@@ -744,7 +781,7 @@ const DashboardPage = () => {
                   fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.deepSearch',message:'Starting deep search for provider data',data:{provider:provider.id,currentKeys:Object.keys(extractedData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run9',hypothesisId:'L'})}).catch(()=>{});
                   // #endregion
                   
-                  const foundData = findDataInObject(proofData);
+                  const foundData = findDataInObject(proofData, 0, provider.id);
                   if (foundData) {
                     extractedData = { ...extractedData, ...foundData };
                     // #region agent log

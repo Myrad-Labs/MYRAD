@@ -407,15 +407,39 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
 
         // Store contribution with sellable data format
         const finalWalletAddress = user.walletAddress || walletAddress || null;
-        const contribution = await jsonStorage.addContribution(user.id, {
-            anonymizedData: processedData,
-            sellableData,
-            behavioralInsights,
-            dataType,
-            reclaimProofId,
-            processingMethod: sellableData ? 'enterprise_pipeline' : 'raw',
-            walletAddress: finalWalletAddress
-        });
+        let contribution;
+        try {
+            contribution = await jsonStorage.addContribution(user.id, {
+                anonymizedData: processedData,
+                sellableData,
+                behavioralInsights,
+                dataType,
+                reclaimProofId,
+                processingMethod: sellableData ? 'enterprise_pipeline' : 'raw',
+                walletAddress: finalWalletAddress
+            });
+        } catch (saveError) {
+            // Check if it's a duplicate error from the database layer
+            if (saveError.isDuplicate) {
+                console.log(`⚠️ Duplicate data rejected for user ${user.id}: ${saveError.message}`);
+                return res.status(409).json({
+                    error: 'Duplicate data',
+                    message: saveError.message || 'This data has already been submitted. You cannot earn points for the same data twice.',
+                    existingContributionId: saveError.existingId
+                });
+            }
+            throw saveError;
+        }
+        
+        // Check if contribution save returned a duplicate flag
+        if (contribution?.isDuplicate) {
+            console.log(`⚠️ Duplicate data rejected for user ${user.id}`);
+            return res.status(409).json({
+                error: 'Duplicate data',
+                message: contribution.message || 'This data has already been submitted. You cannot earn points for the same data twice.',
+                existingContributionId: contribution.existingId
+            });
+        }
 
         // ========================================
         // COMPUTE REWARDS
