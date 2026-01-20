@@ -865,6 +865,89 @@ export async function findZomatoContributionByData(totalOrders, totalGmv) {
 }
 
 /**
+ * Find duplicate contribution by content signature
+ * This detects duplicate submissions based on the actual data content, regardless of user/wallet
+ * @param {string} dataType - The type of contribution (zomato_order_history, github_profile, netflix_watch_history)
+ * @param {string} contentSignature - A unique signature based on the data content
+ * @returns {Object|null} - The existing contribution if found, null otherwise
+ */
+export async function findDuplicateByContent(dataType, contentSignature) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || !contentSignature) {
+    return null;
+  }
+
+  try {
+    // Parse the content signature to extract searchable fields
+    const parts = contentSignature.split('_');
+    
+    if (dataType === 'zomato_order_history' && parts[0] === 'zomato') {
+      // Format: zomato_userId_orderCount_restaurant_timestamp
+      const zomatoUserId = parts[1] || '';
+      const orderCount = parseInt(parts[2], 10) || 0;
+      
+      // Check if same Zomato userId with same order count exists
+      if (zomatoUserId) {
+        const result = await query(
+          `SELECT id, user_id, total_orders, sellable_data 
+           FROM zomato_contributions 
+           WHERE total_orders = $1 
+           AND sellable_data::text LIKE $2
+           ORDER BY created_at DESC LIMIT 1`,
+          [orderCount, `%"userId":"${zomatoUserId}"%`]
+        );
+        if (result.rows.length > 0) {
+          console.log(`🔍 Found duplicate Zomato data: userId=${zomatoUserId}, orders=${orderCount}`);
+          return result.rows[0];
+        }
+      }
+    } else if (dataType === 'github_profile' && parts[0] === 'github') {
+      // Format: github_username_followers_contributions
+      const username = parts[1] || '';
+      const followers = parseInt(parts[2], 10) || 0;
+      const contributions = parseInt(parts[3], 10) || 0;
+      
+      if (username) {
+        const result = await query(
+          `SELECT id, user_id, follower_count, contribution_count, sellable_data 
+           FROM github_contributions 
+           WHERE follower_count = $1 
+           AND contribution_count = $2
+           AND sellable_data::text LIKE $3
+           ORDER BY created_at DESC LIMIT 1`,
+          [followers, contributions, `%"username":"${username}"%`]
+        );
+        if (result.rows.length > 0) {
+          console.log(`🔍 Found duplicate GitHub data: username=${username}, followers=${followers}`);
+          return result.rows[0];
+        }
+      }
+    } else if (dataType === 'netflix_watch_history' && parts[0] === 'netflix') {
+      // Format: netflix_titleCount_firstTitle
+      const titleCount = parseInt(parts[1], 10) || 0;
+      
+      if (titleCount > 0) {
+        const result = await query(
+          `SELECT id, user_id, total_titles_watched 
+           FROM netflix_contributions 
+           WHERE total_titles_watched = $1
+           ORDER BY created_at DESC LIMIT 1`,
+          [titleCount]
+        );
+        if (result.rows.length > 0) {
+          console.log(`🔍 Found duplicate Netflix data: titles=${titleCount}`);
+          return result.rows[0];
+        }
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error finding duplicate by content:', error);
+    return null;
+  }
+}
+
+/**
  * Get cohort size for k-anonymity compliance
  */
 export async function getCohortSize(cohortId) {

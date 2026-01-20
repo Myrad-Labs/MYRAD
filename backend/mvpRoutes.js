@@ -303,8 +303,37 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
         }
 
-        // Content-based dedup removed - users can now submit data as often as they want
-        // Only exact duplicate proof IDs are blocked (checked above)
+        // Content-based duplicate detection (check across ALL users/wallets)
+        const { findDuplicateByContent } = await import('./database/contributionService.js');
+        
+        // Generate content hash based on data type
+        let contentSignature = null;
+        if (dataType === 'zomato_order_history' && anonymizedData.orders?.length > 0) {
+            // For Zomato: hash based on order count + first order details + userId (from Zomato)
+            const orders = anonymizedData.orders;
+            const firstOrder = orders[0];
+            contentSignature = `zomato_${anonymizedData.userId || ''}_${orders.length}_${firstOrder?.restaurant || ''}_${firstOrder?.timestamp || ''}`;
+        } else if (dataType === 'github_profile') {
+            // For GitHub: hash based on username + followers + contributions
+            contentSignature = `github_${anonymizedData.username || anonymizedData.login || ''}_${anonymizedData.followers || 0}_${anonymizedData.contributions || 0}`;
+        } else if (dataType === 'netflix_watch_history' && anonymizedData.titles?.length > 0) {
+            // For Netflix: hash based on title count + first title
+            const titles = anonymizedData.titles;
+            const firstTitle = titles[0];
+            contentSignature = `netflix_${titles.length}_${firstTitle?.title || firstTitle?.name || ''}`;
+        }
+        
+        if (contentSignature) {
+            const duplicateContent = await findDuplicateByContent(dataType, contentSignature);
+            if (duplicateContent) {
+                console.log(`⚠️ Duplicate content blocked: ${contentSignature} already exists (contribution ${duplicateContent.id})`);
+                return res.status(409).json({
+                    error: 'Duplicate data',
+                    message: 'This exact data has already been submitted by someone. Each unique data set can only earn points once.',
+                    existingContributionId: duplicateContent.id
+                });
+            }
+        }
 
         let sellableData = null;
         let processedData = anonymizedData;

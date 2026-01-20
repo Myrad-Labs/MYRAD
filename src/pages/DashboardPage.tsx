@@ -634,56 +634,81 @@ const DashboardPage = () => {
             // Helper function to process polled proof
             const processPolledProof = async (proofData: any, provider: any) => {
               try {
-                // Helper function to recursively find orders
-                const findOrdersInObject = (obj: any, depth = 0): any[] => {
-                  if (depth > 10 || !obj) return [];
-                  if (Array.isArray(obj)) {
-                    if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && 
-                        (obj[0].items || obj[0].restaurant || obj[0].price || obj[0].timestamp)) {
-                      return obj;
+                // Helper function to recursively find data in deeply nested structures
+                const findDataInObject = (obj: any, depth = 0): any => {
+                  if (depth > 15 || !obj) return null;
+                  
+                  // Try to parse JSON strings
+                  if (typeof obj === 'string') {
+                    if (obj.startsWith('{') || obj.startsWith('[')) {
+                      try {
+                        const parsed = JSON.parse(obj);
+                        return findDataInObject(parsed, depth + 1);
+                      } catch (e) { /* not JSON */ }
                     }
-                    for (const item of obj) {
-                      const found = findOrdersInObject(item, depth + 1);
-                      if (found.length > 0) return found;
-                    }
+                    return null;
                   }
-                  if (typeof obj === 'object' && obj !== null) {
-                    if (obj.items && obj.restaurant) return [obj];
-                    if (obj.orders && Array.isArray(obj.orders)) return obj.orders;
+                  
+                  if (typeof obj !== 'object' || obj === null) return null;
+                  
+                  // Check if this object contains the data we need
+                  if (Array.isArray(obj)) {
+                    // Check for Zomato orders array
+                    if (obj.length > 0 && obj[0] && (obj[0].items || obj[0].restaurant || obj[0].price)) {
+                      return { orders: obj };
+                    }
+                    // Check for Netflix titles array
+                    if (obj.length > 0 && obj[0] && (obj[0].title || obj[0].showTitle || obj[0].name)) {
+                      return { titles: obj };
+                    }
+                    // Recurse into array items
+                    for (const item of obj) {
+                      const found = findDataInObject(item, depth + 1);
+                      if (found) return found;
+                    }
+                  } else {
+                    // Check for GitHub data
+                    if (obj.username || obj.login || obj.followers !== undefined || obj.contributions !== undefined) {
+                      return {
+                        username: obj.username || obj.login,
+                        followers: obj.followers,
+                        contributions: obj.contributions || obj.contributionsLastYear,
+                        created_at: obj.created_at || obj.createdAt
+                      };
+                    }
+                    // Check for nested orders
+                    if (obj.orders && Array.isArray(obj.orders)) return { orders: obj.orders };
+                    // Check for nested titles
+                    if (obj.titles && Array.isArray(obj.titles)) return { titles: obj.titles };
+                    if (obj.watchHistory && Array.isArray(obj.watchHistory)) return { titles: obj.watchHistory };
+                    
+                    // Recurse into object keys
                     for (const key of Object.keys(obj)) {
-                      if (key.length > 100 && key.startsWith('{')) {
+                      // Handle malformed keys that are actually JSON strings
+                      if (key.length > 50 && (key.startsWith('{') || key.startsWith('['))) {
                         try {
                           const parsed = JSON.parse(key);
-                          const found = findOrdersInObject(parsed, depth + 1);
-                          if (found.length > 0) return found;
+                          const found = findDataInObject(parsed, depth + 1);
+                          if (found) return found;
                         } catch (e) {
+                          // Try regex extraction for orders
                           const orderMatches = key.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
                           if (orderMatches && orderMatches.length > 0) {
-                            try { return orderMatches.map(m => JSON.parse(m)); } catch (e2) { /* ignore */ }
+                            try { return { orders: orderMatches.map(m => JSON.parse(m)) }; } catch (e2) { /* ignore */ }
                           }
                         }
                       }
-                      const found = findOrdersInObject(obj[key], depth + 1);
-                      if (found.length > 0) return found;
+                      const found = findDataInObject(obj[key], depth + 1);
+                      if (found) return found;
                     }
                   }
-                  if (typeof obj === 'string' && (obj.startsWith('{') || obj.startsWith('['))) {
-                    try {
-                      const parsed = JSON.parse(obj);
-                      return findOrdersInObject(parsed, depth + 1);
-                    } catch (e) {
-                      const orderMatches = obj.match(/\{"items":[^}]+,"price":[^}]+,"timestamp":[^}]+,"restaurant":[^}]+\}/g);
-                      if (orderMatches && orderMatches.length > 0) {
-                        try { return orderMatches.map(m => JSON.parse(m)); } catch (e2) { /* ignore */ }
-                      }
-                    }
-                  }
-                  return [];
+                  return null;
                 };
                 
                 const proof = Array.isArray(proofData) ? proofData[0] : proofData;
                 let extractedData: any = {};
                 
+                // Try standard extraction paths first
                 if (proof?.claimData?.context) {
                   const context = typeof proof.claimData.context === 'string'
                     ? JSON.parse(proof.claimData.context)
@@ -697,13 +722,22 @@ const DashboardPage = () => {
                   extractedData = { ...extractedData, ...proof.publicData };
                 }
                 
-                // Deep search for orders
-                if (!extractedData.orders || extractedData.orders.length === 0) {
-                  const foundOrders = findOrdersInObject(proofData);
-                  if (foundOrders.length > 0) {
-                    extractedData.orders = foundOrders;
+                // Deep search for provider-specific data if not found
+                const needsDeepSearch = 
+                  (provider.id === 'zomato' && (!extractedData.orders || extractedData.orders.length === 0)) ||
+                  (provider.id === 'github' && !extractedData.username && !extractedData.login && !extractedData.followers) ||
+                  (provider.id === 'netflix' && (!extractedData.titles || extractedData.titles.length === 0));
+                
+                if (needsDeepSearch) {
+                  // #region agent log
+                  fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.deepSearch',message:'Starting deep search for provider data',data:{provider:provider.id,currentKeys:Object.keys(extractedData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run9',hypothesisId:'L'})}).catch(()=>{});
+                  // #endregion
+                  
+                  const foundData = findDataInObject(proofData);
+                  if (foundData) {
+                    extractedData = { ...extractedData, ...foundData };
                     // #region agent log
-                    fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.foundOrders',message:'Found orders via deep search',data:{ordersFound:foundOrders.length,firstOrder:foundOrders[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
+                    fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.foundData',message:'Found data via deep search',data:{provider:provider.id,foundKeys:Object.keys(foundData),ordersCount:foundData.orders?.length,titlesCount:foundData.titles?.length,hasUsername:!!foundData.username},timestamp:Date.now(),sessionId:'debug-session',runId:'run9',hypothesisId:'L'})}).catch(()=>{});
                     // #endregion
                   }
                 }
@@ -1463,14 +1497,28 @@ const DashboardPage = () => {
                 {contributions.length > 0 ? (
                   contributions.slice(0, 10).map((contrib: any) => {
                     const provider = getProviderInfo(contrib.dataType);
-                    // Match points from points history by timestamp (within 5 minutes)
+                    // Get expected points based on dataType and data
+                    let expectedPoints = 0;
+                    if (contrib.dataType === 'github_profile') {
+                      expectedPoints = 20;
+                    } else if (contrib.dataType === 'netflix_watch_history') {
+                      const titles = contrib.totalTitles || contrib.sellableData?.metadata?.data_quality?.completeness || 0;
+                      expectedPoints = 50 + (parseInt(titles) || 0) * 10;
+                    } else if (contrib.dataType === 'zomato_order_history') {
+                      const orders = contrib.totalOrders || contrib.sellableData?.order_metrics?.total_orders || 0;
+                      expectedPoints = 50 + (parseInt(orders) || 0) * 10;
+                    }
+                    
+                    // Match points from history - find closest match within 30 seconds for this specific contribution
                     const contribTime = new Date(contrib.createdAt).getTime();
                     const matchedPoints = points?.history?.find((p: any) => {
                       const pointsTime = new Date(p.createdAt).getTime();
                       const diff = Math.abs(pointsTime - contribTime);
-                      return p.reason === 'data_contribution' && diff < 5 * 60 * 1000; // 5 minutes
+                      // Tighter time window (30 seconds) to avoid cross-matching
+                      return p.reason === 'data_contribution' && diff < 30 * 1000;
                     });
-                    const pointsAmount = matchedPoints?.points || 0;
+                    // Use matched points if found, otherwise use expected points based on contribution data
+                    const pointsAmount = matchedPoints?.points || expectedPoints;
                     return (
                       <div key={contrib.id} className="activity-item">
                         <div className="activity-info">
