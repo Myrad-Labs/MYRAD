@@ -724,7 +724,7 @@ const DashboardPage = () => {
                   body: JSON.stringify({
                     userId: user?.id,
                     dataType: provider.dataType,
-                    data: {
+                    anonymizedData: {
                       ...extractedData,
                       provider: provider.id,
                       providerName: provider.name,
