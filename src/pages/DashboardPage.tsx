@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, X, AlertCircle, CheckCircle, PlayCircle } from 'lucide-react';
+import { Loader2, X, AlertCircle, CheckCircle, PlayCircle, RefreshCw } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
 import Sidebar from '../components/Sidebar';
 import QRCode from 'react-qr-code';
@@ -76,11 +76,35 @@ const DashboardPage = () => {
 
   // Toast notification state
   const [toast, setToast] = useState<ToastState>({ show: false, type: 'info', title: '', message: '' });
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const showToast = (type: ToastType, title: string, message: string) => {
+  const showToast = (type: ToastType, title: string, message: string, persistent = false) => {
+    // Clear any existing timeout
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+
     setToast({ show: true, type, title, message });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 5000);
+    
+    // Only auto-dismiss if not persistent
+    if (!persistent) {
+      toastTimeoutRef.current = setTimeout(() => {
+        setToast(prev => ({ ...prev, show: false }));
+        toastTimeoutRef.current = null;
+      }, 5000);
+    }
   };
+
+  // Cleanup toast timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -229,7 +253,7 @@ const DashboardPage = () => {
             const walletAddress = user?.wallet?.address || null;
             const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
 
-            showToast('info', 'Processing verification...', `Submitting ${detectedProvider.name} data`);
+            showToast('info', 'Processing verification...', `Submitting ${detectedProvider.name} data`, true);
 
             const response = await fetch(`${API_URL}/api/contribute`, {
               method: 'POST',
@@ -391,16 +415,6 @@ const DashboardPage = () => {
     }
   }, [authenticated, user?.id, fetchUserData]);
 
-  // Auto-refresh user data every 60 seconds (like leaderboard)
-  useEffect(() => {
-    if (!authenticated || !user?.id) return;
-
-    const interval = setInterval(() => {
-      fetchUserData();
-    }, 60000); // 60 seconds
-
-    return () => clearInterval(interval);
-  }, [authenticated, user?.id, fetchUserData]);
 
   // Monitor tab visibility changes to handle background verification
   useEffect(() => {
@@ -597,7 +611,7 @@ const DashboardPage = () => {
             fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.callbackMode',message:'Callback URL mode detected - polling for proof',data:{provider:provider.id,message:proofs},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
             // #endregion
             
-            showToast('info', 'Processing...', 'Verification complete, fetching your data...');
+            showToast('info', 'Processing...', 'Verification complete, fetching your data...', true);
             
             // Poll the backend for the stored proof using THIS user's specific session ID
             let attempts = 0;
@@ -1010,6 +1024,7 @@ const DashboardPage = () => {
                 // Points can be in result.pointsAwarded OR result.contribution.pointsAwarded
                 const pointsAwarded = result.contribution?.pointsAwarded || result.pointsAwarded || 0;
                 
+                // Replace processing toast with success/error (non-persistent, will auto-dismiss)
                 if (result.success || pointsAwarded > 0) {
                   showToast('success', 'Success!', `You earned ${pointsAwarded} points!`);
                   fetchUserData();
@@ -1599,9 +1614,34 @@ const DashboardPage = () => {
           <>
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
-              <div className="stat-card">
+              <div className="stat-card" style={{ position: 'relative' }}>
                   <span className="stat-label">Total Points</span>
                   <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                  <button
+                    onClick={() => fetchUserData(true)}
+                    disabled={!!verificationUrl || !!activeProvider || loading}
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      background: 'none',
+                      border: 'none',
+                      cursor: (verificationUrl || activeProvider || loading) ? 'not-allowed' : 'pointer',
+                      opacity: (verificationUrl || activeProvider || loading) ? 0.5 : 1,
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'opacity 0.2s'
+                    }}
+                    title="Refresh points"
+                  >
+                    <RefreshCw 
+                      size={18} 
+                      color="#6b7280"
+                      className={loading ? 'spin' : ''}
+                    />
+                  </button>
                 </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
