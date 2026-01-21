@@ -19,8 +19,8 @@ const PrivyProviderWrapper: React.FC<PrivyProviderWrapperProps> = ({ children })
             config={{
                 loginMethods: ['email', 'google', 'twitter', 'wallet'],
                 appearance: {
-                    theme: 'dark',
-                    accentColor: '#E5B94E', // MYRAD gold
+                    theme: 'light',
+                    accentColor: '#333333', // Dark grey to match white/grey/black theme
                     logo: '/logo.png'
                 },
                 embeddedWallets: {
