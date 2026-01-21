@@ -391,6 +391,17 @@ const DashboardPage = () => {
     }
   }, [authenticated, user?.id, fetchUserData]);
 
+  // Auto-refresh user data every 60 seconds (like leaderboard)
+  useEffect(() => {
+    if (!authenticated || !user?.id) return;
+
+    const interval = setInterval(() => {
+      fetchUserData();
+    }, 60000); // 60 seconds
+
+    return () => clearInterval(interval);
+  }, [authenticated, user?.id, fetchUserData]);
+
   // Monitor tab visibility changes to handle background verification
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -665,17 +676,26 @@ const DashboardPage = () => {
                         return { orders };
                       } catch (e) { /* ignore parse errors */ }
                     }
-                    // For GitHub
+                    // For GitHub - extract username, followers, and contributions
                     if (providerType === 'github') {
-                      const usernameMatch = rawStr.match(/"username":\s*"([^"]+)"/);
-                      const followersMatch = rawStr.match(/"followers":\s*"?(\d+)"?/);
-                      const contribMatch = rawStr.match(/"contributions":\s*"?(\d+)"?/);
-                      if (usernameMatch || followersMatch) {
-                        return {
+                      // Try multiple patterns to find GitHub data
+                      const usernameMatch = rawStr.match(/"username":\s*"([^"]+)"/) || 
+                                           rawStr.match(/"login":\s*"([^"]+)"/) ||
+                                           rawStr.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
+                      const followersMatch = rawStr.match(/"followers":\s*"?(\d+)"?/) ||
+                                            rawStr.match(/followers["\s]*[:=]["\s]*(\d+)/);
+                      const contribMatch = rawStr.match(/"contributions":\s*"?(\d+)"?/) ||
+                                          rawStr.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
+                                          rawStr.match(/contributions["\s]*[:=]["\s]*(\d+)/);
+                      
+                      if (usernameMatch || followersMatch || contribMatch) {
+                        const githubData = {
                           username: usernameMatch?.[1] || 'unknown',
                           followers: followersMatch?.[1] || '0',
                           contributions: contribMatch?.[1] || '0'
                         };
+                        console.log(`🔷 Extracted GitHub data:`, githubData);
+                        return githubData;
                       }
                     }
                     // For Netflix - extract full watch history objects with title and date
@@ -714,15 +734,22 @@ const DashboardPage = () => {
                     }
                     // For GitHub: extract from paramValues in the string
                     if (providerType === 'github' && obj.includes('paramValues')) {
-                      const usernameMatch = obj.match(/"username":\s*"([^"]+)"/);
-                      const followersMatch = obj.match(/"followers":\s*"?(\d+)"?/);
-                      const contribMatch = obj.match(/"contributions":\s*"?(\d+)"?/) || obj.match(/"contributionsLastYear":\s*"?(\d+)"?/);
-                      if (usernameMatch || followersMatch) {
-                        return {
+                      const usernameMatch = obj.match(/"username":\s*"([^"]+)"/) || 
+                                           obj.match(/"login":\s*"([^"]+)"/) ||
+                                           obj.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
+                      const followersMatch = obj.match(/"followers":\s*"?(\d+)"?/) ||
+                                            obj.match(/followers["\s]*[:=]["\s]*(\d+)/);
+                      const contribMatch = obj.match(/"contributions":\s*"?(\d+)"?/) ||
+                                          obj.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
+                                          obj.match(/contributions["\s]*[:=]["\s]*(\d+)/);
+                      if (usernameMatch || followersMatch || contribMatch) {
+                        const githubData = {
                           username: usernameMatch?.[1] || 'unknown',
                           followers: followersMatch?.[1] || '0',
                           contributions: contribMatch?.[1] || '0'
                         };
+                        console.log(`🔷 Extracted GitHub data from paramValues:`, githubData);
+                        return githubData;
                       }
                     }
                     return null;
@@ -860,15 +887,22 @@ const DashboardPage = () => {
                           }
                           // Try regex extraction for GitHub from malformed key
                           if (providerType === 'github') {
-                            const usernameMatch = key.match(/"username":\s*"([^"]+)"/);
-                            const followersMatch = key.match(/"followers":\s*"?(\d+)"?/);
-                            const contribMatch = key.match(/"contributions":\s*"?(\d+)"?/);
-                            if (usernameMatch || followersMatch) {
-                              return {
+                            const usernameMatch = key.match(/"username":\s*"([^"]+)"/) || 
+                                                 key.match(/"login":\s*"([^"]+)"/) ||
+                                                 key.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
+                            const followersMatch = key.match(/"followers":\s*"?(\d+)"?/) ||
+                                                  key.match(/followers["\s]*[:=]["\s]*(\d+)/);
+                            const contribMatch = key.match(/"contributions":\s*"?(\d+)"?/) ||
+                                                key.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
+                                                key.match(/contributions["\s]*[:=]["\s]*(\d+)/);
+                            if (usernameMatch || followersMatch || contribMatch) {
+                              const githubData = {
                                 username: usernameMatch?.[1] || 'unknown',
                                 followers: followersMatch?.[1] || '0',
                                 contributions: contribMatch?.[1] || '0'
                               };
+                              console.log(`🔷 Extracted GitHub data from key:`, githubData);
+                              return githubData;
                             }
                           }
                         }
