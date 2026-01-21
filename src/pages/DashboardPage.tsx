@@ -70,6 +70,7 @@ const DashboardPage = () => {
   const [isHoveringOnboarding, setIsHoveringOnboarding] = useState(false);
   const [isTabVisible, setIsTabVisible] = useState(true);
   const [verificationStartTime, setVerificationStartTime] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const hasLoadedData = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -360,10 +361,17 @@ const DashboardPage = () => {
 
   // Fetch user data
   const fetchUserData = useCallback(async (showRefresh = false) => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.warn('Cannot fetch user data: user not authenticated');
+      return;
+    }
 
     try {
-      if (!showRefresh) setLoading(true);
+      if (showRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
       const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
       const email = user?.email?.address || user?.email || null;
@@ -403,7 +411,11 @@ const DashboardPage = () => {
       console.error('Error fetching user data:', error);
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
-      setLoading(false);
+      if (showRefresh) {
+      setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [user?.id, user?.email?.address, API_URL]);
 
@@ -1618,16 +1630,22 @@ const DashboardPage = () => {
                   <span className="stat-label">Total Points</span>
                   <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
                   <button
-                    onClick={() => fetchUserData(true)}
-                    disabled={!!verificationUrl || !!activeProvider || loading}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!verificationUrl && !activeProvider && !loading && !refreshing) {
+                        fetchUserData(true);
+                      }
+                    }}
+                    disabled={!!verificationUrl || !!activeProvider || loading || refreshing}
                     style={{
                       position: 'absolute',
                       top: 8,
                       right: 8,
                       background: 'none',
                       border: 'none',
-                      cursor: (verificationUrl || activeProvider || loading) ? 'not-allowed' : 'pointer',
-                      opacity: (verificationUrl || activeProvider || loading) ? 0.5 : 1,
+                      cursor: (verificationUrl || activeProvider || loading || refreshing) ? 'not-allowed' : 'pointer',
+                      opacity: (verificationUrl || activeProvider || loading || refreshing) ? 0.5 : 1,
                       padding: '4px',
                       display: 'flex',
                       alignItems: 'center',
@@ -1639,7 +1657,7 @@ const DashboardPage = () => {
                     <RefreshCw 
                       size={18} 
                       color="#6b7280"
-                      className={loading ? 'spin' : ''}
+                      className={(loading || refreshing) ? 'spin' : ''}
                     />
                   </button>
                 </div>
