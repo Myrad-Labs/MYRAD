@@ -32,19 +32,25 @@ export function processGithubData(extractedData, options = {}) {
     console.log('🔍 Input data:', JSON.stringify(extractedData, null, 2));
 
     // Extract fields from proof
-    // Note: Current Reclaim GitHub provider only verifies account ownership
-    // It extracts 'lang' but not profile metrics. If username/followers/contributions
-    // are missing, this is expected behavior - the user's GitHub account is verified
-    // but detailed metrics aren't available from this provider.
+    // Handle both string and number formats (frontend may send strings)
     const username = extractedData.username || extractedData.login || null;
-    const followers = parseInt(extractedData.followers || '0', 10);
+    const followers = typeof extractedData.followers === 'string' 
+        ? parseInt(extractedData.followers, 10) 
+        : (extractedData.followers || 0);
     const createdAt = extractedData.created_at || extractedData.createdAt || null;
-    const contributions = parseInt(extractedData.contributions || extractedData.contributionsLastYear || '0', 10);
+    const contributions = typeof extractedData.contributions === 'string'
+        ? parseInt(extractedData.contributions, 10)
+        : (extractedData.contributions || extractedData.contributionsLastYear || 0);
+    
+    // Convert to numbers if still strings
+    const followersNum = typeof followers === 'string' ? parseInt(followers, 10) : (followers || 0);
+    const contributionsNum = typeof contributions === 'string' ? parseInt(contributions, 10) : (contributions || 0);
+    
+    console.log(`🔷 Extracted GitHub fields: username=${username}, followers=${followersNum}, contributions=${contributionsNum}`);
     
     // Log if we're missing expected data (for debugging provider config)
-    if (!username && followers === 0 && contributions === 0) {
-        console.log('ℹ️ GitHub provider returned minimal data (account verification only)');
-        console.log('ℹ️ To get full profile data, update the Reclaim provider to extract username, followers, and contributions');
+    if (!username || username === 'unknown' || (followersNum === 0 && contributionsNum === 0)) {
+        console.log('⚠️ GitHub data may be incomplete - username:', username, 'followers:', followersNum, 'contributions:', contributionsNum);
     }
 
     // Parse creation date
@@ -59,7 +65,7 @@ export function processGithubData(extractedData, options = {}) {
     }
 
     // Calculate developer tier based on metrics
-    const developerTier = calculateDeveloperTier(followers, contributions, accountAge);
+    const developerTier = calculateDeveloperTier(followersNum, contributionsNum, accountAge);
 
     // Generate sellable dataset
     const sellableData = {
@@ -78,17 +84,17 @@ export function processGithubData(extractedData, options = {}) {
 
         // Social metrics
         social_metrics: {
-            follower_tier: getFollowerTier(followers),
-            follower_count_range: getFollowerRange(followers),
-            is_influencer: followers >= 1000
+            follower_tier: getFollowerTier(followersNum),
+            follower_count_range: getFollowerRange(followersNum),
+            is_influencer: followersNum >= 1000
         },
 
         // Activity metrics
         activity_metrics: {
-            yearly_contributions: contributions,
-            contribution_tier: getContributionTier(contributions),
-            is_active_contributor: contributions >= 100,
-            activity_level: getActivityLevel(contributions)
+            yearly_contributions: contributionsNum,
+            contribution_tier: getContributionTier(contributionsNum),
+            is_active_contributor: contributionsNum >= 100,
+            activity_level: getActivityLevel(contributionsNum)
         },
 
         // Audience segments for ad targeting
@@ -118,8 +124,8 @@ export function processGithubData(extractedData, options = {}) {
                 ccpa_compatible: true
             },
             data_quality: {
-                score: calculateQualityScore(username, followers, contributions, createdAt),
-                completeness: getCompleteness(username, followers, contributions, createdAt)
+                score: calculateQualityScore(username, followersNum, contributionsNum, createdAt),
+                completeness: getCompleteness(username, followersNum, contributionsNum, createdAt)
             }
         }
     };
@@ -130,8 +136,8 @@ export function processGithubData(extractedData, options = {}) {
         data: {
             // GitHub username is public, no need to mask
             username: username !== 'unknown' ? username : null,
-            followers,
-            contributions,
+            followers: followersNum,
+            contributions: contributionsNum,
             accountAgeYears: parseFloat(accountAge) || null
         },
         sellableData
