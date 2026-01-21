@@ -16,7 +16,7 @@ const DEBUG_LOG_PATH = path.join(__dirname, '..', '.cursor', 'debug.log');
 
 function debugLog(data) {
     try {
-        const logLine = JSON.stringify({...data, timestamp: Date.now()}) + '\n';
+        const logLine = JSON.stringify({ ...data, timestamp: Date.now() }) + '\n';
         fs.appendFileSync(DEBUG_LOG_PATH, logLine);
     } catch (e) {
         // Ignore log errors
@@ -271,7 +271,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         const { anonymizedData, dataType, reclaimProofId } = req.body;
 
         // #region agent log
-        debugLog({location:'mvpRoutes.contribute.received',message:'Data received from frontend',data:{dataType,hasAnonymizedData:!!anonymizedData,anonymizedDataKeys:anonymizedData?Object.keys(anonymizedData):[],hasOrders:!!anonymizedData?.orders,ordersLength:Array.isArray(anonymizedData?.orders)?anonymizedData.orders.length:0},sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+        debugLog({ location: 'mvpRoutes.contribute.received', message: 'Data received from frontend', data: { dataType, hasAnonymizedData: !!anonymizedData, anonymizedDataKeys: anonymizedData ? Object.keys(anonymizedData) : [], hasOrders: !!anonymizedData?.orders, ordersLength: Array.isArray(anonymizedData?.orders) ? anonymizedData.orders.length : 0 }, sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' });
         // #endregion
 
         if (!anonymizedData) {
@@ -305,7 +305,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
 
         // Content-based duplicate detection (check across ALL users/wallets)
         const { findDuplicateByContent } = await import('./database/contributionService.js');
-        
+
         // Generate content hash based on data type
         let contentSignature = null;
         if (dataType === 'zomato_order_history' && anonymizedData.orders?.length > 0) {
@@ -322,7 +322,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             const firstTitle = titles[0];
             contentSignature = `netflix_${titles.length}_${firstTitle?.title || firstTitle?.name || ''}`;
         }
-        
+
         if (contentSignature) {
             const duplicateContent = await findDuplicateByContent(dataType, contentSignature);
             if (duplicateContent) {
@@ -430,7 +430,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
             throw saveError;
         }
-        
+
         // Check if contribution save returned a duplicate flag
         if (contribution?.isDuplicate) {
             console.log(`⚠️ Duplicate data rejected for user ${user.id}`);
@@ -642,7 +642,7 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
 router.post('/logs/debug', async (req, res) => {
     try {
         const { location, message, data, timestamp, sessionId, runId, hypothesisId } = req.body;
-        
+
         // Log to server console (will appear in Render logs)
         console.log('🔵 DEBUG LOG:', JSON.stringify({
             type: 'DEBUG',
@@ -654,7 +654,7 @@ router.post('/logs/debug', async (req, res) => {
             runId: runId || null,
             hypothesisId: hypothesisId || null
         }, null, 2));
-        
+
         res.status(200).json({ success: true });
     } catch (err) {
         console.error('Error in debug log:', err);
@@ -666,7 +666,7 @@ router.post('/logs/debug', async (req, res) => {
 router.post('/logs/error', async (req, res) => {
     try {
         const { message, error, stack, location, userAgent, userId, timestamp, context } = req.body;
-        
+
         // Log to server console (will appear in Render logs)
         const logMessage = {
             type: 'CLIENT_ERROR',
@@ -680,15 +680,15 @@ router.post('/logs/error', async (req, res) => {
             context: context || null,
             ip: req.ip || req.headers['x-forwarded-for'] || 'unknown'
         };
-        
+
         // Log to server console with structured format
         console.error('🔴 CLIENT ERROR:', JSON.stringify(logMessage, null, 2));
-        
+
         // Also log stack trace if available
         if (stack) {
             console.error('Stack trace:', stack);
         }
-        
+
         res.status(200).json({ success: true, logged: true });
     } catch (err) {
         // Don't fail if logging fails
@@ -713,7 +713,6 @@ router.get('/leaderboard', async (req, res) => {
                 leaderboard: leaderboard.map(u => ({
                     id: u.id,
                     username: u.username || `User ${u.id?.substr(-4) || 'Unknown'}`,
-                    email: u.email || null,
                     walletAddress: u.walletAddress || null,
                     totalPoints: u.totalPoints || 0,
                     league: u.league || 'Bronze',
@@ -733,7 +732,6 @@ router.get('/leaderboard', async (req, res) => {
                 return {
                     id: u.id,
                     username: u.username || `User ${u.id?.substr(-4) || 'Unknown'}`,
-                    email: u.email || null,
                     walletAddress: walletAddr,
                     totalPoints: u.totalPoints || u.total_points || 0,
                     league: u.league || 'Bronze',
@@ -1142,50 +1140,50 @@ setInterval(() => {
 router.post('/reclaim-callback', async (req, res) => {
     try {
         console.log('📲 Reclaim callback received at /api/reclaim-callback');
-        
+
         // Get the user's session ID from query parameter (passed by frontend when setting callback URL)
         const userSessionId = req.query.sessionId;
         console.log('📲 User session ID from query:', userSessionId);
         console.log('📲 Raw body available:', !!req.rawBody);
         console.log('📲 Raw body length:', req.rawBody?.length || 0);
-        
+
         // Parse the proof data - prefer raw body to avoid depth truncation
         let proofData = null;
         let extractedIdentifier = null;
-        
+
         // FIRST: Try to use the raw body (captured before body parsers could truncate it)
         if (req.rawBody && req.rawBody.length > 0) {
             console.log('📲 Using raw body for parsing (avoids depth truncation)');
             // Raw body is URL-encoded, decode it first
             const decoded = decodeURIComponent(req.rawBody);
             console.log('📲 Decoded raw body length:', decoded.length);
-            
+
             // Instead of trying to reconstruct the malformed object structure,
             // store the entire decoded string as a single key for the frontend to parse
             // This preserves ALL the data without splitting on = signs
             proofData = { _rawProofString: decoded };
-            
+
             // Extract identifier using regex from the full string
             const identifierMatch = decoded.match(/"identifier"\s*:\s*"(0x[a-fA-F0-9]+)"/);
             if (identifierMatch) {
                 extractedIdentifier = identifierMatch[1];
                 console.log('📲 Extracted identifier from raw body:', extractedIdentifier);
             }
-            
+
             console.log('📲 Stored raw proof string, length:', decoded.length);
         }
-        
+
         // FALLBACK: Use parsed body if raw body didn't work
         if (!proofData || Object.keys(proofData).length === 0) {
             console.log('📲 Falling back to parsed body');
             proofData = req.body;
-            
+
             // Try to extract the identifier from the first key if it looks like JSON
             if (typeof req.body === 'object' && !Array.isArray(req.body)) {
                 const bodyKeys = Object.keys(req.body);
                 if (bodyKeys.length > 0) {
                     const firstKey = bodyKeys[0];
-                    
+
                     // Try to parse the first key as JSON to get the identifier
                     if (firstKey.startsWith('{')) {
                         try {
@@ -1208,7 +1206,7 @@ router.post('/reclaim-callback', async (req, res) => {
                 }
             }
         }
-        
+
         // Handle case where body is a string
         if (typeof proofData === 'string') {
             try {
@@ -1226,32 +1224,32 @@ router.post('/reclaim-callback', async (req, res) => {
                 console.log('📲 Failed to parse string body as JSON');
             }
         }
-        
+
         // Use user's session ID (most reliable), then extracted identifier, then fallback
         const proof = Array.isArray(proofData) ? proofData[0] : proofData;
         const sessionId = userSessionId || extractedIdentifier || proof?.identifier || `proof_${Date.now()}`;
-        
+
         console.log('📲 Final sessionId:', sessionId);
-        
+
         // Store the proof for frontend to fetch - keyed by the user's session ID
         const proofDataStr = JSON.stringify(proofData);
         console.log('📲 STORING proofData type:', typeof proofData);
         console.log('📲 STORING proofData keys:', Object.keys(proofData || {}));
         console.log('📲 STORING proofData length:', proofDataStr.length);
         console.log('📲 STORING proofData sample (first 1000 chars):', proofDataStr.substring(0, 1000));
-        
+
         pendingProofs.set(sessionId, {
             proof: proofData,
             timestamp: Date.now()
         });
-        
+
         console.log('📲 Stored proof with sessionId:', sessionId);
         console.log('📲 Pending proofs count:', pendingProofs.size);
-        
+
         // Return success - the Reclaim app just needs a 200 response
         // The frontend will poll /api/reclaim-proof/:sessionId to get the data
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             sessionId,
             message: 'Proof received and stored'
         });
@@ -1265,7 +1263,7 @@ router.post('/reclaim-callback', async (req, res) => {
 router.get('/reclaim-proof/:sessionId', (req, res) => {
     const { sessionId } = req.params;
     const stored = pendingProofs.get(sessionId);
-    
+
     if (stored) {
         // Delete after fetching (one-time use)
         pendingProofs.delete(sessionId);
