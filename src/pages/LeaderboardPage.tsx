@@ -81,6 +81,10 @@ const LeaderboardPage: React.FC = () => {
       return u.walletAddress?.toLowerCase().includes(search) || false;
     });
 
+  // Find current user's rank
+  const myRank = sortedList.findIndex((u) => u.isYou);
+  const myData = myRank !== -1 ? sortedList[myRank] : null;
+
   const shortAddress = (addr: string | null) => {
     if (!addr) return 'N/A';
     return addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
@@ -423,6 +427,64 @@ const LeaderboardPage: React.FC = () => {
             border-radius: 8px;
           }
 
+.your-rank-card {
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+
+
+          .your-rank-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+          }
+
+          .your-rank-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+          }
+
+          .your-rank-number {
+            font-size: 48px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+
+          .your-rank-stats {
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .your-rank-points {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+          }
+
+          .your-rank-points-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+          }
+
           @media (max-width: 768px) {
             .lb-header,
             .lb-row {
@@ -471,6 +533,24 @@ const LeaderboardPage: React.FC = () => {
           </h1>
           <p style={{ margin: 0, color: '#6b7280', fontSize: 16 }}>Top contributors ranked by points and contributions</p>
         </div>
+
+        {!loading && !error && myData && (
+          <div className="your-rank-card animate-enter">
+            <div>
+              <div className="your-rank-label">Your Rank</div>
+              <div className="your-rank-info">
+                <div className="your-rank-number">
+                  #{myRank + 1}
+                  {getRankIcon(myRank + 1)}
+                </div>
+              </div>
+            </div>
+            <div className="your-rank-stats">
+              <div className="your-rank-points">{myData.totalPoints.toLocaleString()}</div>
+              <div className="your-rank-points-label">Total Points</div>
+            </div>
+          </div>
+        )}
 
         {!loading && !error && (
           <div className="search-container animate-enter">

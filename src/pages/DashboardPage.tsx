@@ -1524,7 +1524,7 @@ const DashboardPage = () => {
                     <h2 className="onboarding-title">How to Contribute</h2>
                     <br className="onboarding-line-break" />
                     <ul className="onboarding-description">
-                      <li>Install the Reclaim verified app from the Google Play Store or App Store</li>
+                      <li>Install the Reclaim verifier app from the Google Play Store or App Store</li>
                       <li>Connect your accounts (Zomato, GitHub, Netflix) to verify your data anonymously</li>
                       <li>Login and complete your verification securely</li>
                       <li>Start contributing by sharing verified proofs through the app</li>

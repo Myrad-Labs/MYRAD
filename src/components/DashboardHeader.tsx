@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { useNavigate } from 'react-router-dom';
 import { Copy, LogOut, Key } from 'lucide-react';
 
 const DashboardHeader: React.FC = () => {
   const { user, logout, exportWallet } = usePrivy();
+  const navigate = useNavigate();
   const [copiedAddress, setCopiedAddress] = useState(false);
 
   const walletAddress = user?.wallet?.address || null;
@@ -17,6 +19,11 @@ const DashboardHeader: React.FC = () => {
       setCopiedAddress(true);
       setTimeout(() => setCopiedAddress(false), 2000);
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
 
   return (
@@ -144,7 +151,7 @@ const DashboardHeader: React.FC = () => {
             <Key size={14} />
             Export Key
           </button>
-          <button onClick={() => logout && logout()} className="btn-logout">
+          <button onClick={handleLogout} className="btn-logout">
             <LogOut size={16} />
             Logout
           </button>
