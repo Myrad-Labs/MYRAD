@@ -411,7 +411,7 @@ const DashboardPage = () => {
       setContributions(contribData.contributions || []);
 
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Error verifying user:', error);
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
@@ -626,7 +626,7 @@ const DashboardPage = () => {
             fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.callbackMode', message: 'Callback URL mode detected - polling for proof', data: { provider: provider.id, message: proofs }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run7', hypothesisId: 'J' }) }).catch(() => { });
             // #endregion
 
-            showToast('info', 'Processing...', 'Verification complete, fetching your data...', true);
+            showToast('info', 'Processing...', 'Verification complete, validating your contribution...', true);
 
             // Poll the backend for the stored proof using THIS user's specific session ID
             let attempts = 0;
@@ -1199,7 +1199,7 @@ const DashboardPage = () => {
             fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.finalDataBeforeSend', message: 'FINAL extracted data being sent to backend', data: { provider: provider.id, extractedDataKeys: Object.keys(extractedData), hasOrders: !!extractedData.orders, ordersLength: Array.isArray(extractedData.orders) ? extractedData.orders.length : 0, firstOrderSample: Array.isArray(extractedData.orders) && extractedData.orders.length > 0 ? extractedData.orders[0] : null, extractedDataStringified: JSON.stringify(extractedData).substring(0, 2000), proofIdentifier: proof?.identifier, proofId: proof?.id }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run4', hypothesisId: 'A' }) }).catch(() => { });
             // #endregion
           } catch (e) {
-            console.error('Error extracting data');
+            console.error('Error verifying contribution');
             // #region agent log
             const errorMessage = e instanceof Error ? e.message : String(e);
             fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.extractionError', message: 'Error during data extraction', data: { provider: provider.id, error: errorMessage }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'A' }) }).catch(() => { });
