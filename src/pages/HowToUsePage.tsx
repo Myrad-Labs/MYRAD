@@ -66,7 +66,7 @@ const HowToUsePage = () => {
                     <section style={{ padding: '60px 0', textAlign: 'center' }}>
                         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
                             <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '12px', letterSpacing: '-0.02em', color: '#111827' }}>How to contribute</h2>
-                            <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '40px' }}>Privacy first data contribution in simple steps</p>
+                            <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '40px' }}>Privacy first contribution in simple steps</p>
 
                             <div ref={videoContainerRef} style={{
                                 borderRadius: '24px',
