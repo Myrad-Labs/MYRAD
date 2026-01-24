@@ -266,8 +266,7 @@ const LandingPage = () => {
                                     Who builds <br /> with Myrad
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: 1.7, maxWidth: '440px' }}>
-                                    Trusted by teams building the next generation of AI, analytics, and consumer insights.
-                                </p>
+                                    Built for teams creating the next generation of AI, analytics, and consumer insights.                                </p>
                             </div>
                             <div style={{ display: 'grid', gap: '8px' }}>
                                 {[
