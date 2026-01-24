@@ -1585,11 +1585,13 @@ const DashboardPage = () => {
                     <h2 className="onboarding-title">How to Contribute</h2>
                     <br className="onboarding-line-break" />
                     <ul className="onboarding-description">
-                      <li>Install the Reclaim verifier app from the Google Play Store or App Store</li>
-                      <li>Verify your accounts (Zomato, GitHub, Netflix) to prove the account belongs to you anonymously</li>
-                      <li>Login and complete your verification securely</li>
-                      <li>Each successful verification earns you points</li>
-                      <li>Earn more points to climb higher on the leaderboard</li>
+                      <li>Install the Reclaim Verifier app from the Play Store or App Store (required)</li>
+                      <li>Click Verify on any provider card in the dashboard</li>
+                      <li>Verify your accounts (Zomato, GitHub, Netflix) to prove ownership anonymously</li>
+                      <li>Log in and complete the secure verification</li>
+                      <li>Earn points for each successful verification</li>
+                      <li>Gain more points to move up the leaderboard</li>
+
                     </ul>
 
                   </div>
@@ -1751,7 +1753,7 @@ const DashboardPage = () => {
                         {contributing === provider.id ? (
                           <><Loader2 size={16} className="spin" /> Verifying...</>
                         ) : (
-                          <>Connect</>
+                          <>Verify</>
                         )}
                       </button>
                     )}
