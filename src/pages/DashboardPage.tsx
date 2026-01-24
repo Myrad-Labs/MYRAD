@@ -1,13 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, X, AlertCircle, CheckCircle, PlayCircle, RefreshCw } from 'lucide-react';
+import { Loader2, X, AlertCircle, CheckCircle, PlayCircle, RefreshCw, UtensilsCrossed, Github, Clapperboard } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
 import Sidebar from '../components/Sidebar';
 import QRCode from 'react-qr-code';
-import github from "../assets/github.png";
-import zomato from "../assets/zomato.png";
-import netflix from "../assets/netflix.png";
 // Toast notification type
 type ToastType = 'success' | 'error' | 'info';
 interface ToastState {
@@ -18,6 +15,7 @@ interface ToastState {
 }
 
 // Provider configurations
+// Provider configurations
 const PROVIDERS = [
   {
     id: 'zomato',
@@ -26,21 +24,24 @@ const PROVIDERS = [
     providerId: import.meta.env.VITE_ZOMATO_PROVIDER_ID || '',
     color: '#000000',
     bgGradient: 'linear-gradient(135deg, #333333 0%, #000000 100%)',
-    points: 10, // Updated to match new reward system (base points)
+    points: 10,
     dataType: 'zomato_order_history',
-    logo: zomato
+    icon: UtensilsCrossed,
+    iconColor: '#ffffff',
+    iconBg: '#cb202d' // Zomato Red
   },
   {
     id: 'github',
     name: 'GitHub',
     description: 'Developer Profile',
     providerId: import.meta.env.VITE_GITHUB_PROVIDER_ID || '',
-    color: '#000000',
+    color: '#000000', // GitHub Black
     bgGradient: 'linear-gradient(135deg, #24292e 0%, #0d1117 100%)',
     points: 15,
     dataType: 'github_profile',
-    logo: github
-
+    icon: Github,
+    iconColor: '#ffffff',
+    iconBg: '#24292e'
   },
   {
     id: 'netflix',
@@ -51,7 +52,9 @@ const PROVIDERS = [
     bgGradient: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)',
     points: 20,
     dataType: 'netflix_watch_history',
-    logo: netflix
+    icon: Clapperboard,
+    iconColor: '#ffffff',
+    iconBg: '#e50914' // Netflix Red
   }
 ];
 
@@ -1686,7 +1689,9 @@ const DashboardPage = () => {
                     className={`provider-card ${activeProvider === provider.id ? "active" : ""}`}
                   >
                     <div className="provider-header">
-                      <img src={provider.logo} alt={`${provider.name} logo`} className="provider-logo" />
+                      <div className="provider-icon-wrapper" style={{ background: provider.iconBg }}>
+                        <provider.icon size={20} color={provider.iconColor} />
+                      </div>
                       <h3 className="provider-name">{provider.name}</h3>
                     </div>
 
@@ -1934,8 +1939,20 @@ const styles = `
     border-top-color: #111827;
   }
 
+
+
   .provider-header { display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }
-  .provider-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 8px; }
+  
+  .provider-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
   .provider-name { font-size: 16px; font-weight: 700; color: #111827; margin: 0; }
   
   .provider-desc { font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: auto; }
