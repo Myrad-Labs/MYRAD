@@ -13,7 +13,7 @@ const AboutPage = () => {
         }}>
             <Header />
 
-            <main style={{ maxWidth: '720px', margin: '0 auto', padding: '48px 24px', textAlign: 'left' }}>
+            <main style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px 48px', textAlign: 'left' }}>
                 <h1 style={{ fontSize: '28px', fontWeight: 600, color: '#111', marginBottom: '24px' }}>
                     About Myrad
                 </h1>
