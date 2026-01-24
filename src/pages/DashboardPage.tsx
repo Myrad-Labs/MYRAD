@@ -87,7 +87,7 @@ const DashboardPage = () => {
     }
 
     setToast({ show: true, type, title, message });
-    
+
     // Only auto-dismiss if not persistent
     if (!persistent) {
       toastTimeoutRef.current = setTimeout(() => {
@@ -145,11 +145,11 @@ const DashboardPage = () => {
   useEffect(() => {
     const processRedirectProof = async () => {
       const hash = window.location.hash;
-      
+
       // #region agent log
-      fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processRedirect.entry',message:'processRedirectProof called',data:{hash:hash.substring(0,100),hasReclaimProof:hash.includes('reclaim_proof='),userId:user?.id,ready,authenticated},timestamp:Date.now(),sessionId:'debug-session',runId:'run6',hypothesisId:'I'})}).catch(()=>{});
+      fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processRedirect.entry', message: 'processRedirectProof called', data: { hash: hash.substring(0, 100), hasReclaimProof: hash.includes('reclaim_proof='), userId: user?.id, ready, authenticated }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run6', hypothesisId: 'I' }) }).catch(() => { });
       // #endregion
-      
+
       if (hash.includes('reclaim_proof=')) {
         const encodedProof = hash.split('reclaim_proof=')[1]?.split('&')[0];
         if (encodedProof && user?.id) {
@@ -164,8 +164,8 @@ const DashboardPage = () => {
             const findOrdersInObject = (obj: any, depth = 0): any[] => {
               if (depth > 10 || !obj) return [];
               if (Array.isArray(obj)) {
-                if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && 
-                    (obj[0].items || obj[0].restaurant || obj[0].price || obj[0].timestamp)) {
+                if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' &&
+                  (obj[0].items || obj[0].restaurant || obj[0].price || obj[0].timestamp)) {
                   return obj;
                 }
                 for (const item of obj) {
@@ -227,19 +227,19 @@ const DashboardPage = () => {
             // If no orders found, search the entire proof object
             if (!extractedData.orders || extractedData.orders.length === 0) {
               // #region agent log
-              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processRedirect.searchingOrders',message:'Searching for orders in redirect proof',data:{proofDataKeys:Object.keys(proofData||{}),proofDataStringified:JSON.stringify(proofData).substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processRedirect.searchingOrders', message: 'Searching for orders in redirect proof', data: { proofDataKeys: Object.keys(proofData || {}), proofDataStringified: JSON.stringify(proofData).substring(0, 2000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run5', hypothesisId: 'H' }) }).catch(() => { });
               // #endregion
-              
+
               const foundOrders = findOrdersInObject(proofData);
               if (foundOrders.length > 0) {
                 extractedData.orders = foundOrders;
                 console.log('📲 Found orders via deep search:', foundOrders.length);
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processRedirect.foundOrders',message:'Found orders via deep search',data:{ordersFound:foundOrders.length,firstOrder:foundOrders[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processRedirect.foundOrders', message: 'Found orders via deep search', data: { ordersFound: foundOrders.length, firstOrder: foundOrders[0] }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run5', hypothesisId: 'H' }) }).catch(() => { });
                 // #endregion
               } else {
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processRedirect.noOrdersFound',message:'No orders found in deep search',data:{proofDataStringified:JSON.stringify(proofData).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'H'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processRedirect.noOrdersFound', message: 'No orders found in deep search', data: { proofDataStringified: JSON.stringify(proofData).substring(0, 3000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run5', hypothesisId: 'H' }) }).catch(() => { });
                 // #endregion
               }
             }
@@ -300,18 +300,18 @@ const DashboardPage = () => {
     if (ready && authenticated && user?.id) {
       processRedirectProof();
     }
-    
+
     // Also listen for hash changes (redirect may happen after page is already loaded)
     const handleHashChange = () => {
       // #region agent log
-      fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.hashChange',message:'Hash changed event fired',data:{newHash:window.location.hash.substring(0,100),userId:user?.id,ready,authenticated},timestamp:Date.now(),sessionId:'debug-session',runId:'run6',hypothesisId:'I'})}).catch(()=>{});
+      fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.hashChange', message: 'Hash changed event fired', data: { newHash: window.location.hash.substring(0, 100), userId: user?.id, ready, authenticated }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run6', hypothesisId: 'I' }) }).catch(() => { });
       // #endregion
-      
+
       if (ready && authenticated && user?.id) {
         processRedirectProof();
       }
     };
-    
+
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -412,7 +412,7 @@ const DashboardPage = () => {
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
-      setRefreshing(false);
+        setRefreshing(false);
       } else {
         setLoading(false);
       }
@@ -433,18 +433,18 @@ const DashboardPage = () => {
     const handleVisibilityChange = () => {
       const visible = !document.hidden;
       setIsTabVisible(visible);
-      
+
       // Log tab visibility changes during verification
       if (activeProvider) {
-        fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.visibilityChange',message:'Tab visibility changed',data:{isVisible:visible,activeProvider,hasVerificationUrl:!!verificationUrl,timeSinceStart:verificationStartTime ? Date.now() - verificationStartTime : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        
+        fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.visibilityChange', message: 'Tab visibility changed', data: { isVisible: visible, activeProvider, hasVerificationUrl: !!verificationUrl, timeSinceStart: verificationStartTime ? Date.now() - verificationStartTime : null }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+
         // When tab becomes visible again, check if verification completed successfully
         if (visible && verificationStartTime && (Date.now() - verificationStartTime) > 10000) {
           // Tab was hidden for at least 10 seconds - verification might have completed
           // Check if we have captured proof data
           const capturedProof = (window as any).__reclaimCapturedProof;
           if (capturedProof && capturedProof.length > 0) {
-            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.visibilityChange',message:'Tab visible - found captured proof',data:{activeProvider,hasCapturedProof:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.visibilityChange', message: 'Tab visible - found captured proof', data: { activeProvider, hasCapturedProof: true }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
             // Proof might be available - user can check manually or we can retry
           }
         }
@@ -495,7 +495,7 @@ const DashboardPage = () => {
       let callbackUrl: string;
       const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
       const windowOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://www.myradhq.xyz';
-      
+
       if (isProduction) {
         // In production, backend is on a different domain (e.g., Render backend URL)
         // Use the backend API URL directly, or if backend serves /api on same domain, use origin
@@ -512,26 +512,26 @@ const DashboardPage = () => {
         // Development: use API_URL or localhost
         callbackUrl = `${API_URL}/api/reclaim-callback`;
       }
-      
+
       // Ensure callback URL is absolute and valid
       if (!callbackUrl.startsWith('http://') && !callbackUrl.startsWith('https://')) {
         // If somehow we got a relative URL, make it absolute
         callbackUrl = `${windowOrigin}${callbackUrl.startsWith('/') ? callbackUrl : '/' + callbackUrl}`;
       }
-      
+
       // Generate a unique session ID for this verification request
       // This ensures multiple concurrent users don't interfere with each other
       const verificationSessionId = `${user?.id || 'anon'}_${provider.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      
+
       // Add session ID to callback URL so backend can associate the proof with this user
       callbackUrl = `${callbackUrl}?sessionId=${encodeURIComponent(verificationSessionId)}`;
-      
+
       // Store the session ID so we can poll for it later
       (window as any).__currentVerificationSessionId = verificationSessionId;
-      
+
       // Log callback URL configuration for debugging
-      fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute',message:'Setting callback URL with session',data:{callbackUrl,verificationSessionId,apiUrl:API_URL,windowOrigin,isProduction,hostname:typeof window !== 'undefined' ? window.location.hostname : 'N/A'},timestamp:Date.now(),sessionId:'debug-session',runId:'run10',hypothesisId:'M'})}).catch(()=>{});
-      
+      fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute', message: 'Setting callback URL with session', data: { callbackUrl, verificationSessionId, apiUrl: API_URL, windowOrigin, isProduction, hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run10', hypothesisId: 'M' }) }).catch(() => { });
+
       console.log('📱 Setting Reclaim callback URL:', callbackUrl);
       reclaimProofRequest.setAppCallbackUrl(callbackUrl);
       console.log('✅ Callback URL set successfully with sessionId:', verificationSessionId);
@@ -610,9 +610,9 @@ const DashboardPage = () => {
         onSuccess: async (proofs: any) => {
           // Restore original console.log
           console.log = originalConsoleLog;
-          
+
           // #region agent log - RAW PROOFS RECEIVED
-          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.rawProofs',message:'RAW proofs received from SDK',data:{provider:provider.id,proofsType:typeof proofs,isArray:Array.isArray(proofs),proofsLength:Array.isArray(proofs)?proofs.length:null,proofsKeys:proofs&&typeof proofs==='object'?Object.keys(proofs):[],rawProofsStringified:JSON.stringify(proofs).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run5',hypothesisId:'E'})}).catch(()=>{});
+          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.rawProofs', message: 'RAW proofs received from SDK', data: { provider: provider.id, proofsType: typeof proofs, isArray: Array.isArray(proofs), proofsLength: Array.isArray(proofs) ? proofs.length : null, proofsKeys: proofs && typeof proofs === 'object' ? Object.keys(proofs) : [], rawProofsStringified: JSON.stringify(proofs).substring(0, 3000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run5', hypothesisId: 'E' }) }).catch(() => { });
           // #endregion
 
           // CRITICAL: When using callback URL, the SDK returns a string message instead of proof data
@@ -620,43 +620,43 @@ const DashboardPage = () => {
           // We need to poll the backend to fetch the stored proof
           if (typeof proofs === 'string') {
             // #region agent log
-            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.callbackMode',message:'Callback URL mode detected - polling for proof',data:{provider:provider.id,message:proofs},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.callbackMode', message: 'Callback URL mode detected - polling for proof', data: { provider: provider.id, message: proofs }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run7', hypothesisId: 'J' }) }).catch(() => { });
             // #endregion
-            
+
             showToast('info', 'Processing...', 'Verification complete, fetching your data...', true);
-            
+
             // Poll the backend for the stored proof using THIS user's specific session ID
             let attempts = 0;
             const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
             const pollInterval = 2000;
-            
+
             // Get the session ID that was set when starting this verification
             const mySessionId = (window as any).__currentVerificationSessionId;
-            
+
             const pollForProof = async () => {
               attempts++;
               try {
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.pollForProof',message:'Polling for MY specific proof',data:{attempt:attempts,mySessionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run10',hypothesisId:'M'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.pollForProof', message: 'Polling for MY specific proof', data: { attempt: attempts, mySessionId }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run10', hypothesisId: 'M' }) }).catch(() => { });
                 // #endregion
-                
+
                 // Directly fetch THIS user's proof using their specific session ID
                 const proofRes = await fetch(`${API_URL}/api/reclaim-proof/${encodeURIComponent(mySessionId)}`);
                 const proofData = await proofRes.json();
-                
+
                 if (proofData.success && proofData.proof) {
                   // #region agent log
-                  fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.pollForProof.found',message:'MY proof found via polling',data:{mySessionId,proofKeys:Object.keys(proofData.proof||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run10',hypothesisId:'M'})}).catch(()=>{});
+                  fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.pollForProof.found', message: 'MY proof found via polling', data: { mySessionId, proofKeys: Object.keys(proofData.proof || {}) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run10', hypothesisId: 'M' }) }).catch(() => { });
                   // #endregion
-                  
+
                   // Clear the session ID
                   (window as any).__currentVerificationSessionId = null;
-                  
+
                   // Process the proof - reuse the redirect processing logic
                   await processPolledProof(proofData.proof, provider);
                   return;
                 }
-                
+
                 // Continue polling if not found yet (proof might not have arrived yet)
                 if (attempts < maxAttempts) {
                   setTimeout(pollForProof, pollInterval);
@@ -678,19 +678,19 @@ const DashboardPage = () => {
                 }
               }
             };
-            
+
             // Helper function to process polled proof
             const processPolledProof = async (proofData: any, provider: any) => {
               try {
                 // #region agent log - Log the FULL proof structure
                 const proofStr = JSON.stringify(proofData);
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.entry',message:'Full proof data received',data:{provider:provider.id,proofType:typeof proofData,isArray:Array.isArray(proofData),proofKeys:Object.keys(proofData||{}),proofLength:proofStr.length,proofSample:proofStr.substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run11',hypothesisId:'N'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.entry', message: 'Full proof data received', data: { provider: provider.id, proofType: typeof proofData, isArray: Array.isArray(proofData), proofKeys: Object.keys(proofData || {}), proofLength: proofStr.length, proofSample: proofStr.substring(0, 2000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run11', hypothesisId: 'N' }) }).catch(() => { });
                 // #endregion
-                
+
                 // Helper function to recursively find data in deeply nested structures
                 const findDataInObject = (obj: any, depth = 0, providerType?: string): any => {
                   if (depth > 15 || !obj) return null;
-                  
+
                   // Handle _rawProofString from backend (contains full undecoded proof)
                   if (obj._rawProofString && typeof obj._rawProofString === 'string') {
                     const rawStr = obj._rawProofString;
@@ -705,15 +705,15 @@ const DashboardPage = () => {
                     // For GitHub - extract username, followers, and contributions
                     if (providerType === 'github') {
                       // Try multiple patterns to find GitHub data
-                      const usernameMatch = rawStr.match(/"username":\s*"([^"]+)"/) || 
-                                           rawStr.match(/"login":\s*"([^"]+)"/) ||
-                                           rawStr.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
+                      const usernameMatch = rawStr.match(/"username":\s*"([^"]+)"/) ||
+                        rawStr.match(/"login":\s*"([^"]+)"/) ||
+                        rawStr.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
                       const followersMatch = rawStr.match(/"followers":\s*"?(\d+)"?/) ||
-                                            rawStr.match(/followers["\s]*[:=]["\s]*(\d+)/);
+                        rawStr.match(/followers["\s]*[:=]["\s]*(\d+)/);
                       const contribMatch = rawStr.match(/"contributions":\s*"?(\d+)"?/) ||
-                                          rawStr.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
-                                          rawStr.match(/contributions["\s]*[:=]["\s]*(\d+)/);
-                      
+                        rawStr.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
+                        rawStr.match(/contributions["\s]*[:=]["\s]*(\d+)/);
+
                       if (usernameMatch || followersMatch || contribMatch) {
                         const githubData = {
                           username: usernameMatch?.[1] || 'unknown',
@@ -749,7 +749,7 @@ const DashboardPage = () => {
                       }
                     }
                   }
-                  
+
                   // Try to parse JSON strings
                   if (typeof obj === 'string') {
                     if (obj.startsWith('{') || obj.startsWith('[')) {
@@ -760,14 +760,14 @@ const DashboardPage = () => {
                     }
                     // For GitHub: extract from paramValues in the string
                     if (providerType === 'github' && obj.includes('paramValues')) {
-                      const usernameMatch = obj.match(/"username":\s*"([^"]+)"/) || 
-                                           obj.match(/"login":\s*"([^"]+)"/) ||
-                                           obj.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
+                      const usernameMatch = obj.match(/"username":\s*"([^"]+)"/) ||
+                        obj.match(/"login":\s*"([^"]+)"/) ||
+                        obj.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
                       const followersMatch = obj.match(/"followers":\s*"?(\d+)"?/) ||
-                                            obj.match(/followers["\s]*[:=]["\s]*(\d+)/);
+                        obj.match(/followers["\s]*[:=]["\s]*(\d+)/);
                       const contribMatch = obj.match(/"contributions":\s*"?(\d+)"?/) ||
-                                          obj.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
-                                          obj.match(/contributions["\s]*[:=]["\s]*(\d+)/);
+                        obj.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
+                        obj.match(/contributions["\s]*[:=]["\s]*(\d+)/);
                       if (usernameMatch || followersMatch || contribMatch) {
                         const githubData = {
                           username: usernameMatch?.[1] || 'unknown',
@@ -780,9 +780,9 @@ const DashboardPage = () => {
                     }
                     return null;
                   }
-                  
+
                   if (typeof obj !== 'object' || obj === null) return null;
-                  
+
                   // Check if this object contains the data we need
                   if (Array.isArray(obj)) {
                     // Check for Zomato orders array
@@ -824,12 +824,12 @@ const DashboardPage = () => {
                     // Check for nested titles
                     if (obj.titles && Array.isArray(obj.titles)) return { titles: obj.titles };
                     if (obj.watchHistory && Array.isArray(obj.watchHistory)) return { titles: obj.watchHistory };
-                    
+
                     // Recurse into object keys - check ALL keys for data
                     const allKeys = Object.keys(obj);
                     let collectedOrders: any[] = [];
                     let collectedTitles: any[] = [];
-                    
+
                     for (const key of allKeys) {
                       // Check if this key contains Zomato order data (items, price, restaurant pattern)
                       if (key.includes('"items"') && key.includes('"price"') && key.includes('"restaurant"')) {
@@ -841,7 +841,7 @@ const DashboardPage = () => {
                           } catch (e2) { /* ignore parse errors */ }
                         }
                       }
-                      
+
                       // Check if this key contains Netflix title data
                       if (key.includes('"title"') && providerType === 'netflix') {
                         // Try full objects first
@@ -866,7 +866,7 @@ const DashboardPage = () => {
                           }
                         }
                       }
-                      
+
                       // Handle malformed keys that are actually JSON strings
                       if (key.length > 50 && (key.startsWith('{') || key.startsWith('['))) {
                         try {
@@ -913,14 +913,14 @@ const DashboardPage = () => {
                           }
                           // Try regex extraction for GitHub from malformed key
                           if (providerType === 'github') {
-                            const usernameMatch = key.match(/"username":\s*"([^"]+)"/) || 
-                                                 key.match(/"login":\s*"([^"]+)"/) ||
-                                                 key.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
+                            const usernameMatch = key.match(/"username":\s*"([^"]+)"/) ||
+                              key.match(/"login":\s*"([^"]+)"/) ||
+                              key.match(/username["\s]*[:=]["\s]*([^",\s}]+)/);
                             const followersMatch = key.match(/"followers":\s*"?(\d+)"?/) ||
-                                                  key.match(/followers["\s]*[:=]["\s]*(\d+)/);
+                              key.match(/followers["\s]*[:=]["\s]*(\d+)/);
                             const contribMatch = key.match(/"contributions":\s*"?(\d+)"?/) ||
-                                                key.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
-                                                key.match(/contributions["\s]*[:=]["\s]*(\d+)/);
+                              key.match(/"contributionsLastYear":\s*"?(\d+)"?/) ||
+                              key.match(/contributions["\s]*[:=]["\s]*(\d+)/);
                             if (usernameMatch || followersMatch || contribMatch) {
                               const githubData = {
                                 username: usernameMatch?.[1] || 'unknown',
@@ -941,7 +941,7 @@ const DashboardPage = () => {
                         else return found;
                       }
                     }
-                    
+
                     // Return collected data if any were found
                     if (collectedOrders.length > 0) {
                       return { orders: collectedOrders };
@@ -952,10 +952,10 @@ const DashboardPage = () => {
                   }
                   return null;
                 };
-                
+
                 const proof = Array.isArray(proofData) ? proofData[0] : proofData;
                 let extractedData: any = {};
-                
+
                 // Try standard extraction paths first
                 if (proof?.claimData?.context) {
                   const context = typeof proof.claimData.context === 'string'
@@ -969,36 +969,36 @@ const DashboardPage = () => {
                 if (proof?.publicData) {
                   extractedData = { ...extractedData, ...proof.publicData };
                 }
-                
+
                 // Deep search for provider-specific data if not found
-                const needsDeepSearch = 
+                const needsDeepSearch =
                   (provider.id === 'zomato' && (!extractedData.orders || extractedData.orders.length === 0)) ||
                   (provider.id === 'github' && !extractedData.username && !extractedData.login && !extractedData.followers) ||
                   (provider.id === 'netflix' && (!extractedData.titles || extractedData.titles.length === 0));
-                
+
                 if (needsDeepSearch) {
                   // #region agent log
                   const proofDataStr = JSON.stringify(proofData);
                   const proofKeys = Object.keys(proofData || {});
-                  fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.deepSearch',message:'Starting deep search for provider data',data:{provider:provider.id,currentKeys:Object.keys(extractedData),proofDataType:typeof proofData,proofDataLength:proofDataStr.length,proofKeyCount:proofKeys.length,firstKeyLength:proofKeys[0]?.length||0,firstKeySample:(proofKeys[0]||'').substring(0,500),hasOrdersInKey:proofKeys[0]?.includes('"items"')},timestamp:Date.now(),sessionId:'debug-session',runId:'run9',hypothesisId:'L'})}).catch(()=>{});
+                  fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.deepSearch', message: 'Starting deep search for provider data', data: { provider: provider.id, currentKeys: Object.keys(extractedData), proofDataType: typeof proofData, proofDataLength: proofDataStr.length, proofKeyCount: proofKeys.length, firstKeyLength: proofKeys[0]?.length || 0, firstKeySample: (proofKeys[0] || '').substring(0, 500), hasOrdersInKey: proofKeys[0]?.includes('"items"') }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run9', hypothesisId: 'L' }) }).catch(() => { });
                   // #endregion
-                  
+
                   const foundData = findDataInObject(proofData, 0, provider.id);
                   if (foundData) {
                     extractedData = { ...extractedData, ...foundData };
                     // #region agent log
-                    fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.foundData',message:'Found data via deep search',data:{provider:provider.id,foundKeys:Object.keys(foundData),ordersCount:foundData.orders?.length,titlesCount:foundData.titles?.length,hasUsername:!!foundData.username},timestamp:Date.now(),sessionId:'debug-session',runId:'run9',hypothesisId:'L'})}).catch(()=>{});
+                    fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.foundData', message: 'Found data via deep search', data: { provider: provider.id, foundKeys: Object.keys(foundData), ordersCount: foundData.orders?.length, titlesCount: foundData.titles?.length, hasUsername: !!foundData.username }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run9', hypothesisId: 'L' }) }).catch(() => { });
                     // #endregion
                   }
                 }
-                
+
                 const walletAddress = user?.wallet?.address || null;
                 const token = `privy_${user?.id}_${user?.email?.address || 'user'}`;
-                
+
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.submitting',message:'Submitting polled proof to backend',data:{provider:provider.id,hasOrders:!!extractedData.orders,ordersLength:extractedData.orders?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run7',hypothesisId:'J'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.submitting', message: 'Submitting polled proof to backend', data: { provider: provider.id, hasOrders: !!extractedData.orders, ordersLength: extractedData.orders?.length || 0 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run7', hypothesisId: 'J' }) }).catch(() => { });
                 // #endregion
-                
+
                 const response = await fetch(`${API_URL}/api/contribute`, {
                   method: 'POST',
                   headers: {
@@ -1019,23 +1019,23 @@ const DashboardPage = () => {
                     walletAddress
                   })
                 });
-                
+
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.responseStatus',message:'Backend response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run8',hypothesisId:'K'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.responseStatus', message: 'Backend response received', data: { status: response.status, statusText: response.statusText, ok: response.ok }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run8', hypothesisId: 'K' }) }).catch(() => { });
                 // #endregion
-                
+
                 const result = await response.json();
-                
+
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.result',message:'Backend result parsed',data:{success:result.success,pointsAwarded:result.pointsAwarded,error:result.error,message:result.message,contributionId:result.contribution?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run8',hypothesisId:'K'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.result', message: 'Backend result parsed', data: { success: result.success, pointsAwarded: result.pointsAwarded, error: result.error, message: result.message, contributionId: result.contribution?.id }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run8', hypothesisId: 'K' }) }).catch(() => { });
                 // #endregion
-                
+
                 setVerificationUrl(null);
                 setActiveProvider(null);
-                
+
                 // Points can be in result.pointsAwarded OR result.contribution.pointsAwarded
                 const pointsAwarded = result.contribution?.pointsAwarded || result.pointsAwarded || 0;
-                
+
                 // Replace processing toast with success/error (non-persistent, will auto-dismiss)
                 if (result.success || pointsAwarded > 0) {
                   showToast('success', 'Success!', `You earned ${pointsAwarded} points!`);
@@ -1045,21 +1045,21 @@ const DashboardPage = () => {
                 }
               } catch (error: any) {
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.processPolledProof.error',message:'Error in processPolledProof',data:{errorMessage:error?.message||String(error),errorStack:error?.stack?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run8',hypothesisId:'K'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.error', message: 'Error in processPolledProof', data: { errorMessage: error?.message || String(error), errorStack: error?.stack?.substring(0, 500) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run8', hypothesisId: 'K' }) }).catch(() => { });
                 // #endregion
-                
+
                 console.error('Process polled proof error:', error);
                 setVerificationUrl(null);
                 setActiveProvider(null);
                 showToast('error', 'Error', 'Failed to process verification data');
               }
             };
-            
+
             // Start polling after a short delay (give backend time to receive the callback)
             setTimeout(pollForProof, 3000);
             return;
           }
-          
+
           // Proof received successfully (direct mode, not callback URL)
           setVerificationUrl(null);
           setActiveProvider(null);
@@ -1071,7 +1071,7 @@ const DashboardPage = () => {
           }
 
           // #region agent log - FULL PROOF STRUCTURE
-          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.fullProofStructure',message:'FULL proof object structure',data:{provider:provider.id,proofKeys:Object.keys(proof||{}),hasClaimData:!!proof.claimData,claimDataKeys:proof.claimData?Object.keys(proof.claimData):[],hasContext:!!proof.claimData?.context,contextType:typeof proof.claimData?.context,hasExtractedParameterValues:!!proof.extractedParameterValues,extractedParamKeys:proof.extractedParameterValues?Object.keys(proof.extractedParameterValues):[],hasPublicData:!!proof.publicData,publicDataKeys:proof.publicData?Object.keys(proof.publicData):[],identifier:proof.identifier,id:proof.id,proofStringified:JSON.stringify(proof).substring(0,3000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
+          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.fullProofStructure', message: 'FULL proof object structure', data: { provider: provider.id, proofKeys: Object.keys(proof || {}), hasClaimData: !!proof.claimData, claimDataKeys: proof.claimData ? Object.keys(proof.claimData) : [], hasContext: !!proof.claimData?.context, contextType: typeof proof.claimData?.context, hasExtractedParameterValues: !!proof.extractedParameterValues, extractedParamKeys: proof.extractedParameterValues ? Object.keys(proof.extractedParameterValues) : [], hasPublicData: !!proof.publicData, publicDataKeys: proof.publicData ? Object.keys(proof.publicData) : [], identifier: proof.identifier, id: proof.id, proofStringified: JSON.stringify(proof).substring(0, 3000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'A' }) }).catch(() => { });
           // #endregion
 
           let extractedData: any = {};
@@ -1079,11 +1079,11 @@ const DashboardPage = () => {
             // Helper function to recursively find orders in deeply nested structures
             const findOrdersInObject = (obj: any, depth = 0): any[] => {
               if (depth > 10 || !obj) return []; // Prevent infinite recursion
-              
+
               // If it's an array of order-like objects, return it
               if (Array.isArray(obj)) {
-                if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && 
-                    (obj[0].items || obj[0].restaurant || obj[0].price || obj[0].timestamp)) {
+                if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' &&
+                  (obj[0].items || obj[0].restaurant || obj[0].price || obj[0].timestamp)) {
                   return obj;
                 }
                 // Search inside array elements
@@ -1092,19 +1092,19 @@ const DashboardPage = () => {
                   if (found.length > 0) return found;
                 }
               }
-              
+
               // If it's an object, search its values
               if (typeof obj === 'object' && obj !== null) {
                 // Check if this object itself looks like an order
                 if (obj.items && obj.restaurant) {
                   return [obj];
                 }
-                
+
                 // Check for 'orders' key
                 if (obj.orders && Array.isArray(obj.orders)) {
                   return obj.orders;
                 }
-                
+
                 // Search all values
                 for (const key of Object.keys(obj)) {
                   // Skip if key is a long JSON string (malformed structure)
@@ -1123,12 +1123,12 @@ const DashboardPage = () => {
                       }
                     }
                   }
-                  
+
                   const found = findOrdersInObject(obj[key], depth + 1);
                   if (found.length > 0) return found;
                 }
               }
-              
+
               // If it's a string that looks like JSON, try to parse it
               if (typeof obj === 'string' && (obj.startsWith('{') || obj.startsWith('['))) {
                 try {
@@ -1144,7 +1144,7 @@ const DashboardPage = () => {
                   }
                 }
               }
-              
+
               return [];
             };
 
@@ -1153,11 +1153,11 @@ const DashboardPage = () => {
               const context = typeof proof.claimData.context === 'string'
                 ? JSON.parse(proof.claimData.context)
                 : proof.claimData.context;
-              
+
               // #region agent log - CONTEXT PARSED
-              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.contextParsed',message:'Context parsed from claimData',data:{provider:provider.id,contextKeys:Object.keys(context||{}),hasExtractedParams:!!context.extractedParameters,extractedParamKeys:context.extractedParameters?Object.keys(context.extractedParameters):[],contextStringified:JSON.stringify(context).substring(0,2000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.contextParsed', message: 'Context parsed from claimData', data: { provider: provider.id, contextKeys: Object.keys(context || {}), hasExtractedParams: !!context.extractedParameters, extractedParamKeys: context.extractedParameters ? Object.keys(context.extractedParameters) : [], contextStringified: JSON.stringify(context).substring(0, 2000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run4', hypothesisId: 'A' }) }).catch(() => { });
               // #endregion
-              
+
               extractedData = context.extractedParameters || {};
             }
 
@@ -1165,7 +1165,7 @@ const DashboardPage = () => {
             if (proof.extractedParameterValues) {
               extractedData = { ...extractedData, ...proof.extractedParameterValues };
               // #region agent log
-              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractFromParameterValues',message:'Data merged from extractedParameterValues',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.extractFromParameterValues', message: 'Data merged from extractedParameterValues', data: { provider: provider.id, extractedKeys: Object.keys(extractedData), hasOrders: !!extractedData.orders, ordersLength: Array.isArray(extractedData.orders) ? extractedData.orders.length : 0 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run4', hypothesisId: 'A' }) }).catch(() => { });
               // #endregion
             }
 
@@ -1173,33 +1173,33 @@ const DashboardPage = () => {
             if (proof.publicData) {
               extractedData = { ...extractedData, ...proof.publicData };
               // #region agent log
-              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractFromPublicData',message:'Data merged from publicData',data:{provider:provider.id,extractedKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'A'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.extractFromPublicData', message: 'Data merged from publicData', data: { provider: provider.id, extractedKeys: Object.keys(extractedData), hasOrders: !!extractedData.orders, ordersLength: Array.isArray(extractedData.orders) ? extractedData.orders.length : 0 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run4', hypothesisId: 'A' }) }).catch(() => { });
               // #endregion
             }
 
             // If no orders found yet, search the entire proof object for orders
             if (!extractedData.orders || extractedData.orders.length === 0) {
               // #region agent log
-              fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.searchingForOrders',message:'No orders in standard locations, searching entire proof',data:{provider:provider.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'F'})}).catch(()=>{});
+              fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.searchingForOrders', message: 'No orders in standard locations, searching entire proof', data: { provider: provider.id }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run4', hypothesisId: 'F' }) }).catch(() => { });
               // #endregion
-              
+
               const foundOrders = findOrdersInObject(proof);
               if (foundOrders.length > 0) {
                 extractedData.orders = foundOrders;
                 // #region agent log
-                fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.foundOrdersDeep',message:'Found orders in deep search',data:{provider:provider.id,ordersFound:foundOrders.length,firstOrder:foundOrders[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'F'})}).catch(()=>{});
+                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.foundOrdersDeep', message: 'Found orders in deep search', data: { provider: provider.id, ordersFound: foundOrders.length, firstOrder: foundOrders[0] }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run4', hypothesisId: 'F' }) }).catch(() => { });
                 // #endregion
               }
             }
 
             // #region agent log - FINAL DATA BEFORE SEND
-            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.finalDataBeforeSend',message:'FINAL extracted data being sent to backend',data:{provider:provider.id,extractedDataKeys:Object.keys(extractedData),hasOrders:!!extractedData.orders,ordersLength:Array.isArray(extractedData.orders)?extractedData.orders.length:0,firstOrderSample:Array.isArray(extractedData.orders)&&extractedData.orders.length>0?extractedData.orders[0]:null,extractedDataStringified:JSON.stringify(extractedData).substring(0,2000),proofIdentifier:proof?.identifier,proofId:proof?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run4',hypothesisId:'A'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.finalDataBeforeSend', message: 'FINAL extracted data being sent to backend', data: { provider: provider.id, extractedDataKeys: Object.keys(extractedData), hasOrders: !!extractedData.orders, ordersLength: Array.isArray(extractedData.orders) ? extractedData.orders.length : 0, firstOrderSample: Array.isArray(extractedData.orders) && extractedData.orders.length > 0 ? extractedData.orders[0] : null, extractedDataStringified: JSON.stringify(extractedData).substring(0, 2000), proofIdentifier: proof?.identifier, proofId: proof?.id }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run4', hypothesisId: 'A' }) }).catch(() => { });
             // #endregion
           } catch (e) {
             console.error('Error extracting data');
             // #region agent log
             const errorMessage = e instanceof Error ? e.message : String(e);
-            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.extractionError',message:'Error during data extraction',data:{provider:provider.id,error:errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
+            fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.extractionError', message: 'Error during data extraction', data: { provider: provider.id, error: errorMessage }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'A' }) }).catch(() => { });
             // #endregion
           }
 
@@ -1227,7 +1227,7 @@ const DashboardPage = () => {
           const data = await response.json();
 
           // #region agent log - BACKEND RESPONSE
-          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.onSuccess.backendResponse',message:'Backend response received',data:{provider:provider.id,success:data.success,contributionId:data.contribution?.id,pointsAwarded:data.contribution?.pointsAwarded,orderCount:data.contribution?.orderCount,error:data.error,message:data.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'C'})}).catch(()=>{});
+          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.backendResponse', message: 'Backend response received', data: { provider: provider.id, success: data.success, contributionId: data.contribution?.id, pointsAwarded: data.contribution?.pointsAwarded, orderCount: data.contribution?.orderCount, error: data.error, message: data.message }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'C' }) }).catch(() => { });
           // #endregion
 
           if (data.success) {
@@ -1248,14 +1248,14 @@ const DashboardPage = () => {
           console.log = originalConsoleLog;
 
           console.error('Reclaim error:', error);
-          
+
           // Check if tab is hidden - if so, don't show error yet (verification might still be in progress)
           const tabHidden = document.hidden || !isTabVisible;
           const timeSinceStart = verificationStartTime ? Date.now() - verificationStartTime : 0;
-          
+
           // Log to server with tab visibility info
-          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError',message:'Reclaim error triggered',data:{provider:provider.id,errorMessage:error?.message || error?.toString(),tabHidden,isTabVisible,timeSinceStart,verificationUrl:verificationUrl || null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          
+          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute.onError', message: 'Reclaim error triggered', data: { provider: provider.id, errorMessage: error?.message || error?.toString(), tabHidden, isTabVisible, timeSinceStart, verificationUrl: verificationUrl || null }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+
           logErrorToServer(error, `DashboardPage.handleContribute.${provider.id}.onError`, {
             provider: provider.id,
             providerName: provider.name,
@@ -1264,33 +1264,33 @@ const DashboardPage = () => {
             isTabVisible,
             timeSinceStart
           });
-          
+
           // Mobile-specific error handling
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
-          
+
           // CRITICAL FIX: If tab is hidden, don't show error immediately
           // Verification might still be in progress in Reclaim app
           // Wait and check again when tab becomes visible
           if (tabHidden && (timeSinceStart < 120000)) { // Less than 2 minutes - likely still in progress
-            fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError',message:'Tab hidden - deferring error display',data:{provider:provider.id,errorMessage,tabHidden,timeSinceStart},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            
+            fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute.onError', message: 'Tab hidden - deferring error display', data: { provider: provider.id, errorMessage, tabHidden, timeSinceStart }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
+
             // Don't clear state or show error - wait for tab to become visible again
             // The verification might complete successfully
             return; // Exit early - don't show error while tab is hidden
           }
-          
+
           // Check for common mobile-specific errors
           if (errorMessage.includes('timeout') || errorMessage.includes('network') || errorMessage.includes('fetch')) {
             // Only show error if tab is visible OR it's been more than 2 minutes
             if (!tabHidden || timeSinceStart > 120000) {
               showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-          setVerificationUrl(null);
-          setActiveProvider(null);
+              setVerificationUrl(null);
+              setActiveProvider(null);
               setContributing(null);
             }
             return;
           }
-          
+
           if (errorMessage.includes('cancelled') || errorMessage.includes('user')) {
             // Only show cancellation if tab is visible - user might still be in Reclaim app
             if (!tabHidden) {
@@ -1458,14 +1458,14 @@ const DashboardPage = () => {
           // Check if tab was hidden when error occurred - if so, wait and check again
           const tabHiddenFinal = document.hidden || !isTabVisible;
           const timeSinceStartFinal = verificationStartTime ? Date.now() - verificationStartTime : 0;
-          
-          fetch(`${API_URL}/api/logs/debug`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.handleContribute.onError.final',message:'Final error handling',data:{provider:provider.id,tabHidden:tabHiddenFinal,timeSinceStart:timeSinceStartFinal},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-          
+
+          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute.onError.final', message: 'Final error handling', data: { provider: provider.id, tabHidden: tabHiddenFinal, timeSinceStart: timeSinceStartFinal }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
+
           // Only show error if tab is visible OR it's been more than 2 minutes
           if (!tabHiddenFinal || timeSinceStartFinal > 120000) {
             setVerificationUrl(null);
             setActiveProvider(null);
-            
+
             // More helpful error message for mobile
             const isMobileDeviceFinal = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             if (isMobileDeviceFinal) {
@@ -1482,19 +1482,19 @@ const DashboardPage = () => {
 
     } catch (error: any) {
       console.error('Error:', error);
-      
+
       // Log to server (Render logs)
       logErrorToServer(error, `DashboardPage.handleContribute.${provider?.id || 'unknown'}.catch`, {
         provider: provider?.id || null,
         providerName: provider?.name || null
       });
-      
+
       setVerificationUrl(null);
       setActiveProvider(null);
-      
+
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const errorMsg = error?.message || String(error);
-      
+
       // Mobile-specific error messages
       if (isMobileDevice && (errorMsg.includes('timeout') || errorMsg.includes('network'))) {
         showToast('error', 'Network Error', 'Mobile connection may be slow. Please try again or use WiFi.');
@@ -1574,7 +1574,7 @@ const DashboardPage = () => {
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-              </button>
+            </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -1586,21 +1586,20 @@ const DashboardPage = () => {
                     <br className="onboarding-line-break" />
                     <ul className="onboarding-description">
                       <li>Install the Reclaim verifier app from the Google Play Store or App Store</li>
-                      <li>Connect your accounts (Zomato, GitHub, Netflix) to verify your data anonymously</li>
+                      <li>Verify your accounts (Zomato, GitHub, Netflix) to prove the account belongs to you anonymously</li>
                       <li>Login and complete your verification securely</li>
-                      <li>Start contributing by sharing verified proofs through the app</li>
-                      <li>Each successful contribution earns you points</li>
+                      <li>Each successful verification earns you points</li>
                       <li>Earn more points to climb higher on the leaderboard</li>
                     </ul>
 
                   </div>
-            </div>
+                </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-          </div>
-        </div>
+                </div>
+              </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -1612,7 +1611,7 @@ const DashboardPage = () => {
                   playsInline
                   preload="metadata"
                 />
-          </div>
+              </div>
             </div>
           </div>
         )}
@@ -1620,51 +1619,51 @@ const DashboardPage = () => {
         {loading ? (
           <div className="loading-state animate-enter">
             <Loader2 className="spin" size={40} color="#111827" />
-            <p style={{ fontSize: 16, fontWeight: 500 }}>Loading your data...</p>
+            <p style={{ fontSize: 16, fontWeight: 500 }}>...</p>
           </div>
         ) : (
           <>
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card" style={{ position: 'relative' }}>
-                  <span className="stat-label">Total Points</span>
-                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!verificationUrl && !activeProvider && !loading && !refreshing) {
-                        fetchUserData(true);
-                      }
-                    }}
-                    disabled={!!verificationUrl || !!activeProvider || loading || refreshing}
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      background: 'none',
-                      border: 'none',
-                      cursor: (verificationUrl || activeProvider || loading || refreshing) ? 'not-allowed' : 'pointer',
-                      opacity: (verificationUrl || activeProvider || loading || refreshing) ? 0.5 : 1,
-                      padding: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'opacity 0.2s'
-                    }}
-                    title="Refresh points"
-                  >
-                    <RefreshCw 
-                      size={18} 
-                      color="#6b7280"
-                      className={(loading || refreshing) ? 'spin' : ''}
-                    />
-                  </button>
-                </div>
+                <span className="stat-label">Total Points</span>
+                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!verificationUrl && !activeProvider && !loading && !refreshing) {
+                      fetchUserData(true);
+                    }
+                  }}
+                  disabled={!!verificationUrl || !!activeProvider || loading || refreshing}
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    background: 'none',
+                    border: 'none',
+                    cursor: (verificationUrl || activeProvider || loading || refreshing) ? 'not-allowed' : 'pointer',
+                    opacity: (verificationUrl || activeProvider || loading || refreshing) ? 0.5 : 1,
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'opacity 0.2s'
+                  }}
+                  title="Refresh points"
+                >
+                  <RefreshCw
+                    size={18}
+                    color="#6b7280"
+                    className={(loading || refreshing) ? 'spin' : ''}
+                  />
+                </button>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                  <span className="stat-value">{contributions.length}</span>
-                </div>
+                <span className="stat-value">{contributions.length}</span>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -1674,8 +1673,8 @@ const DashboardPage = () => {
             {/* Contribute Section */}
             <section className="contribute-section animate-enter">
               <div className="section-header">
-                <h2>Contribute & Earn</h2>
-                <p>Connect your accounts to verify data and earn rewards.</p>
+                <h2>Verify & Earn</h2>
+                <p>Verify your accounts to earn rewards.</p>
               </div>
 
               <div className="providers-grid">
@@ -1698,10 +1697,10 @@ const DashboardPage = () => {
                           // Mobile: Show direct link button instead of QR code
                           <>
                             <p className="qr-title" style={{ marginBottom: '16px' }}>Verifying on mobile...</p>
-                            <a 
-                              href={verificationUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
+                            <a
+                              href={verificationUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="qr-link"
                               style={{
                                 display: 'inline-block',
@@ -1726,16 +1725,16 @@ const DashboardPage = () => {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                        <p className="qr-title">Scan to verify</p>
-                        <div className="qr-container">
+                            <p className="qr-title">Scan to verify</p>
+                            <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                        </div>
-                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                          Open Link
-                        </a>
+                            </div>
+                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                              Open Link
+                            </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                        </button>
+                            </button>
                           </>
                         )}
                       </div>
@@ -1743,18 +1742,18 @@ const DashboardPage = () => {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                    <button
-                      onClick={() => handleContribute(provider)}
+                      <button
+                        onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                      className="btn-verify"
+                        className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                    >
-                      {contributing === provider.id ? (
-                        <><Loader2 size={16} className="spin" /> Verifying...</>
-                      ) : (
+                      >
+                        {contributing === provider.id ? (
+                          <><Loader2 size={16} className="spin" /> Verifying...</>
+                        ) : (
                           <>Connect</>
-                      )}
-                    </button>
+                        )}
+                      </button>
                     )}
                   </div>
                 ))}
@@ -1790,7 +1789,7 @@ const DashboardPage = () => {
                       const orders = contrib.totalOrders || contrib.sellableData?.order_metrics?.total_orders || 0;
                       expectedPoints = 50 + (parseInt(orders) || 0) * 10;
                     }
-                    
+
                     // Match points from history - find closest match within 30 seconds for this specific contribution
                     const contribTime = new Date(contrib.createdAt).getTime();
                     const matchedPoints = points?.history?.find((p: any) => {
