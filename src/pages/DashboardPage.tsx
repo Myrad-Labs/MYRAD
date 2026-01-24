@@ -1889,12 +1889,12 @@ const styles = `
     flex-direction: column;
     gap: 8px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
   
   .stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     border-color: #e5e7eb;
   }
   
@@ -1924,11 +1924,12 @@ const styles = `
     gap: 16px;
     position: relative;
     border-top: 4px solid transparent;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
   .provider-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     border-color: #e5e7eb;
     border-top-color: #111827;
   }
@@ -1988,6 +1989,7 @@ const styles = `
     border: 1px solid #f3f4f6;
     border-radius: 20px;
     overflow: hidden;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
   .activity-item {
@@ -2038,7 +2040,7 @@ const styles = `
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     min-height: 60px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
   .onboarding-card::before {
@@ -2058,7 +2060,7 @@ const styles = `
 
   .onboarding-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     border-color: #d1d5db;
     padding: 24px;
     min-height: 200px;
