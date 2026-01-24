@@ -8,6 +8,7 @@ import AboutPage from './pages/AboutPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import WhitepaperPage from './pages/Whitepaper';
+import TeamsPage from './pages/TeamsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
         <Route path="/whitepaper" element={<WhitepaperPage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsOfServicePage />} />
+        <Route path="/team" element={<TeamsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>
