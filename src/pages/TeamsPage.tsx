@@ -15,7 +15,7 @@ const TEAM_MEMBERS = [
         role: "CEO",
         image: "arghya.webp",
         socials: {
-            twitter: "https://x.com/arghya"
+            twitter: "https://x.com/ArghyaChow14"
         }
     },
     {
@@ -23,7 +23,7 @@ const TEAM_MEMBERS = [
         role: "COO",
         image: "andy.webp",
         socials: {
-            twitter: "https://x.com/andy"
+            twitter: "https://x.com/theteatoast"
         }
     },
     // Placeholders based on screenshot layout (alternating or grid)
@@ -32,7 +32,7 @@ const TEAM_MEMBERS = [
         role: "CTO",
         image: "sayan.webp",
         socials: {
-            twitter: "https://x.com/sayan"
+            twitter: "https://x.com/Sayan__Genri"
         }
     },
     {
@@ -40,7 +40,7 @@ const TEAM_MEMBERS = [
         role: "CMO",
         image: "abhra.webp",
         socials: {
-            twitter: "https://x.com/abhra"
+            twitter: "https://x.com/KarAbhra1383"
         }
     }
 ];
