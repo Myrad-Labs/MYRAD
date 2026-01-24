@@ -48,132 +48,147 @@ const TermsOfServicePage = () => {
                     </div>
 
                     <p style={{ color: 'rgba(0,0,0,0.6)', marginBottom: '48px' }}>
-                        Last updated: 07/01/2026
+                        Effective Date: January 24, 2026
+                    </p>
+
+                    <p style={{ color: 'rgba(0,0,0,0.8)', marginBottom: '48px', fontWeight: 500 }}>
+                        Company: Myrad (referred to as "Myrad", "we", "our", or "us")
                     </p>
 
                     <div style={{ color: 'rgba(0,0,0,0.6)', lineHeight: 1.8 }}>
 
                         <section style={{ marginBottom: '40px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                1. Acceptance of Terms
+                                1. About Myrad
                             </h2>
                             <p>
-                                By accessing or using MYRAD, you agree to these Terms and Conditions.
-                                If you do not agree, do not use the platform.
+                                Myrad is a platform that allows users to contribute privacy safe, aggregated behavioral insights derived from their own digital activity. These insights are transformed into anonymized signals used for research, product improvement, and analytics by organizations.
+                            </p>
+                            <p style={{ marginTop: '12px' }}>
+                                Myrad does not collect, store, or sell raw personal activity data from third party platforms.
                             </p>
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                2. Description of Service
+                                2. Eligibility
                             </h2>
-                            <p>
-                                MYRAD provides tools that allow users to verify certain digital activities and
-                                contribute anonymized, aggregated insights to third parties.
-                            </p>
-                            <p>
-                                MYRAD does not provide financial advice, investment advice, or guarantees of earnings.
-                            </p>
-                        </section>
-
-                        <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                3. User Responsibilities
-                            </h2>
-                            <p>You agree to:</p>
+                            <p>You must:</p>
                             <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
-                                <li>- Provide accurate information where required</li>
-                                <li>- Use the platform only for lawful purposes</li>
-                                <li>- Not attempt to manipulate or falsify verification</li>
-                                <li>- Not interfere with platform security or integrity</li>
+                                <li>• Be at least 18 years old</li>
+                                <li>• Have the legal capacity to enter into agreements</li>
+                                <li>• Use your own accounts when connecting services</li>
                             </ul>
-                            <p>
-                                Violation may result in suspension or termination.
+                            <p style={{ marginTop: '12px' }}>
+                                By using Myrad, you confirm that the information and accounts you connect belong to you.
                             </p>
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                4. Rewards and Compensation
+                                3. How Myrad Works
                             </h2>
+                            <p>When you connect a supported service:</p>
                             <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
-                                <li>- Any rewards offered are discretionary and subject to change</li>
-                                <li>- Rewards may vary based on contribution type and availability</li>
-                                <li>- MYRAD does not guarantee specific earnings</li>
+                                <li>• You authorize a verification process, not a data transfer</li>
+                                <li>• Myrad does not receive or store your raw activity history</li>
+                                <li>• Your activity is transformed into aggregated, anonymized behavioral signals</li>
+                                <li>• These signals cannot be used to identify you</li>
                             </ul>
-                            <p>
-                                Rewards are not wages or employment compensation.
+                            <p style={{ marginTop: '12px' }}>
+                                Your participation helps generate insights about general human behavior, not individual actions.
                             </p>
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                5. Intellectual Property
+                                4. No Raw Data Storage
                             </h2>
-                            <p>
-                                All platform content, software, and trademarks are owned by MYRAD or its licensors.
-                            </p>
-                            <p>
-                                Users retain ownership of their underlying data. By using the platform, users grant
-                                MYRAD a limited right to process derived and anonymized insights as described.
-                            </p>
-                        </section>
-
-                        <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                6. No Warranty
-                            </h2>
-                            <p>
-                                MYRAD is provided on an “as is” and “as available” basis.
-                            </p>
-                            <p>
-                                We do not guarantee uninterrupted access, error free operation, or specific outcomes.
-                            </p>
-                        </section>
-
-                        <section style={{ marginBottom: '40px' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                7. Limitation of Liability
-                            </h2>
-                            <p>
-                                To the maximum extent permitted by law, MYRAD shall not be liable for:
-                            </p>
+                            <p>Myrad does not:</p>
                             <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
-                                <li>- Indirect or consequential damages</li>
-                                <li>- Loss of data, profits, or opportunities</li>
-                                <li>- Third party platform changes or outages</li>
+                                <li>• Store your browsing history</li>
+                                <li>• Store your order history</li>
+                                <li>• Store your watch history</li>
+                                <li>• Store personal messages or content</li>
+                            </ul>
+                            <p style={{ marginTop: '12px' }}>
+                                All outputs are non reversible statistical signals created from multiple contributors.
+                            </p>
+                        </section>
+
+                        <section style={{ marginBottom: '40px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
+                                5. User Rewards
+                            </h2>
+                            <p>Myrad may provide points, rankings, or rewards for participation.</p>
+                            <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
+                                <li>• Rewards are discretionary</li>
+                                <li>• Reward structures may change</li>
+                                <li>• Abuse, fraud, or manipulation may result in removal from the program</li>
+                            </ul>
+                            <p style={{ marginTop: '12px' }}>
+                                Rewards do not create an employment, partnership, or agency relationship.
+                            </p>
+                        </section>
+
+                        <section style={{ marginBottom: '40px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
+                                6. User Responsibilities
+                            </h2>
+                            <p>You agree not to:</p>
+                            <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
+                                <li>• Use accounts that do not belong to you</li>
+                                <li>• Attempt to reverse engineer the system</li>
+                                <li>• Attempt to identify other users</li>
+                                <li>• Use Myrad for illegal purposes</li>
                             </ul>
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                8. Third Party Services
+                                7. Platform Independence
                             </h2>
                             <p>
-                                MYRAD may integrate with third party services. MYRAD is not responsible for the
-                                policies or practices of those services.
+                                Myrad is not affiliated with, endorsed by, or partnered with any third party services that users choose to connect.
+                            </p>
+                            <p style={{ marginTop: '12px' }}>
+                                All platform names and trademarks belong to their respective owners.
                             </p>
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                9. Termination
+                                8. Termination
                             </h2>
                             <p>
-                                MYRAD may suspend or terminate access if these terms are violated or if required by law.
+                                You may disconnect your accounts and stop participating at any time.
                             </p>
+                            <p style={{ marginTop: '12px' }}>Myrad may suspend or terminate access if:</p>
+                            <ul style={{ paddingLeft: '24px', marginTop: '12px' }}>
+                                <li>• These Terms are violated</li>
+                                <li>• Fraudulent or abusive behavior is detected</li>
+                                <li>• Required by law</li>
+                            </ul>
+                        </section>
+
+                        <section style={{ marginBottom: '40px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
+                                9. Disclaimer of Warranties
+                            </h2>
                             <p>
-                                Users may stop using the platform at any time.
+                                Myrad is provided "as is" without warranties of any kind.
+                            </p>
+                            <p style={{ marginTop: '12px' }}>
+                                We do not guarantee uninterrupted service or specific reward outcomes.
                             </p>
                         </section>
 
                         <section style={{ marginBottom: '40px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#374151', marginBottom: '16px' }}>
-                                10. Governing Law
+                                10. Limitation of Liability
                             </h2>
                             <p>
-                                These Terms are governed by the laws of [Jurisdiction], without regard to conflict of
-                                law principles.
+                                To the maximum extent permitted by law, Myrad shall not be liable for indirect, incidental, or consequential damages arising from your use of the service.
                             </p>
                         </section>
 
@@ -182,8 +197,7 @@ const TermsOfServicePage = () => {
                                 11. Changes to Terms
                             </h2>
                             <p>
-                                We may update these Terms from time to time. Continued use constitutes acceptance
-                                of updated terms.
+                                We may update these Terms as the product evolves. Continued use after updates means you accept the revised Terms.
                             </p>
                         </section>
 
@@ -192,10 +206,10 @@ const TermsOfServicePage = () => {
                                 12. Contact
                             </h2>
                             <p>
-                                For questions regarding these Terms, please{' '}
-                                <a href="https://calendly.com/carghya10/30min" target="_blank" rel="noopener noreferrer" style={{ color: accent }}>
-                                    book a call with us
-                                </a>.
+                                For questions, contact:{' '}
+                                <a href="mailto:info@myradhq.xyz" style={{ color: accent }}>
+                                    info@myradhq.xyz
+                                </a>
                             </p>
                         </section>
 
