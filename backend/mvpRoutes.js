@@ -329,6 +329,11 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
         } else if (dataType === 'strava_fitness') {
             // For Strava: hash based on activity totals and primary stats
             contentSignature = `strava_${anonymizedData.running_total || 0}_${anonymizedData.cycling_total || 0}_${anonymizedData.total_activities || 0}_${anonymizedData.location || ''}`;
+        } else if (dataType === 'blinkit_order_history' && anonymizedData.orders?.length > 0) {
+            // For Blinkit: hash based on order count + first order details
+            const orders = anonymizedData.orders;
+            const firstOrder = orders[0];
+            contentSignature = `blinkit_${orders.length}_${firstOrder?.items || ''}_${firstOrder?.total || firstOrder?.price || ''}`;
         }
 
         if (contentSignature) {
@@ -456,6 +461,27 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
         }
 
+        // Process Blinkit data through grocery order pipeline
+        if (dataType === 'blinkit_order_history') {
+            try {
+                const { processBlinkitData } = await import('./blinkitPipeline.js');
+
+                console.log('🛒 Processing Blinkit data through order pipeline...');
+
+                const result = processBlinkitData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Blinkit order pipeline complete');
+                    console.log(`📊 Order count: ${sellableData?.transaction_data?.summary?.total_orders || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Blinkit pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
         // Store contribution with sellable data format
         const finalWalletAddress = user.walletAddress || walletAddress || null;
         let contribution;
@@ -566,6 +592,23 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             });
         }
 
+        // Validate Blinkit order history
+        const blinkitOrderCount = sellableData?.transaction_data?.summary?.total_orders || 0;
+        if (dataType === 'blinkit_order_history' && blinkitOrderCount === 0) {
+            console.log(`⚠️ Zero Blinkit orders detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No orders found',
+                message: 'Your Blinkit order history appears to be empty. We can only award points for verifiable order data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    orderCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
         // Calculate rewards based on new points system
         let rewardResult;
         if (dataType === 'github_profile') {
@@ -629,6 +672,18 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 }
             };
             console.log(`🏃 Strava fitness verified for user ${user.id}. Awarding ${totalPoints} points (75 base + ${additionalPoints} bonus, tier: ${fitnessTier}).`);
+        } else if (dataType === 'blinkit_order_history') {
+            // Blinkit: 50 points base + (total_orders * 10) additional
+            const additionalPoints = blinkitOrderCount * 10;
+            const totalPoints = 50 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 50,
+                    bonus: additionalPoints
+                }
+            };
+            console.log(`🛒 Blinkit order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${blinkitOrderCount} orders).`);
         } else {
             // Fallback for unknown data types
             rewardResult = {

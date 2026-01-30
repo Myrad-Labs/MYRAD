@@ -81,6 +81,19 @@ const PROVIDERS = [
     icon: PlayCircle, // Using PlayCircle as activity icon
     iconColor: '#ffffff',
     iconBg: '#FC4C02' // Strava Orange
+  },
+  {
+    id: 'blinkit',
+    name: 'Blinkit',
+    description: 'Last 10 Orders',
+    providerId: import.meta.env.VITE_BLINKIT_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #F8CB46 0%, #000000 100%)',
+    points: 10,
+    dataType: 'blinkit_order_history',
+    icon: UtensilsCrossed, // Using same icon as food delivery
+    iconColor: '#000000',
+    iconBg: '#F8CB46' // Blinkit Yellow
   }
 ];
 
@@ -812,6 +825,19 @@ const DashboardPage = () => {
                         };
                         console.log(`🏃 Extracted Strava fitness data:`, stravaData);
                         return stravaData;
+                      }
+                    }
+                    // For Blinkit - extract grocery order history
+                    if (providerType === 'blinkit') {
+                      // Try various Blinkit order formats
+                      const orderMatches = rawStr.match(/\{"items":"[^"]+","(?:price|total)":"[^"]+","(?:timestamp|date)":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"order_items":"[^"]+","order_total":"[^"]+","order_date":"[^"]+"\}/g);
+                      if (orderMatches && orderMatches.length > 0) {
+                        try {
+                          const orders = orderMatches.map((m: string) => JSON.parse(m));
+                          console.log(`🛒 Extracted ${orders.length} Blinkit orders`);
+                          return { orders };
+                        } catch (e) { /* ignore parse errors */ }
                       }
                     }
                   }
