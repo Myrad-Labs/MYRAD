@@ -94,6 +94,19 @@ const PROVIDERS = [
     icon: UtensilsCrossed, // Using same icon as food delivery
     iconColor: '#000000',
     iconBg: '#F8CB46' // Blinkit Yellow
+  },
+  {
+    id: 'uber_rides',
+    name: 'Uber Rides',
+    description: 'Ride History',
+    providerId: import.meta.env.VITE_UBER_RIDES_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #000000 0%, #276EF1 100%)',
+    points: 15,
+    dataType: 'uber_ride_history',
+    icon: PlayCircle, // Using as transportation icon
+    iconColor: '#ffffff',
+    iconBg: '#000000' // Uber Black
   }
 ];
 
@@ -837,6 +850,19 @@ const DashboardPage = () => {
                           const orders = orderMatches.map((m: string) => JSON.parse(m));
                           console.log(`🛒 Extracted ${orders.length} Blinkit orders`);
                           return { orders };
+                        } catch (e) { /* ignore parse errors */ }
+                      }
+                    }
+                    // For Uber Rides - extract ride history
+                    if (providerType === 'uber_rides') {
+                      // Try various Uber ride formats
+                      const rideMatches = rawStr.match(/\{"(?:fare|total)":"[^"]+","(?:timestamp|date|pickup_time)":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"trip_id":"[^"]+","fare":"[^"]+"\}/g);
+                      if (rideMatches && rideMatches.length > 0) {
+                        try {
+                          const rides = rideMatches.map((m: string) => JSON.parse(m));
+                          console.log(`🚗 Extracted ${rides.length} Uber rides`);
+                          return { rides };
                         } catch (e) { /* ignore parse errors */ }
                       }
                     }

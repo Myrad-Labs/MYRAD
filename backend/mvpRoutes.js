@@ -334,6 +334,11 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             const orders = anonymizedData.orders;
             const firstOrder = orders[0];
             contentSignature = `blinkit_${orders.length}_${firstOrder?.items || ''}_${firstOrder?.total || firstOrder?.price || ''}`;
+        } else if (dataType === 'uber_ride_history' && anonymizedData.rides?.length > 0) {
+            // For Uber Rides: hash based on ride count + first ride details
+            const rides = anonymizedData.rides;
+            const firstRide = rides[0];
+            contentSignature = `uber_rides_${rides.length}_${firstRide?.fare || firstRide?.total || ''}_${firstRide?.timestamp || firstRide?.date || ''}`;
         }
 
         if (contentSignature) {
@@ -482,6 +487,27 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
         }
 
+        // Process Uber Rides data through mobility pipeline
+        if (dataType === 'uber_ride_history') {
+            try {
+                const { processUberRidesData } = await import('./uberRidesPipeline.js');
+
+                console.log('🚗 Processing Uber Rides data through mobility pipeline...');
+
+                const result = processUberRidesData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Uber Rides pipeline complete');
+                    console.log(`🚕 Ride count: ${sellableData?.ride_summary?.total_rides || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Uber Rides pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
         // Store contribution with sellable data format
         const finalWalletAddress = user.walletAddress || walletAddress || null;
         let contribution;
@@ -609,6 +635,23 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             });
         }
 
+        // Validate Uber Rides history
+        const uberRidesCount = sellableData?.ride_summary?.total_rides || 0;
+        if (dataType === 'uber_ride_history' && uberRidesCount === 0) {
+            console.log(`⚠️ Zero Uber rides detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No rides found',
+                message: 'Your Uber ride history appears to be empty. We can only award points for verifiable ride data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    rideCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
         // Calculate rewards based on new points system
         let rewardResult;
         if (dataType === 'github_profile') {
@@ -684,6 +727,21 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 }
             };
             console.log(`🛒 Blinkit order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${blinkitOrderCount} orders).`);
+        } else if (dataType === 'uber_ride_history') {
+            // Uber Rides: 60 points base + (rides * 5) + commuter bonus
+            const isCommuter = sellableData?.temporal_behavior?.is_commuter || false;
+            const commuterBonus = isCommuter ? 20 : 0;
+            const additionalPoints = (uberRidesCount * 5) + commuterBonus;
+            const totalPoints = 60 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 60,
+                    bonus: additionalPoints,
+                    commuterBonus
+                }
+            };
+            console.log(`🚗 Uber Rides verified for user ${user.id}. Awarding ${totalPoints} points (60 base + ${additionalPoints} bonus, commuter: ${isCommuter}).`);
         } else {
             // Fallback for unknown data types
             rewardResult = {
