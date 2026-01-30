@@ -55,6 +55,32 @@ const PROVIDERS = [
     icon: Clapperboard,
     iconColor: '#ffffff',
     iconBg: '#e50914' // Netflix Red
+  },
+  {
+    id: 'ubereats',
+    name: 'Uber Eats',
+    description: 'Order History',
+    providerId: import.meta.env.VITE_UBEREATS_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #06C167 0%, #000000 100%)',
+    points: 10,
+    dataType: 'ubereats_order_history',
+    icon: UtensilsCrossed,
+    iconColor: '#ffffff',
+    iconBg: '#06C167' // Uber Eats Green
+  },
+  {
+    id: 'strava',
+    name: 'Strava',
+    description: 'Fitness Activities',
+    providerId: import.meta.env.VITE_STRAVA_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #FC4C02 0%, #000000 100%)',
+    points: 25,
+    dataType: 'strava_fitness',
+    icon: PlayCircle, // Using PlayCircle as activity icon
+    iconColor: '#ffffff',
+    iconBg: '#FC4C02' // Strava Orange
   }
 ];
 
@@ -749,6 +775,43 @@ const DashboardPage = () => {
                           console.log(`📺 Extracted ${watchHistory.length} Netflix titles (no dates)`);
                           return { watchHistory };
                         } catch (e) { /* ignore */ }
+                      }
+                    }
+                    // For Uber Eats - extract order history (similar to Zomato format)
+                    if (providerType === 'ubereats') {
+                      // Try various Uber Eats order formats
+                      const orderMatches = rawStr.match(/\{"items":"[^"]+","price":"[^"]+","timestamp":"[^"]+","restaurant":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"restaurant":"[^"]+","items":"[^"]+","total":"[^"]+","date":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"restaurant_name":"[^"]+","order_items":"[^"]+","amount":"[^"]+","order_date":"[^"]+"\}/g);
+                      if (orderMatches && orderMatches.length > 0) {
+                        try {
+                          const orders = orderMatches.map((m: string) => JSON.parse(m));
+                          console.log(`🍔 Extracted ${orders.length} Uber Eats orders`);
+                          return { orders };
+                        } catch (e) { /* ignore parse errors */ }
+                      }
+                    }
+                    // For Strava - extract fitness activity data
+                    if (providerType === 'strava') {
+                      // Try to extract fitness stats
+                      const runningMatch = rawStr.match(/running[_\s]?total["\s:]+["']?([\d.]+)/i);
+                      const cyclingMatch = rawStr.match(/(?:cycling|ride)[_\s]?total["\s:]+["']?([\d.]+)/i);
+                      const walkingMatch = rawStr.match(/walking[_\s]?total["\s:]+["']?([\d.]+)/i);
+                      const activitiesMatch = rawStr.match(/total[_\s]?activities["\s:]+["']?(\d+)/i);
+                      const locationMatch = rawStr.match(/(?:location|city|country)["\s:]+["']?([^"',}]+)/i);
+                      const nameMatch = rawStr.match(/(?:name|username|athlete_name)["\s:]+["']?([^"',}]+)/i);
+
+                      if (runningMatch || cyclingMatch || activitiesMatch) {
+                        const stravaData = {
+                          running_total: runningMatch?.[1] || '0',
+                          cycling_total: cyclingMatch?.[1] || '0',
+                          walking_total: walkingMatch?.[1] || '0',
+                          total_activities: activitiesMatch?.[1] || '0',
+                          location: locationMatch?.[1] || null,
+                          name: nameMatch?.[1] || null
+                        };
+                        console.log(`🏃 Extracted Strava fitness data:`, stravaData);
+                        return stravaData;
                       }
                     }
                   }

@@ -321,6 +321,14 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             const titles = anonymizedData.titles;
             const firstTitle = titles[0];
             contentSignature = `netflix_${titles.length}_${firstTitle?.title || firstTitle?.name || ''}`;
+        } else if (dataType === 'ubereats_order_history' && anonymizedData.orders?.length > 0) {
+            // For Uber Eats: hash based on order count + first order details
+            const orders = anonymizedData.orders;
+            const firstOrder = orders[0];
+            contentSignature = `ubereats_${anonymizedData.userId || ''}_${orders.length}_${firstOrder?.restaurant || firstOrder?.restaurant_name || ''}_${firstOrder?.timestamp || firstOrder?.date || ''}`;
+        } else if (dataType === 'strava_fitness') {
+            // For Strava: hash based on activity totals and primary stats
+            contentSignature = `strava_${anonymizedData.running_total || 0}_${anonymizedData.cycling_total || 0}_${anonymizedData.total_activities || 0}_${anonymizedData.location || ''}`;
         }
 
         if (contentSignature) {
@@ -405,6 +413,49 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
         }
 
+        // Process Uber Eats data through order history pipeline
+        if (dataType === 'ubereats_order_history') {
+            try {
+                const { processUberEatsData } = await import('./ubereatsPipeline.js');
+
+                console.log('🍔 Processing Uber Eats data through order pipeline...');
+                // Raw data logging removed for security
+
+                const result = processUberEatsData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Uber Eats order pipeline complete');
+                    console.log(`📊 Order count: ${sellableData?.transaction_data?.summary?.total_orders || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Uber Eats pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
+        // Process Strava data through fitness pipeline
+        if (dataType === 'strava_fitness') {
+            try {
+                const { processStravaData } = await import('./stravaPipeline.js');
+
+                console.log('🏃 Processing Strava fitness data through pipeline...');
+
+                const result = processStravaData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Strava fitness pipeline complete');
+                    console.log(`🏆 Fitness tier: ${sellableData?.fitness_profile?.tier || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Strava pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
         // Store contribution with sellable data format
         const finalWalletAddress = user.walletAddress || walletAddress || null;
         let contribution;
@@ -481,6 +532,40 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             });
         }
 
+        // Validate Uber Eats order history
+        const ubereatsOrderCount = sellableData?.transaction_data?.summary?.total_orders || 0;
+        if (dataType === 'ubereats_order_history' && ubereatsOrderCount === 0) {
+            console.log(`⚠️ Zero Uber Eats orders detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No orders found',
+                message: 'Your Uber Eats order history appears to be empty. We can only award points for verifiable order data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    orderCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
+        // Validate Strava fitness data
+        const stravaActivities = sellableData?.activity_totals?.total_activities || 0;
+        if (dataType === 'strava_fitness' && stravaActivities === 0) {
+            console.log(`⚠️ Zero Strava activities detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No fitness activities found',
+                message: 'Your Strava activity history appears to be empty. We can only award points for verifiable fitness data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    activities: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
         // Calculate rewards based on new points system
         let rewardResult;
         if (dataType === 'github_profile') {
@@ -517,6 +602,33 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 }
             };
             console.log(`🍽️ Zomato order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${orderCount} orders).`);
+        } else if (dataType === 'ubereats_order_history') {
+            // Uber Eats: 50 points base + (total_orders * 10) additional (same as Zomato)
+            const additionalPoints = ubereatsOrderCount * 10;
+            const totalPoints = 50 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 50,
+                    bonus: additionalPoints
+                }
+            };
+            console.log(`🍔 Uber Eats order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${ubereatsOrderCount} orders).`);
+        } else if (dataType === 'strava_fitness') {
+            // Strava: HIGH VALUE - 75 points base + (activities * 5) additional (premium fitness audience)
+            const fitnessTier = sellableData?.fitness_profile?.tier || 'casual';
+            const tierBonus = fitnessTier === 'elite' ? 50 : fitnessTier === 'enthusiast' ? 25 : 0;
+            const additionalPoints = (stravaActivities * 5) + tierBonus;
+            const totalPoints = 75 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 75,
+                    bonus: additionalPoints,
+                    tierBonus
+                }
+            };
+            console.log(`🏃 Strava fitness verified for user ${user.id}. Awarding ${totalPoints} points (75 base + ${additionalPoints} bonus, tier: ${fitnessTier}).`);
         } else {
             // Fallback for unknown data types
             rewardResult = {
