@@ -164,6 +164,181 @@ function extractNetflixFields(sellableData) {
 }
 
 /**
+ * Extract key fields from sellableData for indexing (Blinkit)
+ */
+function extractBlinkitFields(sellableData) {
+  if (!sellableData) return {};
+
+  const toInt = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  const toDecimal = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  };
+
+  return {
+    total_orders: toInt(sellableData?.transaction_data?.summary?.total_orders),
+    total_spend: toDecimal(sellableData?.transaction_data?.summary?.total_spend),
+    avg_order_value: toDecimal(sellableData?.transaction_data?.summary?.avg_order_value),
+    total_items: toInt(sellableData?.transaction_data?.summary?.total_items),
+    avg_items_per_order: toDecimal(sellableData?.transaction_data?.summary?.avg_items_per_order),
+    data_window_days: toInt(sellableData?.transaction_data?.summary?.data_window_days),
+    top_categories: sellableData?.category_preferences?.top_categories || null,
+    category_diversity_score: toInt(sellableData?.category_preferences?.category_diversity_score),
+    essentials_buyer: sellableData?.category_preferences?.essentials_buyer || false,
+    snacks_buyer: sellableData?.category_preferences?.snacks_buyer || false,
+    personal_care_buyer: sellableData?.category_preferences?.personal_care_buyer || false,
+    top_brands: sellableData?.brand_affinity?.top_brands || null,
+    brand_loyalty_score: sellableData?.brand_affinity?.brand_loyalty_score || null,
+    spend_bracket: sellableData?.behavioral_insights?.spend_bracket || null,
+    order_frequency: sellableData?.behavioral_insights?.order_frequency || null,
+    segment_id: sellableData?.audience_segment?.segment_id || null,
+    cohort_id: sellableData?.metadata?.privacy_compliance?.cohort_id || null,
+    data_quality_score: toInt(sellableData?.metadata?.data_quality?.score),
+  };
+}
+
+/**
+ * Extract key fields from sellableData for indexing (Uber Eats)
+ */
+function extractUberEatsFields(sellableData) {
+  if (!sellableData) return {};
+
+  const toInt = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  const toDecimal = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  };
+
+  return {
+    total_orders: toInt(sellableData?.transaction_data?.summary?.total_orders),
+    total_spend: toDecimal(sellableData?.transaction_data?.summary?.total_spend),
+    avg_order_value: toDecimal(sellableData?.transaction_data?.summary?.avg_order_value),
+    data_window_days: toInt(sellableData?.transaction_data?.summary?.data_window_days),
+    top_cuisines: sellableData?.cuisine_preferences?.top_cuisines || null,
+    cuisine_diversity_score: toInt(sellableData?.cuisine_preferences?.cuisine_diversity_score),
+    top_brands: sellableData?.brand_affinity?.top_brands || null,
+    brand_loyalty_score: sellableData?.brand_affinity?.brand_loyalty_score || null,
+    spend_bracket: sellableData?.behavioral_insights?.spend_bracket || null,
+    price_sensitivity_index: toInt(sellableData?.behavioral_insights?.price_sensitivity?.index),
+    price_sensitivity_category: sellableData?.behavioral_insights?.price_sensitivity?.category || null,
+    peak_ordering_day: sellableData?.behavioral_insights?.temporal_behavior?.peak_ordering_day || null,
+    peak_ordering_time: sellableData?.behavioral_insights?.temporal_behavior?.peak_ordering_time || null,
+    late_night_eater: sellableData?.behavioral_insights?.temporal_behavior?.late_night_eater || false,
+    avg_items_per_order: toDecimal(sellableData?.behavioral_insights?.avg_items_per_order),
+    day_of_week_distribution: sellableData?.behavioral_insights?.temporal_behavior?.day_of_week_distribution || null,
+    time_of_day_curve: sellableData?.behavioral_insights?.temporal_behavior?.time_of_day_curve || null,
+    segment_id: sellableData?.audience_segment?.segment_id || null,
+    cohort_id: sellableData?.metadata?.privacy_compliance?.cohort_id || null,
+    data_quality_score: toInt(sellableData?.metadata?.data_quality?.score),
+  };
+}
+
+/**
+ * Extract key fields from sellableData for indexing (Uber Rides)
+ */
+function extractUberRidesFields(sellableData) {
+  if (!sellableData) return {};
+
+  const toInt = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  const toDecimal = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  };
+
+  return {
+    total_rides: toInt(sellableData?.ride_summary?.total_rides),
+    total_spend: toDecimal(sellableData?.ride_summary?.total_spend),
+    total_distance_km: toDecimal(sellableData?.ride_summary?.total_distance_km),
+    total_duration_min: toInt(sellableData?.ride_summary?.total_duration_min),
+    avg_fare: toDecimal(sellableData?.ride_summary?.avg_fare),
+    avg_distance_km: toDecimal(sellableData?.ride_summary?.avg_distance_km),
+    avg_duration_min: toInt(sellableData?.ride_summary?.avg_duration_min),
+    preferred_ride_type: sellableData?.ride_preferences?.preferred_type || null,
+    ride_type_distribution: sellableData?.ride_preferences?.ride_type_distribution || null,
+    uses_premium: sellableData?.ride_preferences?.uses_premium || false,
+    uses_shared: sellableData?.ride_preferences?.uses_shared || false,
+    peak_time_period: sellableData?.temporal_behavior?.peak_time_period || null,
+    peak_day: sellableData?.temporal_behavior?.peak_day || null,
+    is_commuter: sellableData?.temporal_behavior?.is_commuter || false,
+    weekend_preference: sellableData?.temporal_behavior?.weekend_preference || false,
+    late_night_rider: sellableData?.temporal_behavior?.late_night_rider || false,
+    spend_bracket: sellableData?.behavioral_insights?.spend_bracket || null,
+    frequency: sellableData?.behavioral_insights?.frequency || null,
+    urban_mobility_score: toInt(sellableData?.behavioral_insights?.urban_mobility_score),
+    segment_id: sellableData?.audience_segment?.segment_id || null,
+    cohort_id: sellableData?.metadata?.privacy_compliance?.cohort_id || null,
+    data_quality_score: toInt(sellableData?.metadata?.data_quality?.score),
+  };
+}
+
+/**
+ * Extract key fields from sellableData for indexing (Strava)
+ */
+function extractStravaFields(sellableData) {
+  if (!sellableData) return {};
+
+  const toInt = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  const toDecimal = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  };
+
+  return {
+    fitness_tier: sellableData?.fitness_profile?.tier || null,
+    tier_label: sellableData?.fitness_profile?.tier_label || null,
+    activities_per_week: toDecimal(sellableData?.fitness_profile?.activities_per_week),
+    primary_activity: sellableData?.fitness_profile?.primary_activity || null,
+    engagement_score: toInt(sellableData?.fitness_profile?.engagement_score),
+    total_distance_km: toDecimal(sellableData?.activity_totals?.total_distance_km),
+    total_activities: toInt(sellableData?.activity_totals?.total_activities),
+    total_time_hours: toDecimal(sellableData?.activity_totals?.total_time_hours),
+    running_distance_km: toDecimal(sellableData?.activity_totals?.running?.distance_km),
+    running_count: toInt(sellableData?.activity_totals?.running?.count),
+    running_time_hours: toDecimal(sellableData?.activity_totals?.running?.time_hours),
+    cycling_distance_km: toDecimal(sellableData?.activity_totals?.cycling?.distance_km),
+    cycling_count: toInt(sellableData?.activity_totals?.cycling?.count),
+    cycling_time_hours: toDecimal(sellableData?.activity_totals?.cycling?.time_hours),
+    walking_distance_km: toDecimal(sellableData?.activity_totals?.walking?.distance_km),
+    walking_count: toInt(sellableData?.activity_totals?.walking?.count),
+    swimming_distance_km: toDecimal(sellableData?.activity_totals?.swimming?.distance_km),
+    swimming_count: toInt(sellableData?.activity_totals?.swimming?.count),
+    consistency_score: toInt(sellableData?.behavioral_insights?.consistency_score),
+    multi_sport_athlete: sellableData?.behavioral_insights?.multi_sport_athlete || false,
+    endurance_focused: sellableData?.behavioral_insights?.endurance_focused || false,
+    outdoor_enthusiast: sellableData?.behavioral_insights?.outdoor_enthusiast || false,
+    region: sellableData?.geo_data?.region || null,
+    country: sellableData?.geo_data?.country || null,
+    segment_id: sellableData?.audience_segment?.segment_id || null,
+    cohort_id: sellableData?.metadata?.privacy_compliance?.cohort_id || null,
+    data_quality_score: toInt(sellableData?.metadata?.data_quality?.score),
+  };
+}
+
+/**
  * Save a contribution to the appropriate table based on dataType
  */
 export async function saveContribution(contribution) {
@@ -240,6 +415,78 @@ export async function saveContribution(contribution) {
           isDuplicate = true;
           console.log(`⚠️ DUPLICATE Netflix data detected (titles: ${titleCount}), rejecting`);
           return { success: false, isDuplicate: true, existingId: existingNetflix.id, message: 'This Netflix watch history has already been submitted.' };
+        }
+      }
+    }
+
+    // For Blinkit: check by total_orders + total_spend (similar to Zomato)
+    if (dataType === 'blinkit_order_history') {
+      const indexedFields = extractBlinkitFields(sellableData);
+      if (indexedFields.total_orders !== null && indexedFields.total_spend !== null) {
+        const existingBlinkit = await findBlinkitContributionByData(indexedFields.total_orders, indexedFields.total_spend);
+        if (existingBlinkit) {
+          if (indexedFields.total_orders > (existingBlinkit.total_orders || 0)) {
+            contributionId = existingBlinkit.id;
+            console.log(`🔄 Updating Blinkit contribution with MORE data`);
+          } else {
+            isDuplicate = true;
+            console.log(`⚠️ DUPLICATE Blinkit data detected, rejecting`);
+            return { success: false, isDuplicate: true, existingId: existingBlinkit.id, message: 'This Blinkit data has already been submitted.' };
+          }
+        }
+      }
+    }
+
+    // For Uber Eats: check by total_orders + total_spend
+    if (dataType === 'ubereats_order_history') {
+      const indexedFields = extractUberEatsFields(sellableData);
+      if (indexedFields.total_orders !== null && indexedFields.total_spend !== null) {
+        const existingUberEats = await findUberEatsContributionByData(indexedFields.total_orders, indexedFields.total_spend);
+        if (existingUberEats) {
+          if (indexedFields.total_orders > (existingUberEats.total_orders || 0)) {
+            contributionId = existingUberEats.id;
+            console.log(`🔄 Updating Uber Eats contribution with MORE data`);
+          } else {
+            isDuplicate = true;
+            console.log(`⚠️ DUPLICATE Uber Eats data detected, rejecting`);
+            return { success: false, isDuplicate: true, existingId: existingUberEats.id, message: 'This Uber Eats data has already been submitted.' };
+          }
+        }
+      }
+    }
+
+    // For Uber Rides: check by total_rides + total_spend
+    if (dataType === 'uber_ride_history') {
+      const indexedFields = extractUberRidesFields(sellableData);
+      if (indexedFields.total_rides !== null && indexedFields.total_spend !== null) {
+        const existingUberRides = await findUberRidesContributionByData(indexedFields.total_rides, indexedFields.total_spend);
+        if (existingUberRides) {
+          if (indexedFields.total_rides > (existingUberRides.total_rides || 0)) {
+            contributionId = existingUberRides.id;
+            console.log(`🔄 Updating Uber Rides contribution with MORE data`);
+          } else {
+            isDuplicate = true;
+            console.log(`⚠️ DUPLICATE Uber Rides data detected, rejecting`);
+            return { success: false, isDuplicate: true, existingId: existingUberRides.id, message: 'This Uber Rides data has already been submitted.' };
+          }
+        }
+      }
+    }
+
+    // For Strava: check by total_activities + total_distance
+    if (dataType === 'strava_fitness') {
+      const indexedFields = extractStravaFields(sellableData);
+      if (indexedFields.total_activities !== null && indexedFields.total_distance_km !== null) {
+        const existingStrava = await findStravaContributionByData(indexedFields.total_activities, indexedFields.total_distance_km);
+        if (existingStrava) {
+          if (indexedFields.total_activities > (existingStrava.total_activities || 0)) {
+            contributionId = existingStrava.id;
+            console.log(`🔄 Updating Strava contribution with MORE data`);
+          } else {
+            isDuplicate = true;
+            console.log(`⚠️ DUPLICATE Strava data detected, rejecting`);
+            return { success: false, isDuplicate: true, existingId: existingStrava.id, message: 'This Strava data has already been submitted.' };
+          }
         }
       }
     }
@@ -449,6 +696,242 @@ export async function saveContribution(contribution) {
             indexedFields.movies_watched ? JSON.stringify(indexedFields.movies_watched) : null,
             indexedFields.top_series ? JSON.stringify(indexedFields.top_series) : null,
             walletAddress || null
+          ]
+        );
+
+      } else if (dataType === 'blinkit_order_history') {
+        const indexedFields = extractBlinkitFields(sellableData);
+
+        await query(
+          `INSERT INTO blinkit_contributions (
+            id, user_id, reclaim_proof_id, status, processing_method, created_at,
+            sellable_data, metadata,
+            total_orders, total_spend, avg_order_value, total_items, avg_items_per_order,
+            data_window_days, top_categories, category_diversity_score,
+            essentials_buyer, snacks_buyer, personal_care_buyer,
+            top_brands, brand_loyalty_score, spend_bracket, order_frequency,
+            segment_id, cohort_id, data_quality_score, wallet_address
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
+            status = EXCLUDED.status,
+            sellable_data = EXCLUDED.sellable_data,
+            metadata = EXCLUDED.metadata,
+            total_orders = EXCLUDED.total_orders,
+            total_spend = EXCLUDED.total_spend,
+            avg_order_value = EXCLUDED.avg_order_value,
+            top_categories = EXCLUDED.top_categories,
+            top_brands = EXCLUDED.top_brands,
+            spend_bracket = EXCLUDED.spend_bracket,
+            wallet_address = EXCLUDED.wallet_address,
+            updated_at = NOW()`,
+          [
+            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            JSON.stringify(sellableData),
+            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+            indexedFields.total_orders,
+            indexedFields.total_spend,
+            indexedFields.avg_order_value,
+            indexedFields.total_items,
+            indexedFields.avg_items_per_order,
+            indexedFields.data_window_days,
+            indexedFields.top_categories ? JSON.stringify(indexedFields.top_categories) : null,
+            indexedFields.category_diversity_score,
+            indexedFields.essentials_buyer,
+            indexedFields.snacks_buyer,
+            indexedFields.personal_care_buyer,
+            indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
+            indexedFields.brand_loyalty_score,
+            indexedFields.spend_bracket,
+            indexedFields.order_frequency,
+            indexedFields.segment_id,
+            indexedFields.cohort_id,
+            indexedFields.data_quality_score,
+            walletAddress || null,
+          ]
+        );
+
+      } else if (dataType === 'ubereats_order_history') {
+        const indexedFields = extractUberEatsFields(sellableData);
+
+        await query(
+          `INSERT INTO ubereats_contributions (
+            id, user_id, reclaim_proof_id, status, processing_method, created_at,
+            sellable_data, metadata,
+            total_orders, total_spend, avg_order_value, data_window_days,
+            top_cuisines, cuisine_diversity_score, top_brands, brand_loyalty_score,
+            spend_bracket, price_sensitivity_index, price_sensitivity_category,
+            peak_ordering_day, peak_ordering_time, late_night_eater, avg_items_per_order,
+            day_of_week_distribution, time_of_day_curve,
+            segment_id, cohort_id, data_quality_score, wallet_address
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
+            status = EXCLUDED.status,
+            sellable_data = EXCLUDED.sellable_data,
+            metadata = EXCLUDED.metadata,
+            total_orders = EXCLUDED.total_orders,
+            total_spend = EXCLUDED.total_spend,
+            top_cuisines = EXCLUDED.top_cuisines,
+            top_brands = EXCLUDED.top_brands,
+            spend_bracket = EXCLUDED.spend_bracket,
+            wallet_address = EXCLUDED.wallet_address,
+            updated_at = NOW()`,
+          [
+            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            JSON.stringify(sellableData),
+            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+            indexedFields.total_orders,
+            indexedFields.total_spend,
+            indexedFields.avg_order_value,
+            indexedFields.data_window_days,
+            indexedFields.top_cuisines ? JSON.stringify(indexedFields.top_cuisines) : null,
+            indexedFields.cuisine_diversity_score,
+            indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
+            indexedFields.brand_loyalty_score,
+            indexedFields.spend_bracket,
+            indexedFields.price_sensitivity_index,
+            indexedFields.price_sensitivity_category,
+            indexedFields.peak_ordering_day,
+            indexedFields.peak_ordering_time,
+            indexedFields.late_night_eater,
+            indexedFields.avg_items_per_order,
+            indexedFields.day_of_week_distribution ? JSON.stringify(indexedFields.day_of_week_distribution) : null,
+            indexedFields.time_of_day_curve ? JSON.stringify(indexedFields.time_of_day_curve) : null,
+            indexedFields.segment_id,
+            indexedFields.cohort_id,
+            indexedFields.data_quality_score,
+            walletAddress || null,
+          ]
+        );
+
+      } else if (dataType === 'uber_ride_history') {
+        const indexedFields = extractUberRidesFields(sellableData);
+
+        await query(
+          `INSERT INTO uber_rides_contributions (
+            id, user_id, reclaim_proof_id, status, processing_method, created_at,
+            sellable_data, metadata,
+            total_rides, total_spend, total_distance_km, total_duration_min,
+            avg_fare, avg_distance_km, avg_duration_min,
+            preferred_ride_type, ride_type_distribution, uses_premium, uses_shared,
+            peak_time_period, peak_day, is_commuter, weekend_preference, late_night_rider,
+            spend_bracket, frequency, urban_mobility_score,
+            segment_id, cohort_id, data_quality_score, wallet_address
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
+            status = EXCLUDED.status,
+            sellable_data = EXCLUDED.sellable_data,
+            metadata = EXCLUDED.metadata,
+            total_rides = EXCLUDED.total_rides,
+            total_spend = EXCLUDED.total_spend,
+            preferred_ride_type = EXCLUDED.preferred_ride_type,
+            is_commuter = EXCLUDED.is_commuter,
+            wallet_address = EXCLUDED.wallet_address,
+            updated_at = NOW()`,
+          [
+            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            JSON.stringify(sellableData),
+            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+            indexedFields.total_rides,
+            indexedFields.total_spend,
+            indexedFields.total_distance_km,
+            indexedFields.total_duration_min,
+            indexedFields.avg_fare,
+            indexedFields.avg_distance_km,
+            indexedFields.avg_duration_min,
+            indexedFields.preferred_ride_type,
+            indexedFields.ride_type_distribution ? JSON.stringify(indexedFields.ride_type_distribution) : null,
+            indexedFields.uses_premium,
+            indexedFields.uses_shared,
+            indexedFields.peak_time_period,
+            indexedFields.peak_day,
+            indexedFields.is_commuter,
+            indexedFields.weekend_preference,
+            indexedFields.late_night_rider,
+            indexedFields.spend_bracket,
+            indexedFields.frequency,
+            indexedFields.urban_mobility_score,
+            indexedFields.segment_id,
+            indexedFields.cohort_id,
+            indexedFields.data_quality_score,
+            walletAddress || null,
+          ]
+        );
+
+      } else if (dataType === 'strava_fitness') {
+        const indexedFields = extractStravaFields(sellableData);
+
+        await query(
+          `INSERT INTO strava_contributions (
+            id, user_id, reclaim_proof_id, status, processing_method, created_at,
+            sellable_data, metadata,
+            fitness_tier, tier_label, activities_per_week, primary_activity, engagement_score,
+            total_distance_km, total_activities, total_time_hours,
+            running_distance_km, running_count, running_time_hours,
+            cycling_distance_km, cycling_count, cycling_time_hours,
+            walking_distance_km, walking_count,
+            swimming_distance_km, swimming_count,
+            consistency_score, multi_sport_athlete, endurance_focused, outdoor_enthusiast,
+            region, country,
+            segment_id, cohort_id, data_quality_score, wallet_address
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
+            $31, $32, $33, $34, $35, $36
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
+            status = EXCLUDED.status,
+            sellable_data = EXCLUDED.sellable_data,
+            metadata = EXCLUDED.metadata,
+            fitness_tier = EXCLUDED.fitness_tier,
+            total_activities = EXCLUDED.total_activities,
+            total_distance_km = EXCLUDED.total_distance_km,
+            wallet_address = EXCLUDED.wallet_address,
+            updated_at = NOW()`,
+          [
+            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            JSON.stringify(sellableData),
+            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+            indexedFields.fitness_tier,
+            indexedFields.tier_label,
+            indexedFields.activities_per_week,
+            indexedFields.primary_activity,
+            indexedFields.engagement_score,
+            indexedFields.total_distance_km,
+            indexedFields.total_activities,
+            indexedFields.total_time_hours,
+            indexedFields.running_distance_km,
+            indexedFields.running_count,
+            indexedFields.running_time_hours,
+            indexedFields.cycling_distance_km,
+            indexedFields.cycling_count,
+            indexedFields.cycling_time_hours,
+            indexedFields.walking_distance_km,
+            indexedFields.walking_count,
+            indexedFields.swimming_distance_km,
+            indexedFields.swimming_count,
+            indexedFields.consistency_score,
+            indexedFields.multi_sport_athlete,
+            indexedFields.endurance_focused,
+            indexedFields.outdoor_enthusiast,
+            indexedFields.region,
+            indexedFields.country,
+            indexedFields.segment_id,
+            indexedFields.cohort_id,
+            indexedFields.data_quality_score,
+            walletAddress || null,
           ]
         );
 
@@ -756,6 +1239,326 @@ export async function queryNetflixContributions(filters = {}) {
 }
 
 /**
+ * Query Blinkit contributions with filters
+ */
+export async function queryBlinkitContributions(filters = {}) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return [];
+  }
+
+  try {
+    let sql = `
+      SELECT id, user_id, reclaim_proof_id, status, created_at,
+             sellable_data, metadata,
+             total_orders, total_spend, avg_order_value, spend_bracket,
+             order_frequency, segment_id, cohort_id, data_quality_score
+      FROM blinkit_contributions
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    if (filters.userId) {
+      sql += ` AND user_id = $${paramIndex++}`;
+      params.push(String(filters.userId));
+    }
+
+    if (filters.minOrders) {
+      sql += ` AND total_orders >= $${paramIndex++}`;
+      params.push(filters.minOrders);
+    }
+
+    if (filters.minSpend) {
+      sql += ` AND total_spend >= $${paramIndex++}`;
+      params.push(filters.minSpend);
+    }
+
+    if (filters.startDate) {
+      sql += ` AND created_at >= $${paramIndex++}`;
+      params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      sql += ` AND created_at <= $${paramIndex++}`;
+      params.push(filters.endDate);
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    if (filters.limit) {
+      sql += ` LIMIT $${paramIndex++}`;
+      params.push(filters.limit);
+    }
+
+    if (filters.offset) {
+      sql += ` OFFSET $${paramIndex++}`;
+      params.push(filters.offset);
+    }
+
+    const result = await query(sql, params);
+
+    const parseJsonb = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (e) { return val; }
+      }
+      return val;
+    };
+
+    return result.rows.map(row => ({
+      ...row,
+      sellable_data: parseJsonb(row.sellable_data),
+      metadata: parseJsonb(row.metadata),
+    }));
+
+  } catch (error) {
+    console.error('Error querying Blinkit contributions:', error);
+    return [];
+  }
+}
+
+/**
+ * Query Uber Eats contributions with filters
+ */
+export async function queryUberEatsContributions(filters = {}) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return [];
+  }
+
+  try {
+    let sql = `
+      SELECT id, user_id, reclaim_proof_id, status, created_at,
+             sellable_data, metadata,
+             total_orders, total_spend, avg_order_value, spend_bracket,
+             segment_id, cohort_id, data_quality_score
+      FROM ubereats_contributions
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    if (filters.userId) {
+      sql += ` AND user_id = $${paramIndex++}`;
+      params.push(String(filters.userId));
+    }
+
+    if (filters.minOrders) {
+      sql += ` AND total_orders >= $${paramIndex++}`;
+      params.push(filters.minOrders);
+    }
+
+    if (filters.minSpend) {
+      sql += ` AND total_spend >= $${paramIndex++}`;
+      params.push(filters.minSpend);
+    }
+
+    if (filters.startDate) {
+      sql += ` AND created_at >= $${paramIndex++}`;
+      params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      sql += ` AND created_at <= $${paramIndex++}`;
+      params.push(filters.endDate);
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    if (filters.limit) {
+      sql += ` LIMIT $${paramIndex++}`;
+      params.push(filters.limit);
+    }
+
+    if (filters.offset) {
+      sql += ` OFFSET $${paramIndex++}`;
+      params.push(filters.offset);
+    }
+
+    const result = await query(sql, params);
+
+    const parseJsonb = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (e) { return val; }
+      }
+      return val;
+    };
+
+    return result.rows.map(row => ({
+      ...row,
+      sellable_data: parseJsonb(row.sellable_data),
+      metadata: parseJsonb(row.metadata),
+    }));
+
+  } catch (error) {
+    console.error('Error querying Uber Eats contributions:', error);
+    return [];
+  }
+}
+
+/**
+ * Query Uber Rides contributions with filters
+ */
+export async function queryUberRidesContributions(filters = {}) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return [];
+  }
+
+  try {
+    let sql = `
+      SELECT id, user_id, reclaim_proof_id, status, created_at,
+             sellable_data, metadata,
+             total_rides, total_spend, avg_fare, spend_bracket,
+             is_commuter, preferred_ride_type, segment_id, cohort_id, data_quality_score
+      FROM uber_rides_contributions
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    if (filters.userId) {
+      sql += ` AND user_id = $${paramIndex++}`;
+      params.push(String(filters.userId));
+    }
+
+    if (filters.minRides) {
+      sql += ` AND total_rides >= $${paramIndex++}`;
+      params.push(filters.minRides);
+    }
+
+    if (filters.minSpend) {
+      sql += ` AND total_spend >= $${paramIndex++}`;
+      params.push(filters.minSpend);
+    }
+
+    if (filters.startDate) {
+      sql += ` AND created_at >= $${paramIndex++}`;
+      params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      sql += ` AND created_at <= $${paramIndex++}`;
+      params.push(filters.endDate);
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    if (filters.limit) {
+      sql += ` LIMIT $${paramIndex++}`;
+      params.push(filters.limit);
+    }
+
+    if (filters.offset) {
+      sql += ` OFFSET $${paramIndex++}`;
+      params.push(filters.offset);
+    }
+
+    const result = await query(sql, params);
+
+    const parseJsonb = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (e) { return val; }
+      }
+      return val;
+    };
+
+    return result.rows.map(row => ({
+      ...row,
+      sellable_data: parseJsonb(row.sellable_data),
+      metadata: parseJsonb(row.metadata),
+    }));
+
+  } catch (error) {
+    console.error('Error querying Uber Rides contributions:', error);
+    return [];
+  }
+}
+
+/**
+ * Query Strava contributions with filters
+ */
+export async function queryStravaContributions(filters = {}) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return [];
+  }
+
+  try {
+    let sql = `
+      SELECT id, user_id, reclaim_proof_id, status, created_at,
+             sellable_data, metadata,
+             fitness_tier, total_activities, total_distance_km,
+             primary_activity, engagement_score, segment_id, cohort_id, data_quality_score
+      FROM strava_contributions
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    if (filters.userId) {
+      sql += ` AND user_id = $${paramIndex++}`;
+      params.push(String(filters.userId));
+    }
+
+    if (filters.minActivities) {
+      sql += ` AND total_activities >= $${paramIndex++}`;
+      params.push(filters.minActivities);
+    }
+
+    if (filters.fitnessTier) {
+      sql += ` AND fitness_tier = $${paramIndex++}`;
+      params.push(filters.fitnessTier);
+    }
+
+    if (filters.startDate) {
+      sql += ` AND created_at >= $${paramIndex++}`;
+      params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      sql += ` AND created_at <= $${paramIndex++}`;
+      params.push(filters.endDate);
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    if (filters.limit) {
+      sql += ` LIMIT $${paramIndex++}`;
+      params.push(filters.limit);
+    }
+
+    if (filters.offset) {
+      sql += ` OFFSET $${paramIndex++}`;
+      params.push(filters.offset);
+    }
+
+    const result = await query(sql, params);
+
+    const parseJsonb = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (e) { return val; }
+      }
+      return val;
+    };
+
+    return result.rows.map(row => ({
+      ...row,
+      sellable_data: parseJsonb(row.sellable_data),
+      metadata: parseJsonb(row.metadata),
+    }));
+
+  } catch (error) {
+    console.error('Error querying Strava contributions:', error);
+    return [];
+  }
+}
+
+/**
  * Query contributions with filters (routes to appropriate table)
  */
 export async function queryContributions(filters = {}) {
@@ -766,17 +1569,29 @@ export async function queryContributions(filters = {}) {
     return await queryGithubContributions(filters);
   } else if (filters.dataType === 'netflix_watch_history') {
     return await queryNetflixContributions(filters);
+  } else if (filters.dataType === 'blinkit_order_history') {
+    return await queryBlinkitContributions(filters);
+  } else if (filters.dataType === 'ubereats_order_history') {
+    return await queryUberEatsContributions(filters);
+  } else if (filters.dataType === 'uber_ride_history') {
+    return await queryUberRidesContributions(filters);
+  } else if (filters.dataType === 'strava_fitness') {
+    return await queryStravaContributions(filters);
   } else {
     // If no dataType specified, return all
     const zomato = await queryZomatoContributions({ ...filters, dataType: 'zomato_order_history' });
     const github = await queryGithubContributions({ ...filters, dataType: 'github_profile' });
     const netflix = await queryNetflixContributions({ ...filters, dataType: 'netflix_watch_history' });
-    return [...zomato, ...github, ...netflix];
+    const blinkit = await queryBlinkitContributions({ ...filters, dataType: 'blinkit_order_history' });
+    const ubereats = await queryUberEatsContributions({ ...filters, dataType: 'ubereats_order_history' });
+    const uberRides = await queryUberRidesContributions({ ...filters, dataType: 'uber_ride_history' });
+    const strava = await queryStravaContributions({ ...filters, dataType: 'strava_fitness' });
+    return [...zomato, ...github, ...netflix, ...blinkit, ...ubereats, ...uberRides, ...strava];
   }
 }
 
 /**
- * Get all contributions for a specific user (from both tables)
+ * Get all contributions for a specific user (from all tables)
  */
 export async function getUserContributions(userId) {
   if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
@@ -791,9 +1606,13 @@ export async function getUserContributions(userId) {
     const zomato = await queryZomatoContributions({ userId });
     const github = await queryGithubContributions({ userId });
     const netflix = await queryNetflixContributions({ userId });
+    const blinkit = await queryBlinkitContributions({ userId });
+    const ubereats = await queryUberEatsContributions({ userId });
+    const uberRides = await queryUberRidesContributions({ userId });
+    const strava = await queryStravaContributions({ userId });
 
     // Transform database format to match expected format
-    return [...zomato, ...github, ...netflix].map(contrib => {
+    return [...zomato, ...github, ...netflix, ...blinkit, ...ubereats, ...uberRides, ...strava].map(contrib => {
       // Determine dataType based on which table it came from or sellable_data structure
       let dataType = 'general';
       if (contrib.sellable_data?.dataset_id) {
@@ -803,15 +1622,31 @@ export async function getUserContributions(userId) {
           dataType = 'github_profile';
         } else if (contrib.sellable_data.dataset_id.includes('netflix')) {
           dataType = 'netflix_watch_history';
+        } else if (contrib.sellable_data.dataset_id.includes('blinkit')) {
+          dataType = 'blinkit_order_history';
+        } else if (contrib.sellable_data.dataset_id.includes('ubereats')) {
+          dataType = 'ubereats_order_history';
+        } else if (contrib.sellable_data.dataset_id.includes('uber_rides')) {
+          dataType = 'uber_ride_history';
+        } else if (contrib.sellable_data.dataset_id.includes('strava')) {
+          dataType = 'strava_fitness';
         }
       } else {
         // Fallback: check if it has provider-specific fields
-        if (contrib.total_orders !== undefined) {
+        if (contrib.total_orders !== undefined && contrib.total_gmv !== undefined) {
           dataType = 'zomato_order_history';
         } else if (contrib.follower_count !== undefined) {
           dataType = 'github_profile';
         } else if (contrib.total_titles_watched !== undefined) {
           dataType = 'netflix_watch_history';
+        } else if (contrib.total_orders !== undefined && contrib.total_spend !== undefined && contrib.top_categories !== undefined) {
+          dataType = 'blinkit_order_history';
+        } else if (contrib.total_orders !== undefined && contrib.total_spend !== undefined && contrib.top_cuisines !== undefined) {
+          dataType = 'ubereats_order_history';
+        } else if (contrib.total_rides !== undefined) {
+          dataType = 'uber_ride_history';
+        } else if (contrib.total_activities !== undefined && contrib.fitness_tier !== undefined) {
+          dataType = 'strava_fitness';
         }
       }
 
@@ -871,6 +1706,46 @@ export async function findContributionByProofId(reclaimProofId) {
 
     if (netflixResult.rows.length > 0) {
       return netflixResult.rows[0];
+    }
+
+    // Check blinkit table
+    const blinkitResult = await query(
+      'SELECT id, user_id, reclaim_proof_id FROM blinkit_contributions WHERE reclaim_proof_id = $1',
+      [reclaimProofId]
+    );
+
+    if (blinkitResult.rows.length > 0) {
+      return blinkitResult.rows[0];
+    }
+
+    // Check ubereats table
+    const ubereatsResult = await query(
+      'SELECT id, user_id, reclaim_proof_id FROM ubereats_contributions WHERE reclaim_proof_id = $1',
+      [reclaimProofId]
+    );
+
+    if (ubereatsResult.rows.length > 0) {
+      return ubereatsResult.rows[0];
+    }
+
+    // Check uber_rides table
+    const uberRidesResult = await query(
+      'SELECT id, user_id, reclaim_proof_id FROM uber_rides_contributions WHERE reclaim_proof_id = $1',
+      [reclaimProofId]
+    );
+
+    if (uberRidesResult.rows.length > 0) {
+      return uberRidesResult.rows[0];
+    }
+
+    // Check strava table
+    const stravaResult = await query(
+      'SELECT id, user_id, reclaim_proof_id FROM strava_contributions WHERE reclaim_proof_id = $1',
+      [reclaimProofId]
+    );
+
+    if (stravaResult.rows.length > 0) {
+      return stravaResult.rows[0];
     }
 
     return null;
@@ -945,6 +1820,86 @@ export async function findNetflixContributionByTitleCount(titleCount) {
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
     console.error('Error finding Netflix contribution by title count:', error);
+    return null;
+  }
+}
+
+/**
+ * Find existing Blinkit contribution by data characteristics
+ */
+export async function findBlinkitContributionByData(totalOrders, totalSpend) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || totalOrders === null || totalOrders === undefined || totalSpend === null || totalSpend === undefined) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, user_id, reclaim_proof_id, total_orders, total_spend FROM blinkit_contributions WHERE total_orders = $1 AND total_spend = $2 ORDER BY created_at DESC LIMIT 1',
+      [totalOrders, totalSpend]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding Blinkit contribution by data characteristics:', error);
+    return null;
+  }
+}
+
+/**
+ * Find existing Uber Eats contribution by data characteristics
+ */
+export async function findUberEatsContributionByData(totalOrders, totalSpend) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || totalOrders === null || totalOrders === undefined || totalSpend === null || totalSpend === undefined) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, user_id, reclaim_proof_id, total_orders, total_spend FROM ubereats_contributions WHERE total_orders = $1 AND total_spend = $2 ORDER BY created_at DESC LIMIT 1',
+      [totalOrders, totalSpend]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding Uber Eats contribution by data characteristics:', error);
+    return null;
+  }
+}
+
+/**
+ * Find existing Uber Rides contribution by data characteristics
+ */
+export async function findUberRidesContributionByData(totalRides, totalSpend) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || totalRides === null || totalRides === undefined || totalSpend === null || totalSpend === undefined) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, user_id, reclaim_proof_id, total_rides, total_spend FROM uber_rides_contributions WHERE total_rides = $1 AND total_spend = $2 ORDER BY created_at DESC LIMIT 1',
+      [totalRides, totalSpend]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding Uber Rides contribution by data characteristics:', error);
+    return null;
+  }
+}
+
+/**
+ * Find existing Strava contribution by data characteristics
+ */
+export async function findStravaContributionByData(totalActivities, totalDistanceKm) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || totalActivities === null || totalActivities === undefined || totalDistanceKm === null || totalDistanceKm === undefined) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, user_id, reclaim_proof_id, total_activities, total_distance_km FROM strava_contributions WHERE total_activities = $1 AND total_distance_km = $2 ORDER BY created_at DESC LIMIT 1',
+      [totalActivities, totalDistanceKm]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding Strava contribution by data characteristics:', error);
     return null;
   }
 }
@@ -1041,29 +1996,51 @@ export async function getCohortSize(cohortId) {
   }
 
   try {
-    // Count from zomato table
+    // Count from all tables
     const zomatoResult = await query(
       'SELECT COUNT(*) as count FROM zomato_contributions WHERE cohort_id = $1',
       [cohortId]
     );
 
-    // Count from github table
     const githubResult = await query(
       'SELECT COUNT(*) as count FROM github_contributions WHERE cohort_id = $1',
       [cohortId]
     );
 
-    // Count from netflix table
     const netflixResult = await query(
       'SELECT COUNT(*) as count FROM netflix_contributions WHERE cohort_id = $1',
+      [cohortId]
+    );
+
+    const blinkitResult = await query(
+      'SELECT COUNT(*) as count FROM blinkit_contributions WHERE cohort_id = $1',
+      [cohortId]
+    );
+
+    const ubereatsResult = await query(
+      'SELECT COUNT(*) as count FROM ubereats_contributions WHERE cohort_id = $1',
+      [cohortId]
+    );
+
+    const uberRidesResult = await query(
+      'SELECT COUNT(*) as count FROM uber_rides_contributions WHERE cohort_id = $1',
+      [cohortId]
+    );
+
+    const stravaResult = await query(
+      'SELECT COUNT(*) as count FROM strava_contributions WHERE cohort_id = $1',
       [cohortId]
     );
 
     const zomatoCount = parseInt(zomatoResult.rows[0]?.count || '0', 10);
     const githubCount = parseInt(githubResult.rows[0]?.count || '0', 10);
     const netflixCount = parseInt(netflixResult.rows[0]?.count || '0', 10);
+    const blinkitCount = parseInt(blinkitResult.rows[0]?.count || '0', 10);
+    const ubereatsCount = parseInt(ubereatsResult.rows[0]?.count || '0', 10);
+    const uberRidesCount = parseInt(uberRidesResult.rows[0]?.count || '0', 10);
+    const stravaCount = parseInt(stravaResult.rows[0]?.count || '0', 10);
 
-    return zomatoCount + githubCount + netflixCount;
+    return zomatoCount + githubCount + netflixCount + blinkitCount + ubereatsCount + uberRidesCount + stravaCount;
   } catch (error) {
     console.error('Error getting cohort size:', error);
     return 0;

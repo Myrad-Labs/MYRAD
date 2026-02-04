@@ -316,6 +316,8 @@ export async function getUserPoints(userId) {
 
 /**
  * Get user's total points
+ * Reads from users.total_points column (source of truth) instead of calculating from points_history
+ * This ensures consistency with leaderboard and respects manual DB changes
  */
 export async function getUserTotalPoints(userId) {
   if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
@@ -323,15 +325,31 @@ export async function getUserTotalPoints(userId) {
   }
 
   try {
+    // Read directly from users table (source of truth)
+    // This matches how leaderboard reads points and respects manual DB changes
     const result = await query(
-      'SELECT COALESCE(SUM(points), 0) as total FROM points_history WHERE user_id = $1',
+      'SELECT total_points FROM users WHERE id = $1',
       [userId]
     );
 
-    return parseInt(result.rows[0].total, 10);
+    if (result.rows.length === 0) {
+      return 0;
+    }
+
+    return parseInt(result.rows[0].total_points || 0, 10);
   } catch (error) {
     console.error('Error getting user total points:', error);
-    return 0;
+    // Fallback to calculating from points_history if users table read fails
+    try {
+      const fallbackResult = await query(
+        'SELECT COALESCE(SUM(points), 0) as total FROM points_history WHERE user_id = $1',
+        [userId]
+      );
+      return parseInt(fallbackResult.rows[0].total, 10);
+    } catch (fallbackError) {
+      console.error('Error in fallback points calculation:', fallbackError);
+      return 0;
+    }
   }
 }
 

@@ -20,9 +20,9 @@ app.options('*', (req, res) => {
   res.sendStatus(204);
 });
 
-// Enable CORS for all origins
+// Enable CORS for all origins (including Reclaim app)
 app.use(cors({
-  origin: ['https://myradhq.xyz', 'https://www.myradhq.xyz', 'http://localhost:5173', 'http://localhost:4000'],
+  origin: true, // Allow all origins for Reclaim callbacks
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   credentials: false
@@ -130,24 +130,36 @@ if (config.DB_USE_DATABASE && config.DATABASE_URL) {
 app.use((err, req, res, next) => {
   console.error('Global error handler caught:', err.message);
   console.error('Error stack:', err.stack);
+  console.error('Request path:', req.path);
+  console.error('Request method:', req.method);
   
-  // For Reclaim callbacks, always return 200 to prevent the Reclaim app from showing errors
-  if (req.path.includes('reclaim-callback')) {
+  // For Reclaim callbacks, ALWAYS return 200 to prevent the Reclaim app from showing errors
+  // Even if there's an error, we need to respond with 200 so the app doesn't show an error
+  if (req.path.includes('reclaim-callback') || req.originalUrl?.includes('reclaim-callback')) {
     console.log('📲 Error in Reclaim callback, returning success to prevent app error');
-    const sessionId = req.query.sessionId || `error_${Date.now()}`;
-    return res.status(200).json({ 
-      success: true, 
-      sessionId,
-      message: 'Proof received',
-      warning: 'Processing had issues'
-    });
+    const sessionId = req.query?.sessionId || req.query?.sessionld || `error_${Date.now()}`;
+    
+    // Make sure we haven't already sent a response
+    if (!res.headersSent) {
+      return res.status(200).json({ 
+        success: true, 
+        sessionId,
+        message: 'Proof received',
+        warning: 'Processing had issues but proof was received'
+      });
+    } else {
+      console.warn('⚠️ Response already sent, cannot send error response');
+    }
+    return; // Exit early
   }
   
   // For other routes, return proper JSON error
-  res.status(err.status || 500).json({ 
-    error: err.message || 'Internal server error',
-    path: req.path
-  });
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({ 
+      error: err.message || 'Internal server error',
+      path: req.path
+    });
+  }
 });
 
 // Start server

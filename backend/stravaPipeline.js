@@ -126,6 +126,37 @@ function parseDuration(durationStr) {
     return numMatch ? parseFloat(numMatch[0]) : 0;
 }
 
+// Parse time string like "2h 15m" or "1h 30m" to minutes
+function parseTimeString(timeStr) {
+    if (!timeStr) return 0;
+    if (typeof timeStr === 'number') return timeStr;
+
+    const str = String(timeStr);
+    let totalMinutes = 0;
+
+    // Match hours (e.g., "2h")
+    const hoursMatch = str.match(/(\d+)\s*h/i);
+    if (hoursMatch) {
+        totalMinutes += parseInt(hoursMatch[1]) * 60;
+    }
+
+    // Match minutes (e.g., "15m")
+    const minutesMatch = str.match(/(\d+)\s*m(?!i)/i); // (?!i) to avoid matching "mi" in miles
+    if (minutesMatch) {
+        totalMinutes += parseInt(minutesMatch[1]);
+    }
+
+    // If no h/m format, try parsing as plain number
+    if (totalMinutes === 0) {
+        const numMatch = str.match(/[\d.]+/);
+        if (numMatch) {
+            totalMinutes = parseFloat(numMatch[0]);
+        }
+    }
+
+    return totalMinutes;
+}
+
 // Calculate activity intensity based on pace/speed
 function getIntensityLevel(distance, duration, activityType) {
     if (duration === 0) return 'unknown';
@@ -167,26 +198,76 @@ export function processStravaData(extractedData, options = {}) {
 
     // Extract user details (will be anonymized)
     const userName = extractedData.name || extractedData.username || extractedData.athlete_name || null;
-    const userLocation = extractedData.location || extractedData.city || extractedData.country || null;
+    const userLocation = extractedData.location || extractedData.city || extractedData.country || extractedData.athlete_location || null;
 
-    // Extract activity stats
-    const runningTotal = parseDistance(extractedData.running_total || extractedData.ytd_run_totals?.distance || 0);
-    const walkingTotal = parseDistance(extractedData.walking_total || extractedData.all_walk_totals?.distance || 0);
-    const cyclingTotal = parseDistance(extractedData.cycling_total || extractedData.ytd_ride_totals?.distance || extractedData.ride_total || 0);
-    const swimmingTotal = parseDistance(extractedData.swimming_total || extractedData.ytd_swim_totals?.distance || 0);
+    // Initialize activity stats
+    let runningTotal = 0, walkingTotal = 0, cyclingTotal = 0, swimmingTotal = 0, hikingTotal = 0;
+    let runCount = 0, rideCount = 0, swimCount = 0, walkCount = 0, hikeCount = 0;
+    let runningTime = 0, cyclingTime = 0, walkingTime = 0, hikingTime = 0;
 
-    // Activity counts
-    const runCount = parseInt(extractedData.run_count || extractedData.ytd_run_totals?.count || 0);
-    const rideCount = parseInt(extractedData.ride_count || extractedData.ytd_ride_totals?.count || 0);
-    const swimCount = parseInt(extractedData.swim_count || extractedData.ytd_swim_totals?.count || 0);
-    const walkCount = parseInt(extractedData.walk_count || extractedData.all_walk_totals?.count || 0);
-    const totalActivities = runCount + rideCount + swimCount + walkCount +
+    // CRITICAL: Parse allTimeActivity array from Reclaim proof
+    // Format: [{"title": "Run", "details": {"Activities": "4", "Distance": "13.1 km", "Time": "2h 15m"}}]
+    const allTimeActivity = extractedData.allTimeActivity || extractedData.all_time_activity || [];
+    
+    if (Array.isArray(allTimeActivity) && allTimeActivity.length > 0) {
+        console.log('📊 Parsing allTimeActivity array with', allTimeActivity.length, 'entries');
+        
+        for (const activity of allTimeActivity) {
+            const title = (activity.title || activity.type || '').toLowerCase();
+            const details = activity.details || activity.stats || {};
+            
+            // Parse activity count
+            const activityCount = parseInt(details.Activities || details.activities || details.count || 0);
+            // Parse distance
+            const distance = parseDistance(details.Distance || details.distance || 0);
+            // Parse time (format: "2h 15m" or "1h 30m")
+            const timeStr = details.Time || details.time || details.moving_time || '0';
+            const time = parseTimeString(timeStr);
+            
+            console.log(`  📍 ${title}: ${activityCount} activities, ${distance}km, ${time}min`);
+            
+            if (title.includes('run')) {
+                runCount = activityCount;
+                runningTotal = distance;
+                runningTime = time;
+            } else if (title.includes('ride') || title.includes('cycl') || title.includes('bike')) {
+                rideCount = activityCount;
+                cyclingTotal = distance;
+                cyclingTime = time;
+            } else if (title.includes('walk')) {
+                walkCount = activityCount;
+                walkingTotal = distance;
+                walkingTime = time;
+            } else if (title.includes('hike')) {
+                hikeCount = activityCount;
+                hikingTotal = distance;
+                hikingTime = time;
+            } else if (title.includes('swim')) {
+                swimCount = activityCount;
+                swimmingTotal = distance;
+            }
+        }
+    } else {
+        // Fallback to old field names for backward compatibility
+        console.log('📊 No allTimeActivity array, using legacy field names');
+        runningTotal = parseDistance(extractedData.running_total || extractedData.ytd_run_totals?.distance || 0);
+        walkingTotal = parseDistance(extractedData.walking_total || extractedData.all_walk_totals?.distance || 0);
+        cyclingTotal = parseDistance(extractedData.cycling_total || extractedData.ytd_ride_totals?.distance || extractedData.ride_total || 0);
+        swimmingTotal = parseDistance(extractedData.swimming_total || extractedData.ytd_swim_totals?.distance || 0);
+
+        runCount = parseInt(extractedData.run_count || extractedData.ytd_run_totals?.count || 0);
+        rideCount = parseInt(extractedData.ride_count || extractedData.ytd_ride_totals?.count || 0);
+        swimCount = parseInt(extractedData.swim_count || extractedData.ytd_swim_totals?.count || 0);
+        walkCount = parseInt(extractedData.walk_count || extractedData.all_walk_totals?.count || 0);
+
+        runningTime = parseDuration(extractedData.running_time || extractedData.ytd_run_totals?.moving_time || 0);
+        cyclingTime = parseDuration(extractedData.cycling_time || extractedData.ytd_ride_totals?.moving_time || 0);
+    }
+
+    // Calculate totals
+    const totalActivities = runCount + rideCount + swimCount + walkCount + hikeCount +
         parseInt(extractedData.total_activities || 0);
-
-    // Time stats
-    const runningTime = parseDuration(extractedData.running_time || extractedData.ytd_run_totals?.moving_time || 0);
-    const cyclingTime = parseDuration(extractedData.cycling_time || extractedData.ytd_ride_totals?.moving_time || 0);
-    const totalTime = runningTime + cyclingTime + parseDuration(extractedData.total_moving_time || 0);
+    const totalTime = runningTime + cyclingTime + walkingTime + hikingTime + parseDuration(extractedData.total_moving_time || 0);
 
     // Calculate weekly average (assume data covers last 52 weeks if not specified)
     const dataWeeks = parseInt(extractedData.data_weeks || 52);
