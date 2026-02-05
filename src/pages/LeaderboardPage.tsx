@@ -20,7 +20,7 @@ const LeaderboardPage: React.FC = () => {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 100;
+  const itemsPerPage = 20;
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const myWallet = (user?.wallet?.address || '').toLowerCase() || null;
