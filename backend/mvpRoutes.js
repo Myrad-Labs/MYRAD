@@ -339,6 +339,17 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             const rides = anonymizedData.rides;
             const firstRide = rides[0];
             contentSignature = `uber_rides_${rides.length}_${firstRide?.fare || firstRide?.total || ''}_${firstRide?.timestamp || firstRide?.date || ''}`;
+        } else if (dataType === 'zepto_order_history') {
+            // For Zepto: hash based on total amount + item count + first product name
+            const productsStr = anonymizedData.productsNamesAndCounts || '';
+            let firstProduct = '';
+            try {
+                const products = typeof productsStr === 'string' ? JSON.parse(productsStr) : productsStr;
+                if (Array.isArray(products) && products.length > 0) {
+                    firstProduct = products[0]?.name || '';
+                }
+            } catch (e) { /* ignore parse errors */ }
+            contentSignature = `zepto_${anonymizedData.grandTotalAmount || 0}_${anonymizedData.itemQuantityCount || 0}_${firstProduct}`;
         }
 
         if (contentSignature) {
@@ -508,6 +519,27 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
         }
 
+        // Process Zepto data through grocery order pipeline
+        if (dataType === 'zepto_order_history') {
+            try {
+                const { processZeptoData } = await import('./zeptoPipeline.js');
+
+                console.log('🛒 Processing Zepto data through order pipeline...');
+
+                const result = processZeptoData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Zepto order pipeline complete');
+                    console.log(`📊 Order count: ${sellableData?.transaction_data?.summary?.total_orders || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Zepto pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
         // Store contribution with sellable data format
         const finalWalletAddress = user.walletAddress || walletAddress || null;
         let contribution;
@@ -652,6 +684,23 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             });
         }
 
+        // Validate Zepto order history
+        const zeptoOrderCount = sellableData?.transaction_data?.summary?.total_orders || 0;
+        if (dataType === 'zepto_order_history' && zeptoOrderCount === 0) {
+            console.log(`⚠️ Zero Zepto orders detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No orders found',
+                message: 'Your Zepto order history appears to be empty. We can only award points for verifiable order data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    orderCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
         // Calculate rewards based on new points system
         let rewardResult;
         if (dataType === 'github_profile') {
@@ -727,6 +776,18 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 }
             };
             console.log(`🛒 Blinkit order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${blinkitOrderCount} orders).`);
+        } else if (dataType === 'zepto_order_history') {
+            // Zepto: 50 points base + (total_orders * 10) additional (same as Blinkit)
+            const additionalPoints = zeptoOrderCount * 10;
+            const totalPoints = 50 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 50,
+                    bonus: additionalPoints
+                }
+            };
+            console.log(`🛒 Zepto order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${zeptoOrderCount} orders).`);
         } else if (dataType === 'uber_ride_history') {
             // Uber Rides: 60 points base + (rides * 5) + commuter bonus
             const isCommuter = sellableData?.temporal_behavior?.is_commuter || false;
@@ -1369,8 +1430,8 @@ router.post('/reclaim-callback', async (req, res) => {
         if (!res.headersSent) {
             console.error('⚠️ Callback timeout - sending 200 response to prevent app error');
             const fallbackSessionId = req.query?.sessionId || req.query?.sessionld || `timeout_${Date.now()}`;
-            res.status(200).json({ 
-                success: true, 
+            res.status(200).json({
+                success: true,
                 sessionId: fallbackSessionId,
                 message: 'Proof received',
                 warning: 'Response delayed but proof was received'
@@ -1527,15 +1588,15 @@ router.post('/reclaim-callback', async (req, res) => {
         clearTimeout(timeout);
         console.error('❌ Reclaim callback error:', error);
         console.error('❌ Error stack:', error.stack);
-        
+
         // CRITICAL: Always return 200 to Reclaim app, even on error
         // The Reclaim app will show an error if it gets anything other than 200
         // We'll log the error but still return success so the app doesn't fail
         if (!res.headersSent) {
             const fallbackSessionId = req.query?.sessionId || req.query?.sessionld || `error_${Date.now()}`;
             console.log('📲 Returning 200 to Reclaim app despite error (to prevent app error)');
-            res.status(200).json({ 
-                success: true, 
+            res.status(200).json({
+                success: true,
                 sessionId: fallbackSessionId,
                 message: 'Proof received',
                 warning: 'Processing encountered issues but proof was received'

@@ -93,7 +93,8 @@ const PROVIDERS = [
     dataType: 'blinkit_order_history',
     icon: UtensilsCrossed, // Using same icon as food delivery
     iconColor: '#000000',
-    iconBg: '#F8CB46' // Blinkit Yellow
+    iconBg: '#F8CB46', // Blinkit Yellow
+    hidden: true // Hide Blinkit from frontend
   },
   {
     id: 'uber_rides',
@@ -107,6 +108,19 @@ const PROVIDERS = [
     icon: PlayCircle, // Using as transportation icon
     iconColor: '#ffffff',
     iconBg: '#000000' // Uber Black
+  },
+  {
+    id: 'zepto',
+    name: 'Zepto',
+    description: 'Order History',
+    providerId: import.meta.env.VITE_ZEPTO_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #8B5CF6 0%, #000000 100%)',
+    points: 10,
+    dataType: 'zepto_order_history',
+    icon: UtensilsCrossed, // Using same icon as grocery delivery
+    iconColor: '#ffffff',
+    iconBg: '#8B5CF6' // Zepto Purple
   }
 ];
 
@@ -138,12 +152,12 @@ const DashboardPage = () => {
   const [verificationProgress, setVerificationProgress] = useState(false);
   const [verificationProgressText, setVerificationProgressText] = useState('This will take a few seconds...');
   const [verificationProgressComplete, setVerificationProgressComplete] = useState(false);
-  
+
   // Success modal state
-  const [successModal, setSuccessModal] = useState<{ show: boolean; provider: string; points: number }>({ 
-    show: false, 
-    provider: '', 
-    points: 0 
+  const [successModal, setSuccessModal] = useState<{ show: boolean; provider: string; points: number }>({
+    show: false,
+    provider: '',
+    points: 0
   });
 
   const showToast = (type: ToastType, title: string, message: string, persistent = false) => {
@@ -459,15 +473,15 @@ const DashboardPage = () => {
 
       // Fetch all data in parallel with cache-busting for refresh
       const [profileRes, pointsRes, contribRes] = await Promise.all([
-        fetch(`${API_URL}/api/user/profile?_t=${Date.now()}`, { 
+        fetch(`${API_URL}/api/user/profile?_t=${Date.now()}`, {
           headers: { 'Authorization': `Bearer ${token}` },
           cache: showRefresh ? 'no-cache' : 'default'
         }),
-        fetch(`${API_URL}/api/user/points?_t=${Date.now()}`, { 
+        fetch(`${API_URL}/api/user/points?_t=${Date.now()}`, {
           headers: { 'Authorization': `Bearer ${token}` },
           cache: showRefresh ? 'no-cache' : 'default'
         }),
-        fetch(`${API_URL}/api/user/contributions?_t=${Date.now()}`, { 
+        fetch(`${API_URL}/api/user/contributions?_t=${Date.now()}`, {
           headers: { 'Authorization': `Bearer ${token}` },
           cache: showRefresh ? 'no-cache' : 'default'
         })
@@ -488,7 +502,7 @@ const DashboardPage = () => {
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
-      setRefreshing(false);
+        setRefreshing(false);
       } else {
         setLoading(false);
       }
@@ -612,10 +626,10 @@ const DashboardPage = () => {
       // So we'll only set the callback URL if it's a public URL (not localhost)
       // When callback URL is not set, the SDK will use the redirect flow (proof in URL hash)
       const isLocalhost = callbackUrl.includes('localhost') || callbackUrl.includes('127.0.0.1');
-      
+
       // Store isLocalhost for use in error handler
       (window as any).__reclaimIsLocalhost = isLocalhost;
-      
+
       if (!isLocalhost) {
         console.log('📱 Setting Reclaim callback URL:', callbackUrl);
         try {
@@ -638,7 +652,7 @@ const DashboardPage = () => {
       let requestUrl: string;
       try {
         requestUrl = await reclaimProofRequest.getRequestUrl();
-      setVerificationUrl(requestUrl);
+        setVerificationUrl(requestUrl);
       } catch (urlError: any) {
         console.error('❌ Failed to get request URL:', urlError);
         // If it's a callback URL validation error and we're on localhost, try without callback URL
@@ -1425,7 +1439,7 @@ const DashboardPage = () => {
           if (data.success) {
             // Complete the progress bar first
             setVerificationProgressComplete(true);
-            
+
             // Small delay to show progress completion, then show modal
             setTimeout(() => {
               // Show prominent success modal
@@ -1434,27 +1448,27 @@ const DashboardPage = () => {
                 provider: provider.name,
                 points: data.contribution?.pointsAwarded || 0
               });
-              
+
               // Hide progress indicator
               setVerificationProgress(false);
               setVerificationProgressComplete(false);
             }, 300); // 300ms delay for smooth transition
-            
+
             // Refresh data in the background (don't await)
             fetchUserData(true).catch(err => console.error('Error refreshing data:', err));
-            
+
             // Also show toast for consistency
             showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
           } else {
             // Complete progress bar on error
             setVerificationProgressComplete(true);
-            
+
             // Small delay then hide
             setTimeout(() => {
               setVerificationProgress(false);
               setVerificationProgressComplete(false);
             }, 300);
-            
+
             // Log backend error to server
             logErrorToServer(new Error(data.message || 'Unknown error'), `DashboardPage.handleContribute.${provider.id}.backendError`, {
               provider: provider.id,
@@ -1500,12 +1514,12 @@ const DashboardPage = () => {
           if (errorName === 'ProofSubmissionFailedError' || errorMessage.includes('ProofSubmissionFailed') || errorMessage.includes('callback')) {
             console.log('🔍 ProofSubmissionFailedError detected - likely callback URL issue');
             console.log('🔍 Is localhost:', isLocalhostError);
-            
+
             // If we're on localhost and this error occurs, it's expected - the mobile app can't reach localhost
             if (isLocalhostError) {
               console.log('ℹ️ This is expected for localhost - mobile app cannot access localhost URLs');
               console.log('ℹ️ The verification should still work via redirect flow (proof in URL hash)');
-              
+
               // Don't show error immediately - wait a bit to see if redirect flow works
               if (timeSinceStart < 10000) { // Less than 10 seconds - might still be processing
                 console.log('⏳ Waiting a bit longer - verification might still succeed via redirect');
@@ -1531,8 +1545,8 @@ const DashboardPage = () => {
             // Only show error if tab is visible OR it's been more than 2 minutes
             if (!tabHidden || timeSinceStart > 120000) {
               showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-          setVerificationUrl(null);
-          setActiveProvider(null);
+              setVerificationUrl(null);
+              setActiveProvider(null);
               setContributing(null);
             }
             return;
@@ -1806,7 +1820,7 @@ const DashboardPage = () => {
               <span className="success-modal-points-label">Points Earned</span>
               <span className="success-modal-points-value">+{successModal.points}</span>
             </div>
-            <button 
+            <button
               className="success-modal-button"
               onClick={() => {
                 setSuccessModal({ show: false, provider: '', points: 0 });
@@ -1861,7 +1875,7 @@ const DashboardPage = () => {
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-              </button>
+            </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -1882,13 +1896,13 @@ const DashboardPage = () => {
                     </ul>
 
                   </div>
-            </div>
+                </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-          </div>
-        </div>
+                </div>
+              </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -1900,7 +1914,7 @@ const DashboardPage = () => {
                   playsInline
                   preload="metadata"
                 />
-          </div>
+              </div>
             </div>
           </div>
         )}
@@ -1915,8 +1929,8 @@ const DashboardPage = () => {
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card" style={{ position: 'relative' }}>
-                  <span className="stat-label">Total Points</span>
-                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                <span className="stat-label">Total Points</span>
+                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -1948,11 +1962,11 @@ const DashboardPage = () => {
                     className={(loading || refreshing) ? 'spin' : ''}
                   />
                 </button>
-                </div>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                  <span className="stat-value">{contributions.length}</span>
-                </div>
+                <span className="stat-value">{contributions.length}</span>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -1967,7 +1981,7 @@ const DashboardPage = () => {
               </div>
 
               <div className="providers-grid">
-                {PROVIDERS.map((provider) => (
+                {PROVIDERS.filter(p => !p.hidden).map((provider) => (
                   <div
                     key={provider.id}
                     className={`provider-card ${activeProvider === provider.id ? "active" : ""}`}
@@ -2016,16 +2030,16 @@ const DashboardPage = () => {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                        <p className="qr-title">Scan to verify</p>
-                        <div className="qr-container">
+                            <p className="qr-title">Scan to verify</p>
+                            <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                        </div>
-                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                          Open Link
-                        </a>
+                            </div>
+                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                              Open Link
+                            </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                        </button>
+                            </button>
                           </>
                         )}
                       </div>
@@ -2033,18 +2047,18 @@ const DashboardPage = () => {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                    <button
-                      onClick={() => handleContribute(provider)}
+                      <button
+                        onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                      className="btn-verify"
+                        className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                    >
-                      {contributing === provider.id ? (
-                        <><Loader2 size={16} className="spin" /> Verifying...</>
-                      ) : (
+                      >
+                        {contributing === provider.id ? (
+                          <><Loader2 size={16} className="spin" /> Verifying...</>
+                        ) : (
                           <>Verify</>
-                      )}
-                    </button>
+                        )}
+                      </button>
                     )}
                   </div>
                 ))}
