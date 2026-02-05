@@ -1577,5 +1577,59 @@ router.get('/reclaim-callback', (req, res) => {
     res.redirect(302, `${frontendUrl}/dashboard`);
 });
 
+// ============================================
+// OPT-OUT ENDPOINTS
+// ============================================
+
+// Get user's opt-out status
+router.get('/user/opt-out-status', verifyPrivyToken, async (req, res) => {
+    try {
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const { getUserOptOutStatus } = await import('./database/contributionService.js');
+        const status = await getUserOptOutStatus(user.id);
+
+        res.json({
+            success: true,
+            ...status
+        });
+    } catch (error) {
+        console.error('Get opt-out status error:', error);
+        res.status(500).json({ error: 'Failed to get opt-out status' });
+    }
+});
+
+// Process user opt-out
+router.post('/user/opt-out', verifyPrivyToken, async (req, res) => {
+    try {
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        console.log(`🚫 Opt-out request received for user ${user.id}`);
+
+        const { optOutUser } = await import('./database/contributionService.js');
+        const result = await optOutUser(user.id);
+
+        res.json({
+            success: true,
+            message: 'Successfully opted out. Your data contributions have been excluded from the marketplace and your points have been reset.',
+            ...result
+        });
+    } catch (error) {
+        console.error('Opt-out error:', error);
+        res.status(500).json({ 
+            error: 'Failed to process opt-out request',
+            message: error.message 
+        });
+    }
+});
+
 export default router;
 

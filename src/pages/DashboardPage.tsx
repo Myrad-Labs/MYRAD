@@ -1837,7 +1837,7 @@ const DashboardPage = () => {
       )}
 
       {/* Shared Dashboard Header */}
-      <DashboardHeader />
+      <DashboardHeader onOptOutSuccess={() => fetchUserData(true)} />
 
       <main className="dashboard-main">
         {/* Welcome */}

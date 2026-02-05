@@ -511,12 +511,14 @@ export async function saveContribution(contribution) {
             late_night_eater, price_bucket_distribution, dominant_price_segment,
             discount_usage_rate, offer_dependent, premium_vs_budget_ratio,
             frequent_dishes, favorite_restaurants, competitor_mapping, repeat_baskets, geo_data,
-            wallet_address
+            wallet_address, opt_out
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, FALSE
           )
-          ON CONFLICT (id) DO UPDATE SET
+          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
+            id = EXCLUDED.id,
+            user_id = EXCLUDED.user_id,
             reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
@@ -549,6 +551,7 @@ export async function saveContribution(contribution) {
             city_cluster = EXCLUDED.city_cluster,
             data_quality_score = EXCLUDED.data_quality_score,
             cohort_id = EXCLUDED.cohort_id,
+            opt_out = FALSE,
             updated_at = NOW()`,
           [
             contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
@@ -595,9 +598,11 @@ export async function saveContribution(contribution) {
             sellable_data, metadata,
             follower_count, contribution_count, developer_tier, follower_tier,
             activity_level, is_influencer, is_active_contributor,
-            data_quality_score, cohort_id, wallet_address
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
-          ON CONFLICT (id) DO UPDATE SET
+            data_quality_score, cohort_id, wallet_address, opt_out
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, FALSE)
+          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
+            id = EXCLUDED.id,
+            user_id = EXCLUDED.user_id,
             reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
@@ -612,6 +617,7 @@ export async function saveContribution(contribution) {
             data_quality_score = EXCLUDED.data_quality_score,
             cohort_id = EXCLUDED.cohort_id,
             wallet_address = EXCLUDED.wallet_address,
+            opt_out = FALSE,
             updated_at = NOW()`,
           [
             contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
@@ -644,13 +650,15 @@ export async function saveContribution(contribution) {
             subscription_tier, account_age_years, member_since_year, loyalty_tier, churn_risk,
             kids_content_pct, mature_content_pct, primary_audience,
             segment_id, cohort_id, data_quality_score,
-            movies_watched, top_series, wallet_address
+            movies_watched, top_series, wallet_address, opt_out
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
             $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33,
-            $34, $35, $36
+            $34, $35, $36, FALSE
           )
-          ON CONFLICT (id) DO UPDATE SET
+          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
+            id = EXCLUDED.id,
+            user_id = EXCLUDED.user_id,
             reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
@@ -663,6 +671,7 @@ export async function saveContribution(contribution) {
             movies_watched = EXCLUDED.movies_watched,
             top_series = EXCLUDED.top_series,
             wallet_address = EXCLUDED.wallet_address,
+            opt_out = FALSE,
             updated_at = NOW()`,
           [
             contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
@@ -710,12 +719,14 @@ export async function saveContribution(contribution) {
             data_window_days, top_categories, category_diversity_score,
             essentials_buyer, snacks_buyer, personal_care_buyer,
             top_brands, brand_loyalty_score, spend_bracket, order_frequency,
-            segment_id, cohort_id, data_quality_score, wallet_address
+            segment_id, cohort_id, data_quality_score, wallet_address, opt_out
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, FALSE
           )
-          ON CONFLICT (id) DO UPDATE SET
+          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
+            id = EXCLUDED.id,
+            user_id = EXCLUDED.user_id,
             reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
@@ -766,12 +777,14 @@ export async function saveContribution(contribution) {
             spend_bracket, price_sensitivity_index, price_sensitivity_category,
             peak_ordering_day, peak_ordering_time, late_night_eater, avg_items_per_order,
             day_of_week_distribution, time_of_day_curve,
-            segment_id, cohort_id, data_quality_score, wallet_address
+            segment_id, cohort_id, data_quality_score, wallet_address, opt_out
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, FALSE
           )
-          ON CONFLICT (id) DO UPDATE SET
+          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
+            id = EXCLUDED.id,
+            user_id = EXCLUDED.user_id,
             reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
@@ -823,12 +836,14 @@ export async function saveContribution(contribution) {
             preferred_ride_type, ride_type_distribution, uses_premium, uses_shared,
             peak_time_period, peak_day, is_commuter, weekend_preference, late_night_rider,
             spend_bracket, frequency, urban_mobility_score,
-            segment_id, cohort_id, data_quality_score, wallet_address
+            segment_id, cohort_id, data_quality_score, wallet_address, opt_out
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, FALSE
           )
-          ON CONFLICT (id) DO UPDATE SET
+          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
+            id = EXCLUDED.id,
+            user_id = EXCLUDED.user_id,
             reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
@@ -838,6 +853,7 @@ export async function saveContribution(contribution) {
             preferred_ride_type = EXCLUDED.preferred_ride_type,
             is_commuter = EXCLUDED.is_commuter,
             wallet_address = EXCLUDED.wallet_address,
+            opt_out = FALSE,
             updated_at = NOW()`,
           [
             contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
@@ -884,21 +900,47 @@ export async function saveContribution(contribution) {
             swimming_distance_km, swimming_count,
             consistency_score, multi_sport_athlete, endurance_focused, outdoor_enthusiast,
             region, country,
-            segment_id, cohort_id, data_quality_score, wallet_address
+            segment_id, cohort_id, data_quality_score, wallet_address, opt_out
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
             $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-            $31, $32, $33, $34, $35, $36
+            $31, $32, $33, $34, $35, $36, FALSE
           )
-          ON CONFLICT (id) DO UPDATE SET
-            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
+          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
+            id = EXCLUDED.id,
+            user_id = EXCLUDED.user_id,
             status = EXCLUDED.status,
             sellable_data = EXCLUDED.sellable_data,
             metadata = EXCLUDED.metadata,
             fitness_tier = EXCLUDED.fitness_tier,
+            tier_label = EXCLUDED.tier_label,
+            activities_per_week = EXCLUDED.activities_per_week,
+            primary_activity = EXCLUDED.primary_activity,
+            engagement_score = EXCLUDED.engagement_score,
             total_activities = EXCLUDED.total_activities,
             total_distance_km = EXCLUDED.total_distance_km,
+            total_time_hours = EXCLUDED.total_time_hours,
+            running_distance_km = EXCLUDED.running_distance_km,
+            running_count = EXCLUDED.running_count,
+            running_time_hours = EXCLUDED.running_time_hours,
+            cycling_distance_km = EXCLUDED.cycling_distance_km,
+            cycling_count = EXCLUDED.cycling_count,
+            cycling_time_hours = EXCLUDED.cycling_time_hours,
+            walking_distance_km = EXCLUDED.walking_distance_km,
+            walking_count = EXCLUDED.walking_count,
+            swimming_distance_km = EXCLUDED.swimming_distance_km,
+            swimming_count = EXCLUDED.swimming_count,
+            consistency_score = EXCLUDED.consistency_score,
+            multi_sport_athlete = EXCLUDED.multi_sport_athlete,
+            endurance_focused = EXCLUDED.endurance_focused,
+            outdoor_enthusiast = EXCLUDED.outdoor_enthusiast,
+            region = EXCLUDED.region,
+            country = EXCLUDED.country,
+            segment_id = EXCLUDED.segment_id,
+            cohort_id = EXCLUDED.cohort_id,
+            data_quality_score = EXCLUDED.data_quality_score,
             wallet_address = EXCLUDED.wallet_address,
+            opt_out = FALSE,
             updated_at = NOW()`,
           [
             contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
@@ -978,6 +1020,7 @@ export async function queryZomatoContributions(filters = {}) {
              frequent_dishes, favorite_restaurants, competitor_mapping, repeat_baskets, geo_data
       FROM zomato_contributions
       WHERE 1=1
+      AND (opt_out = FALSE OR opt_out IS NULL)
     `;
 
     const params = [];
@@ -1084,6 +1127,7 @@ export async function queryGithubContributions(filters = {}) {
              data_quality_score, cohort_id
       FROM github_contributions
       WHERE 1=1
+      AND (opt_out = FALSE OR opt_out IS NULL)
     `;
 
     const params = [];
@@ -1163,6 +1207,7 @@ export async function queryNetflixContributions(filters = {}) {
              segment_id, cohort_id, data_quality_score
       FROM netflix_contributions
       WHERE 1=1
+      AND (opt_out = FALSE OR opt_out IS NULL)
     `;
 
     const params = [];
@@ -1254,6 +1299,7 @@ export async function queryBlinkitContributions(filters = {}) {
              order_frequency, segment_id, cohort_id, data_quality_score
       FROM blinkit_contributions
       WHERE 1=1
+      AND (opt_out = FALSE OR opt_out IS NULL)
     `;
 
     const params = [];
@@ -1334,6 +1380,7 @@ export async function queryUberEatsContributions(filters = {}) {
              segment_id, cohort_id, data_quality_score
       FROM ubereats_contributions
       WHERE 1=1
+      AND (opt_out = FALSE OR opt_out IS NULL)
     `;
 
     const params = [];
@@ -1414,6 +1461,7 @@ export async function queryUberRidesContributions(filters = {}) {
              is_commuter, preferred_ride_type, segment_id, cohort_id, data_quality_score
       FROM uber_rides_contributions
       WHERE 1=1
+      AND (opt_out = FALSE OR opt_out IS NULL)
     `;
 
     const params = [];
@@ -1494,6 +1542,7 @@ export async function queryStravaContributions(filters = {}) {
              primary_activity, engagement_score, segment_id, cohort_id, data_quality_score
       FROM strava_contributions
       WHERE 1=1
+      AND (opt_out = FALSE OR opt_out IS NULL)
     `;
 
     const params = [];
@@ -1678,9 +1727,9 @@ export async function findContributionByProofId(reclaimProofId) {
   }
 
   try {
-    // Check zomato table
+    // Check zomato table - only check contributions that haven't opted out
     const zomatoResult = await query(
-      'SELECT id, user_id, reclaim_proof_id FROM zomato_contributions WHERE reclaim_proof_id = $1',
+      'SELECT id, user_id, reclaim_proof_id FROM zomato_contributions WHERE reclaim_proof_id = $1 AND (opt_out = FALSE OR opt_out IS NULL)',
       [reclaimProofId]
     );
 
@@ -1688,9 +1737,9 @@ export async function findContributionByProofId(reclaimProofId) {
       return zomatoResult.rows[0];
     }
 
-    // Check github table
+    // Check github table - only check contributions that haven't opted out
     const githubResult = await query(
-      'SELECT id, user_id, reclaim_proof_id FROM github_contributions WHERE reclaim_proof_id = $1',
+      'SELECT id, user_id, reclaim_proof_id FROM github_contributions WHERE reclaim_proof_id = $1 AND (opt_out = FALSE OR opt_out IS NULL)',
       [reclaimProofId]
     );
 
@@ -1698,9 +1747,9 @@ export async function findContributionByProofId(reclaimProofId) {
       return githubResult.rows[0];
     }
 
-    // Check netflix table
+    // Check netflix table - only check contributions that haven't opted out
     const netflixResult = await query(
-      'SELECT id, user_id, reclaim_proof_id FROM netflix_contributions WHERE reclaim_proof_id = $1',
+      'SELECT id, user_id, reclaim_proof_id FROM netflix_contributions WHERE reclaim_proof_id = $1 AND (opt_out = FALSE OR opt_out IS NULL)',
       [reclaimProofId]
     );
 
@@ -1708,9 +1757,9 @@ export async function findContributionByProofId(reclaimProofId) {
       return netflixResult.rows[0];
     }
 
-    // Check blinkit table
+    // Check blinkit table - only check contributions that haven't opted out
     const blinkitResult = await query(
-      'SELECT id, user_id, reclaim_proof_id FROM blinkit_contributions WHERE reclaim_proof_id = $1',
+      'SELECT id, user_id, reclaim_proof_id FROM blinkit_contributions WHERE reclaim_proof_id = $1 AND (opt_out = FALSE OR opt_out IS NULL)',
       [reclaimProofId]
     );
 
@@ -1718,9 +1767,9 @@ export async function findContributionByProofId(reclaimProofId) {
       return blinkitResult.rows[0];
     }
 
-    // Check ubereats table
+    // Check ubereats table - only check contributions that haven't opted out
     const ubereatsResult = await query(
-      'SELECT id, user_id, reclaim_proof_id FROM ubereats_contributions WHERE reclaim_proof_id = $1',
+      'SELECT id, user_id, reclaim_proof_id FROM ubereats_contributions WHERE reclaim_proof_id = $1 AND (opt_out = FALSE OR opt_out IS NULL)',
       [reclaimProofId]
     );
 
@@ -1728,9 +1777,9 @@ export async function findContributionByProofId(reclaimProofId) {
       return ubereatsResult.rows[0];
     }
 
-    // Check uber_rides table
+    // Check uber_rides table - only check contributions that haven't opted out
     const uberRidesResult = await query(
-      'SELECT id, user_id, reclaim_proof_id FROM uber_rides_contributions WHERE reclaim_proof_id = $1',
+      'SELECT id, user_id, reclaim_proof_id FROM uber_rides_contributions WHERE reclaim_proof_id = $1 AND (opt_out = FALSE OR opt_out IS NULL)',
       [reclaimProofId]
     );
 
@@ -1738,9 +1787,9 @@ export async function findContributionByProofId(reclaimProofId) {
       return uberRidesResult.rows[0];
     }
 
-    // Check strava table
+    // Check strava table - only check contributions that haven't opted out
     const stravaResult = await query(
-      'SELECT id, user_id, reclaim_proof_id FROM strava_contributions WHERE reclaim_proof_id = $1',
+      'SELECT id, user_id, reclaim_proof_id FROM strava_contributions WHERE reclaim_proof_id = $1 AND (opt_out = FALSE OR opt_out IS NULL)',
       [reclaimProofId]
     );
 
@@ -1766,8 +1815,9 @@ export async function findZomatoContributionByData(totalOrders, totalGmv) {
   }
 
   try {
+    // Only check for duplicates among contributions that haven't opted out
     const result = await query(
-      'SELECT id, user_id, reclaim_proof_id, total_orders, total_gmv FROM zomato_contributions WHERE total_orders = $1 AND total_gmv = $2 ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, user_id, reclaim_proof_id, total_orders, total_gmv FROM zomato_contributions WHERE total_orders = $1 AND total_gmv = $2 AND (opt_out = FALSE OR opt_out IS NULL) ORDER BY created_at DESC LIMIT 1',
       [totalOrders, totalGmv]
     );
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -1786,11 +1836,12 @@ export async function findGithubContributionByUsername(username) {
   }
 
   try {
-    // Search in sellable_data JSON for the username
+    // Only check for duplicates among contributions that haven't opted out
     const result = await query(
       `SELECT id, user_id, follower_count, contribution_count 
        FROM github_contributions 
        WHERE sellable_data::text LIKE $1
+       AND (opt_out = FALSE OR opt_out IS NULL)
        ORDER BY created_at DESC LIMIT 1`,
       [`%"username":"${username}"%`]
     );
@@ -1810,10 +1861,12 @@ export async function findNetflixContributionByTitleCount(titleCount) {
   }
 
   try {
+    // Only check for duplicates among contributions that haven't opted out
     const result = await query(
       `SELECT id, user_id, total_titles_watched 
        FROM netflix_contributions 
        WHERE total_titles_watched = $1
+       AND (opt_out = FALSE OR opt_out IS NULL)
        ORDER BY created_at DESC LIMIT 1`,
       [titleCount]
     );
@@ -1833,8 +1886,9 @@ export async function findBlinkitContributionByData(totalOrders, totalSpend) {
   }
 
   try {
+    // Only check for duplicates among contributions that haven't opted out
     const result = await query(
-      'SELECT id, user_id, reclaim_proof_id, total_orders, total_spend FROM blinkit_contributions WHERE total_orders = $1 AND total_spend = $2 ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, user_id, reclaim_proof_id, total_orders, total_spend FROM blinkit_contributions WHERE total_orders = $1 AND total_spend = $2 AND (opt_out = FALSE OR opt_out IS NULL) ORDER BY created_at DESC LIMIT 1',
       [totalOrders, totalSpend]
     );
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -1853,8 +1907,9 @@ export async function findUberEatsContributionByData(totalOrders, totalSpend) {
   }
 
   try {
+    // Only check for duplicates among contributions that haven't opted out
     const result = await query(
-      'SELECT id, user_id, reclaim_proof_id, total_orders, total_spend FROM ubereats_contributions WHERE total_orders = $1 AND total_spend = $2 ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, user_id, reclaim_proof_id, total_orders, total_spend FROM ubereats_contributions WHERE total_orders = $1 AND total_spend = $2 AND (opt_out = FALSE OR opt_out IS NULL) ORDER BY created_at DESC LIMIT 1',
       [totalOrders, totalSpend]
     );
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -1873,8 +1928,9 @@ export async function findUberRidesContributionByData(totalRides, totalSpend) {
   }
 
   try {
+    // Only check for duplicates among contributions that haven't opted out
     const result = await query(
-      'SELECT id, user_id, reclaim_proof_id, total_rides, total_spend FROM uber_rides_contributions WHERE total_rides = $1 AND total_spend = $2 ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, user_id, reclaim_proof_id, total_rides, total_spend FROM uber_rides_contributions WHERE total_rides = $1 AND total_spend = $2 AND (opt_out = FALSE OR opt_out IS NULL) ORDER BY created_at DESC LIMIT 1',
       [totalRides, totalSpend]
     );
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -1893,8 +1949,9 @@ export async function findStravaContributionByData(totalActivities, totalDistanc
   }
 
   try {
+    // Only check for duplicates among contributions that haven't opted out
     const result = await query(
-      'SELECT id, user_id, reclaim_proof_id, total_activities, total_distance_km FROM strava_contributions WHERE total_activities = $1 AND total_distance_km = $2 ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, user_id, reclaim_proof_id, total_activities, total_distance_km FROM strava_contributions WHERE total_activities = $1 AND total_distance_km = $2 AND (opt_out = FALSE OR opt_out IS NULL) ORDER BY created_at DESC LIMIT 1',
       [totalActivities, totalDistanceKm]
     );
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -1927,11 +1984,13 @@ export async function findDuplicateByContent(dataType, contentSignature) {
       
       // Check if same Zomato userId with same order count exists
       if (zomatoUserId) {
+        // Only check for duplicates among contributions that haven't opted out
         const result = await query(
           `SELECT id, user_id, total_orders, sellable_data 
            FROM zomato_contributions 
            WHERE total_orders = $1 
            AND sellable_data::text LIKE $2
+           AND (opt_out = FALSE OR opt_out IS NULL)
            ORDER BY created_at DESC LIMIT 1`,
           [orderCount, `%"userId":"${zomatoUserId}"%`]
         );
@@ -1947,12 +2006,14 @@ export async function findDuplicateByContent(dataType, contentSignature) {
       const contributions = parseInt(parts[3], 10) || 0;
       
       if (username) {
+        // Only check for duplicates among contributions that haven't opted out
         const result = await query(
           `SELECT id, user_id, follower_count, contribution_count, sellable_data 
            FROM github_contributions 
            WHERE follower_count = $1 
            AND contribution_count = $2
            AND sellable_data::text LIKE $3
+           AND (opt_out = FALSE OR opt_out IS NULL)
            ORDER BY created_at DESC LIMIT 1`,
           [followers, contributions, `%"username":"${username}"%`]
         );
@@ -1966,10 +2027,12 @@ export async function findDuplicateByContent(dataType, contentSignature) {
       const titleCount = parseInt(parts[1], 10) || 0;
       
       if (titleCount > 0) {
+        // Only check for duplicates among contributions that haven't opted out
         const result = await query(
           `SELECT id, user_id, total_titles_watched 
            FROM netflix_contributions 
            WHERE total_titles_watched = $1
+           AND (opt_out = FALSE OR opt_out IS NULL)
            ORDER BY created_at DESC LIMIT 1`,
           [titleCount]
         );
@@ -2103,5 +2166,177 @@ export async function getAggregateStats(filters = {}) {
   } catch (error) {
     console.error('Error getting aggregate stats:', error);
     return null;
+  }
+}
+
+/**
+ * Opt-out user from data marketplace
+ * Sets opt_out = true for all contributions by this user across all provider tables
+ * Resets user points to 10 (initial bonus)
+ * Data is retained but excluded from marketplace queries
+ */
+export async function optOutUser(userId) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    throw new Error('Database is required but not configured');
+  }
+
+  try {
+    // Start transaction
+    await query('BEGIN');
+
+    try {
+      console.log(`🚫 Processing opt-out for user ${userId}...`);
+
+      // Update opt_out flag in all contribution tables
+      const tables = [
+        'contributions',
+        'zomato_contributions',
+        'github_contributions',
+        'netflix_contributions',
+        'blinkit_contributions',
+        'ubereats_contributions',
+        'uber_rides_contributions',
+        'strava_contributions'
+      ];
+
+      let totalUpdated = 0;
+
+      for (const table of tables) {
+        try {
+          const result = await query(
+            `UPDATE ${table} SET opt_out = TRUE, updated_at = NOW() WHERE user_id = $1 AND (opt_out IS NULL OR opt_out = FALSE)`,
+            [userId]
+          );
+          const rowCount = result.rowCount || 0;
+          if (rowCount > 0) {
+            console.log(`  ✅ Updated ${rowCount} rows in ${table}`);
+            totalUpdated += rowCount;
+          }
+        } catch (tableError) {
+          // Table might not exist or have the column yet, continue
+          console.log(`  ⚠️ Could not update ${table}: ${tableError.message}`);
+        }
+      }
+
+      // Delete all old points history entries (they were earned from opted-out contributions)
+      const deleteResult = await query(
+        `DELETE FROM points_history WHERE user_id = $1`,
+        [userId]
+      );
+      console.log(`  ✅ Deleted ${deleteResult.rowCount || 0} old points history entries`);
+
+      // Insert fresh 10-point initial bonus
+      const initialPointsId = Date.now().toString();
+      await query(
+        `INSERT INTO points_history (id, user_id, points, reason, created_at) VALUES ($1, $2, $3, $4, NOW())`,
+        [initialPointsId, userId, 10, 'first_access_bonus']
+      );
+      console.log(`  ✅ Added fresh 10-point initial bonus`);
+
+      // Reset user points to 10 (initial first_access_bonus)
+      await query(
+        `UPDATE users SET total_points = 10, league = 'Bronze', updated_at = NOW() WHERE id = $1`,
+        [userId]
+      );
+      console.log(`  ✅ Reset user points to 10`);
+
+      await query('COMMIT');
+
+      console.log(`✅ Opt-out complete for user ${userId}. Updated ${totalUpdated} contributions.`);
+
+      return {
+        success: true,
+        userId,
+        contributionsUpdated: totalUpdated,
+        pointsReset: true,
+        newPoints: 10
+      };
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error opting out user:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if user has opted out
+ */
+export async function isUserOptedOut(userId) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return false;
+  }
+
+  try {
+    // Check if any contribution has opt_out = true
+    const result = await query(
+      `SELECT EXISTS(
+        SELECT 1 FROM contributions WHERE user_id = $1 AND opt_out = TRUE
+        UNION
+        SELECT 1 FROM zomato_contributions WHERE user_id = $1 AND opt_out = TRUE
+        UNION
+        SELECT 1 FROM github_contributions WHERE user_id = $1 AND opt_out = TRUE
+        UNION
+        SELECT 1 FROM netflix_contributions WHERE user_id = $1 AND opt_out = TRUE
+        UNION
+        SELECT 1 FROM blinkit_contributions WHERE user_id = $1 AND opt_out = TRUE
+        UNION
+        SELECT 1 FROM ubereats_contributions WHERE user_id = $1 AND opt_out = TRUE
+        UNION
+        SELECT 1 FROM uber_rides_contributions WHERE user_id = $1 AND opt_out = TRUE
+        UNION
+        SELECT 1 FROM strava_contributions WHERE user_id = $1 AND opt_out = TRUE
+      ) as opted_out`,
+      [userId]
+    );
+    return result.rows[0]?.opted_out || false;
+  } catch (error) {
+    console.error('Error checking opt-out status:', error);
+    return false;
+  }
+}
+
+/**
+ * Get user's opt-out status and contribution count
+ */
+export async function getUserOptOutStatus(userId) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return { optedOut: false, contributionCount: 0 };
+  }
+
+  try {
+    // Count total contributions
+    const countResult = await query(
+      `SELECT COUNT(*) as count FROM (
+        SELECT id FROM contributions WHERE user_id = $1
+        UNION ALL
+        SELECT id FROM zomato_contributions WHERE user_id = $1
+        UNION ALL
+        SELECT id FROM github_contributions WHERE user_id = $1
+        UNION ALL
+        SELECT id FROM netflix_contributions WHERE user_id = $1
+        UNION ALL
+        SELECT id FROM blinkit_contributions WHERE user_id = $1
+        UNION ALL
+        SELECT id FROM ubereats_contributions WHERE user_id = $1
+        UNION ALL
+        SELECT id FROM uber_rides_contributions WHERE user_id = $1
+        UNION ALL
+        SELECT id FROM strava_contributions WHERE user_id = $1
+      ) as all_contributions`,
+      [userId]
+    );
+
+    const isOptedOut = await isUserOptedOut(userId);
+
+    return {
+      optedOut: isOptedOut,
+      contributionCount: parseInt(countResult.rows[0]?.count || 0, 10)
+    };
+  } catch (error) {
+    console.error('Error getting opt-out status:', error);
+    return { optedOut: false, contributionCount: 0 };
   }
 }

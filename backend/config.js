@@ -1,9 +1,19 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Load .env file from project root (2 levels up from backend/config.js)
+const rootEnvPath = path.join(__dirname, '../.env');
+if (fs.existsSync(rootEnvPath)) {
+  dotenv.config({ path: rootEnvPath });
+} else {
+  // Fallback: try current directory (for when running from root)
+  dotenv.config();
+}
 
 const DEFAULT_RPC_URL = "https://sepolia.base.org";
 const RPC_URL = process.env.BASE_RPC_URL || DEFAULT_RPC_URL;
