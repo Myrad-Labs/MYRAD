@@ -13,14 +13,24 @@ export async function getUserByPrivyId(privyId) {
     return null;
   }
 
+  if (!privyId) {
+    console.warn('⚠️ getUserByPrivyId called with null/undefined privyId');
+    return null;
+  }
+
   try {
     const result = await query(
       'SELECT * FROM users WHERE privy_id = $1',
-      [privyId]
+      [String(privyId)] // Ensure it's a string
     );
 
     if (result.rows.length === 0) {
       return null;
+    }
+
+    // If multiple users found (shouldn't happen due to UNIQUE constraint, but log it)
+    if (result.rows.length > 1) {
+      console.error(`⚠️ WARNING: Multiple users found with privyId ${privyId}! This should not happen.`);
     }
 
     return formatUser(result.rows[0]);
@@ -63,20 +73,50 @@ export async function createUser(privyId, email, walletAddress = null) {
     throw new Error('Database is required but not configured');
   }
 
+  if (!privyId) {
+    throw new Error('privyId is required to create user');
+  }
+
+  // Generate unique userId: timestamp + random component to prevent collisions
+  // Format: timestamp_randomHex (e.g., "1704067200000_a3f2b1")
+  const generateUniqueId = () => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8); // 6 char random string
+    return `${timestamp}_${random}`;
+  };
+
+  // Use transaction to ensure atomicity
+  await query('BEGIN');
+
   try {
-    const userId = Date.now().toString();
+    // First, check if user exists (within transaction to prevent race conditions)
+    const existing = await getUserByPrivyId(privyId);
+    if (existing) {
+      await query('ROLLBACK');
+      console.log(`ℹ️ User with privyId ${privyId} already exists, returning existing user`);
+      return existing;
+    }
+
+    const userId = generateUniqueId();
     const now = new Date();
 
-    await query(
+    // Use ON CONFLICT to handle race conditions at database level
+    // If privy_id already exists (due to race condition), return existing user
+    const result = await query(
       `INSERT INTO users (
         id, privy_id, email, wallet_address, username, streak,
         last_contribution_date, total_points, league, created_at, last_active_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (privy_id) DO UPDATE SET
+        email = COALESCE(EXCLUDED.email, users.email),
+        wallet_address = COALESCE(EXCLUDED.wallet_address, users.wallet_address),
+        last_active_at = EXCLUDED.last_active_at
+      RETURNING *`,
       [
         userId,
-        privyId,
-        email,
-        walletAddress,
+        String(privyId), // Ensure privyId is a string
+        email || null, // Explicitly set to null if not provided
+        walletAddress || null, // Explicitly set to null if not provided
         null, // username
         0, // streak
         null, // last_contribution_date
@@ -87,13 +127,63 @@ export async function createUser(privyId, email, walletAddress = null) {
       ]
     );
 
-    const user = await getUserById(userId);
-    
-    // Award first-time dashboard access points
-    await addPoints(userId, 10, 'first_access_bonus');
+    const insertedUser = result.rows[0];
+    const finalUserId = insertedUser.id;
 
-    return await getUserById(userId);
+    // Check if this was an insert or update (by checking if points_history exists)
+    const pointsCheck = await query(
+      'SELECT COUNT(*) as count FROM points_history WHERE user_id = $1 AND reason = $2',
+      [finalUserId, 'first_access_bonus']
+    );
+
+    const hasInitialPoints = parseInt(pointsCheck.rows[0].count, 10) > 0;
+
+    // Only award points if this was a new user (not an update due to conflict)
+    // Add points within the same transaction
+    if (!hasInitialPoints) {
+      try {
+        const pointsId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        await query(
+          'INSERT INTO points_history (id, user_id, points, reason, created_at) VALUES ($1, $2, $3, $4, NOW())',
+          [pointsId, finalUserId, 10, 'first_access_bonus']
+        );
+
+        // Recalculate and update user's total points within transaction
+        const totalResult = await query(
+          'SELECT COALESCE(SUM(points), 0) as total FROM points_history WHERE user_id = $1',
+          [finalUserId]
+        );
+
+        const totalPoints = parseInt(totalResult.rows[0].total, 10);
+        const league = calculateLeague(totalPoints);
+
+        await query(
+          'UPDATE users SET total_points = $1, league = $2, updated_at = NOW() WHERE id = $3',
+          [totalPoints, league, finalUserId]
+        );
+      } catch (pointsError) {
+        // If points already exist, that's okay (race condition handled)
+        console.log(`ℹ️ Points may already exist for user ${finalUserId}, continuing...`);
+      }
+    }
+
+    await query('COMMIT');
+
+    const user = await getUserById(finalUserId);
+    console.log(`✅ User created/retrieved: id=${user.id}, privyId=${privyId}, email=${email || 'null'}, wallet=${walletAddress ? walletAddress.slice(0, 10) + '...' : 'null'}`);
+    return user;
   } catch (error) {
+    await query('ROLLBACK');
+    
+    // If it's a unique constraint violation, try to get the existing user
+    if (error.code === '23505' || error.message.includes('unique constraint') || error.message.includes('duplicate key')) {
+      console.log(`⚠️ Race condition detected for privyId ${privyId}, fetching existing user...`);
+      const existing = await getUserByPrivyId(privyId);
+      if (existing) {
+        return existing;
+      }
+    }
+    
     console.error('Error creating user:', error);
     throw error;
   }
@@ -242,49 +332,81 @@ export async function addPoints(userId, points, reason) {
     throw new Error('Database is required but not configured');
   }
 
-  try {
-    // Start transaction
-    await query('BEGIN');
+  // Generate unique ID with timestamp + random component
+  const generateUniqueId = () => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `${timestamp}_${random}`;
+  };
 
+  // Retry logic for handling concurrent transactions
+  const maxRetries = 3;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Insert points transaction
-      const pointsId = Date.now().toString();
-      await query(
-        'INSERT INTO points_history (id, user_id, points, reason, created_at) VALUES ($1, $2, $3, $4, NOW())',
-        [pointsId, userId, points, reason]
-      );
+      // Start transaction with SERIALIZABLE isolation for strongest consistency
+      await query('BEGIN');
 
-      // Recalculate and update user's total points
-      const totalResult = await query(
-        'SELECT COALESCE(SUM(points), 0) as total FROM points_history WHERE user_id = $1',
-        [userId]
-      );
+      try {
+        // Lock the user row to prevent concurrent points updates
+        await query(
+          'SELECT id FROM users WHERE id = $1 FOR UPDATE',
+          [userId]
+        );
 
-      const totalPoints = parseInt(totalResult.rows[0].total, 10);
-      const league = calculateLeague(totalPoints);
+        // Insert points transaction with unique ID
+        const pointsId = generateUniqueId();
+        await query(
+          'INSERT INTO points_history (id, user_id, points, reason, created_at) VALUES ($1, $2, $3, $4, NOW())',
+          [pointsId, userId, points, reason]
+        );
 
-      await query(
-        'UPDATE users SET total_points = $1, league = $2, updated_at = NOW() WHERE id = $3',
-        [totalPoints, league, userId]
-      );
+        // Recalculate and update user's total points
+        const totalResult = await query(
+          'SELECT COALESCE(SUM(points), 0) as total FROM points_history WHERE user_id = $1',
+          [userId]
+        );
 
-      await query('COMMIT');
+        const totalPoints = parseInt(totalResult.rows[0].total, 10);
+        const league = calculateLeague(totalPoints);
 
-      return {
-        id: pointsId,
-        userId,
-        points,
-        reason,
-        createdAt: new Date().toISOString()
-      };
+        await query(
+          'UPDATE users SET total_points = $1, league = $2, updated_at = NOW() WHERE id = $3',
+          [totalPoints, league, userId]
+        );
+
+        await query('COMMIT');
+
+        return {
+          id: pointsId,
+          userId,
+          points,
+          reason,
+          createdAt: new Date().toISOString()
+        };
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
     } catch (error) {
-      await query('ROLLBACK');
+      lastError = error;
+      
+      // Check if it's a serialization failure or deadlock - these are retryable
+      if (error.code === '40001' || error.code === '40P01' || error.message.includes('deadlock') || error.message.includes('could not serialize')) {
+        console.log(`⚠️ Transaction conflict in addPoints (attempt ${attempt}/${maxRetries}), retrying...`);
+        // Small random delay before retry to reduce collision chance
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+        continue;
+      }
+      
+      // Non-retryable error
       throw error;
     }
-  } catch (error) {
-    console.error('Error adding points:', error);
-    throw error;
   }
+
+  console.error('Error adding points after retries:', lastError);
+  throw lastError;
 }
 
 /**

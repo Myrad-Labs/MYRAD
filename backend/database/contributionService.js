@@ -379,7 +379,17 @@ function extractZeptoFields(sellableData) {
 }
 
 /**
+ * Generate unique contribution ID with timestamp + random component
+ */
+function generateContributionId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  return `${timestamp}_${random}`;
+}
+
+/**
  * Save a contribution to the appropriate table based on dataType
+ * Uses transactions with row locking to prevent race conditions
  */
 export async function saveContribution(contribution) {
   if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
@@ -387,183 +397,276 @@ export async function saveContribution(contribution) {
     return null;
   }
 
-  try {
-    const {
-      id,
-      userId,
-      dataType,
-      reclaimProofId,
-      sellableData,
-      behavioralInsights,
-      status = 'verified',
-      processingMethod,
-      createdAt,
-      walletAddress
-    } = contribution;
+  const maxRetries = 3;
+  let lastError = null;
 
-    if (!sellableData) {
-      console.warn('⚠️  No sellableData to save, skipping');
-      return null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await saveContributionInternal(contribution);
+    } catch (error) {
+      lastError = error;
+      
+      // Check if it's a retryable error (serialization failure, deadlock)
+      if (error.code === '40001' || error.code === '40P01' || 
+          error.message.includes('deadlock') || error.message.includes('could not serialize')) {
+        console.log(`⚠️ Transaction conflict in saveContribution (attempt ${attempt}/${maxRetries}), retrying...`);
+        // Small random delay before retry
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+        continue;
+      }
+      
+      // Non-retryable error, throw immediately
+      throw error;
     }
+  }
 
-    // Check if a contribution with the same data already exists (before transaction)
-    // For Zomato: check by data characteristics (total_orders + total_gmv) to detect same Zomato account data
-    // This prevents the same Zomato account from being shared multiple times from different MYRAD accounts
-    let contributionId = id;
-    let isDuplicate = false;
-    let existingContributionData = null;
+  console.error('❌ Error saving contribution after retries:', lastError?.message);
+  throw lastError;
+}
+
+/**
+ * Internal implementation of saveContribution with transaction handling
+ */
+async function saveContributionInternal(contribution) {
+  const {
+    id,
+    userId,
+    dataType,
+    reclaimProofId,
+    sellableData,
+    behavioralInsights,
+    status = 'verified',
+    processingMethod,
+    createdAt,
+    walletAddress
+  } = contribution;
+
+  if (!sellableData) {
+    console.warn('⚠️  No sellableData to save, skipping');
+    return null;
+  }
+
+  // Use provided ID or generate unique one
+  let contributionId = id || generateContributionId();
+
+  // Start transaction FIRST - all duplicate checks happen inside transaction
+  await query('BEGIN');
+
+  try {
+    // ========================================
+    // DUPLICATE CHECKS INSIDE TRANSACTION
+    // Using SELECT FOR UPDATE to lock rows and prevent race conditions
+    // ========================================
     
     if (dataType === 'zomato_order_history') {
       const indexedFields = extractZomatoFields(sellableData);
       if (indexedFields.total_orders !== null && indexedFields.total_gmv !== null) {
-        const existingContribution = await findZomatoContributionByData(indexedFields.total_orders, indexedFields.total_gmv);
-        if (existingContribution) {
-          // Check if the new data has MORE orders than existing (allow updates with more data)
-          if (indexedFields.total_orders > (existingContribution.total_orders || 0)) {
-            contributionId = existingContribution.id;
-            console.log(`🔄 Updating Zomato contribution with MORE data (old: ${existingContribution.total_orders}, new: ${indexedFields.total_orders})`);
+        // Lock and check for existing contribution
+        const existingResult = await query(
+          `SELECT id, total_orders FROM zomato_contributions 
+           WHERE total_orders = $1 AND total_gmv = $2 
+           AND (opt_out = FALSE OR opt_out IS NULL)
+           FOR UPDATE`,
+          [indexedFields.total_orders, indexedFields.total_gmv]
+        );
+        
+        if (existingResult.rows.length > 0) {
+          const existing = existingResult.rows[0];
+          if (indexedFields.total_orders > (existing.total_orders || 0)) {
+            contributionId = existing.id;
+            console.log(`🔄 Updating Zomato contribution with MORE data`);
           } else {
-            // Same or fewer orders = duplicate, reject
-            isDuplicate = true;
-            existingContributionData = existingContribution;
-            console.log(`⚠️ DUPLICATE Zomato data detected (orders: ${indexedFields.total_orders}, gmv: ${indexedFields.total_gmv}), rejecting`);
-            return { success: false, isDuplicate: true, existingId: existingContribution.id, message: 'This Zomato data has already been submitted.' };
+            await query('ROLLBACK');
+            console.log(`⚠️ DUPLICATE Zomato data detected, rejecting`);
+            return { success: false, isDuplicate: true, existingId: existing.id, message: 'This Zomato data has already been submitted.' };
           }
         }
       }
     }
     
-    // For GitHub: check by username
     if (dataType === 'github_profile') {
       const username = sellableData?.data?.username || contribution.data?.username;
       if (username) {
-        const existingGithub = await findGithubContributionByUsername(username);
-        if (existingGithub) {
-          isDuplicate = true;
+        const existingResult = await query(
+          `SELECT id FROM github_contributions 
+           WHERE username = $1 
+           AND (opt_out = FALSE OR opt_out IS NULL)
+           FOR UPDATE`,
+          [username]
+        );
+        
+        if (existingResult.rows.length > 0) {
+          await query('ROLLBACK');
           console.log(`⚠️ DUPLICATE GitHub data detected (username: ${username}), rejecting`);
-          return { success: false, isDuplicate: true, existingId: existingGithub.id, message: 'This GitHub profile has already been submitted.' };
+          return { success: false, isDuplicate: true, existingId: existingResult.rows[0].id, message: 'This GitHub profile has already been submitted.' };
         }
       }
     }
     
-    // For Netflix: check by title count (rough duplicate detection)
     if (dataType === 'netflix_watch_history') {
       const titleCount = sellableData?.viewing_summary?.total_titles_watched;
       if (titleCount && titleCount > 0) {
-        const existingNetflix = await findNetflixContributionByTitleCount(titleCount);
-        if (existingNetflix) {
-          isDuplicate = true;
+        const existingResult = await query(
+          `SELECT id FROM netflix_contributions 
+           WHERE total_titles_watched = $1 
+           AND (opt_out = FALSE OR opt_out IS NULL)
+           FOR UPDATE`,
+          [titleCount]
+        );
+        
+        if (existingResult.rows.length > 0) {
+          await query('ROLLBACK');
           console.log(`⚠️ DUPLICATE Netflix data detected (titles: ${titleCount}), rejecting`);
-          return { success: false, isDuplicate: true, existingId: existingNetflix.id, message: 'This Netflix watch history has already been submitted.' };
+          return { success: false, isDuplicate: true, existingId: existingResult.rows[0].id, message: 'This Netflix watch history has already been submitted.' };
         }
       }
     }
 
-    // For Blinkit: check by total_orders + total_spend (similar to Zomato)
     if (dataType === 'blinkit_order_history') {
       const indexedFields = extractBlinkitFields(sellableData);
       if (indexedFields.total_orders !== null && indexedFields.total_spend !== null) {
-        const existingBlinkit = await findBlinkitContributionByData(indexedFields.total_orders, indexedFields.total_spend);
-        if (existingBlinkit) {
-          if (indexedFields.total_orders > (existingBlinkit.total_orders || 0)) {
-            contributionId = existingBlinkit.id;
+        const existingResult = await query(
+          `SELECT id, total_orders FROM blinkit_contributions 
+           WHERE total_orders = $1 AND total_spend = $2 
+           AND (opt_out = FALSE OR opt_out IS NULL)
+           FOR UPDATE`,
+          [indexedFields.total_orders, indexedFields.total_spend]
+        );
+        
+        if (existingResult.rows.length > 0) {
+          const existing = existingResult.rows[0];
+          if (indexedFields.total_orders > (existing.total_orders || 0)) {
+            contributionId = existing.id;
             console.log(`🔄 Updating Blinkit contribution with MORE data`);
           } else {
-            isDuplicate = true;
+            await query('ROLLBACK');
             console.log(`⚠️ DUPLICATE Blinkit data detected, rejecting`);
-            return { success: false, isDuplicate: true, existingId: existingBlinkit.id, message: 'This Blinkit data has already been submitted.' };
+            return { success: false, isDuplicate: true, existingId: existing.id, message: 'This Blinkit data has already been submitted.' };
           }
         }
       }
     }
 
-    // For Uber Eats: check by total_orders + total_spend
     if (dataType === 'ubereats_order_history') {
       const indexedFields = extractUberEatsFields(sellableData);
       if (indexedFields.total_orders !== null && indexedFields.total_spend !== null) {
-        const existingUberEats = await findUberEatsContributionByData(indexedFields.total_orders, indexedFields.total_spend);
-        if (existingUberEats) {
-          if (indexedFields.total_orders > (existingUberEats.total_orders || 0)) {
-            contributionId = existingUberEats.id;
+        const existingResult = await query(
+          `SELECT id, total_orders FROM ubereats_contributions 
+           WHERE total_orders = $1 AND total_spend = $2 
+           AND (opt_out = FALSE OR opt_out IS NULL)
+           FOR UPDATE`,
+          [indexedFields.total_orders, indexedFields.total_spend]
+        );
+        
+        if (existingResult.rows.length > 0) {
+          const existing = existingResult.rows[0];
+          if (indexedFields.total_orders > (existing.total_orders || 0)) {
+            contributionId = existing.id;
             console.log(`🔄 Updating Uber Eats contribution with MORE data`);
           } else {
-            isDuplicate = true;
+            await query('ROLLBACK');
             console.log(`⚠️ DUPLICATE Uber Eats data detected, rejecting`);
-            return { success: false, isDuplicate: true, existingId: existingUberEats.id, message: 'This Uber Eats data has already been submitted.' };
+            return { success: false, isDuplicate: true, existingId: existing.id, message: 'This Uber Eats data has already been submitted.' };
           }
         }
       }
     }
 
-    // For Uber Rides: check by total_rides + total_spend
     if (dataType === 'uber_ride_history') {
       const indexedFields = extractUberRidesFields(sellableData);
       if (indexedFields.total_rides !== null && indexedFields.total_spend !== null) {
-        const existingUberRides = await findUberRidesContributionByData(indexedFields.total_rides, indexedFields.total_spend);
-        if (existingUberRides) {
-          if (indexedFields.total_rides > (existingUberRides.total_rides || 0)) {
-            contributionId = existingUberRides.id;
+        const existingResult = await query(
+          `SELECT id, total_rides FROM uber_rides_contributions 
+           WHERE total_rides = $1 AND total_spend = $2 
+           AND (opt_out = FALSE OR opt_out IS NULL)
+           FOR UPDATE`,
+          [indexedFields.total_rides, indexedFields.total_spend]
+        );
+        
+        if (existingResult.rows.length > 0) {
+          const existing = existingResult.rows[0];
+          if (indexedFields.total_rides > (existing.total_rides || 0)) {
+            contributionId = existing.id;
             console.log(`🔄 Updating Uber Rides contribution with MORE data`);
           } else {
-            isDuplicate = true;
+            await query('ROLLBACK');
             console.log(`⚠️ DUPLICATE Uber Rides data detected, rejecting`);
-            return { success: false, isDuplicate: true, existingId: existingUberRides.id, message: 'This Uber Rides data has already been submitted.' };
+            return { success: false, isDuplicate: true, existingId: existing.id, message: 'This Uber Rides data has already been submitted.' };
           }
         }
       }
     }
 
-    // For Strava: check by total_activities + total_distance
     if (dataType === 'strava_fitness') {
       const indexedFields = extractStravaFields(sellableData);
       if (indexedFields.total_activities !== null && indexedFields.total_distance_km !== null) {
-        const existingStrava = await findStravaContributionByData(indexedFields.total_activities, indexedFields.total_distance_km);
-        if (existingStrava) {
-          if (indexedFields.total_activities > (existingStrava.total_activities || 0)) {
-            contributionId = existingStrava.id;
+        const existingResult = await query(
+          `SELECT id, total_activities FROM strava_contributions 
+           WHERE total_activities = $1 AND total_distance_km = $2 
+           AND (opt_out = FALSE OR opt_out IS NULL)
+           FOR UPDATE`,
+          [indexedFields.total_activities, indexedFields.total_distance_km]
+        );
+        
+        if (existingResult.rows.length > 0) {
+          const existing = existingResult.rows[0];
+          if (indexedFields.total_activities > (existing.total_activities || 0)) {
+            contributionId = existing.id;
             console.log(`🔄 Updating Strava contribution with MORE data`);
           } else {
-            isDuplicate = true;
+            await query('ROLLBACK');
             console.log(`⚠️ DUPLICATE Strava data detected, rejecting`);
-            return { success: false, isDuplicate: true, existingId: existingStrava.id, message: 'This Strava data has already been submitted.' };
+            return { success: false, isDuplicate: true, existingId: existing.id, message: 'This Strava data has already been submitted.' };
           }
         }
       }
     }
 
-    // For Zepto: check by total_orders + total_spend
     if (dataType === 'zepto_order_history') {
       const indexedFields = extractZeptoFields(sellableData);
       if (indexedFields.total_orders !== null && indexedFields.total_spend !== null) {
-        // First check for non-opted-out contributions (standard duplicate check)
-        const existingZepto = await findZeptoContributionByData(indexedFields.total_orders, indexedFields.total_spend);
-        if (existingZepto) {
-          if (indexedFields.total_orders > (existingZepto.total_orders || 0)) {
-            contributionId = existingZepto.id;
+        // Check for non-opted-out contributions
+        const existingResult = await query(
+          `SELECT id, total_orders FROM zepto_contributions 
+           WHERE total_orders = $1 AND total_spend = $2 
+           AND (opt_out = FALSE OR opt_out IS NULL)
+           FOR UPDATE`,
+          [indexedFields.total_orders, indexedFields.total_spend]
+        );
+        
+        if (existingResult.rows.length > 0) {
+          const existing = existingResult.rows[0];
+          if (indexedFields.total_orders > (existing.total_orders || 0)) {
+            contributionId = existing.id;
             console.log(`🔄 Updating Zepto contribution with MORE data`);
           } else {
-            isDuplicate = true;
+            await query('ROLLBACK');
             console.log(`⚠️ DUPLICATE Zepto data detected, rejecting`);
-            return { success: false, isDuplicate: true, existingId: existingZepto.id, message: 'This Zepto data has already been submitted.' };
+            return { success: false, isDuplicate: true, existingId: existing.id, message: 'This Zepto data has already been submitted.' };
           }
         } else {
-          // Also check for opted-out contributions from the same user to update instead of creating new row
-          const optedOutZepto = await findZeptoContributionByUserAndData(userId, indexedFields.total_orders, indexedFields.total_spend);
-          if (optedOutZepto) {
-            contributionId = optedOutZepto.id;
+          // Check for opted-out contributions from the same user to update instead of creating new row
+          const optedOutResult = await query(
+            `SELECT id FROM zepto_contributions 
+             WHERE user_id = $1 AND total_orders = $2 AND total_spend = $3 AND opt_out = TRUE
+             FOR UPDATE`,
+            [String(userId), indexedFields.total_orders, indexedFields.total_spend]
+          );
+          
+          if (optedOutResult.rows.length > 0) {
+            contributionId = optedOutResult.rows[0].id;
             console.log(`🔄 Found opted-out Zepto contribution, will update instead of creating new row`);
           }
         }
       }
     }
 
-    // Start transaction
-    await query('BEGIN');
+    // ========================================
+    // INSERT/UPDATE CONTRIBUTION DATA
+    // ========================================
 
-    try {
-
-      // Determine which table to use based on dataType
-      if (dataType === 'zomato_order_history') {
+    // Determine which table to use based on dataType
+    if (dataType === 'zomato_order_history') {
         const indexedFields = extractZomatoFields(sellableData);
 
         await query(
@@ -1101,25 +1204,26 @@ export async function saveContribution(contribution) {
           ]
         );
 
-      } else {
-        console.warn(`⚠️  Unknown dataType: ${dataType}, skipping database save`);
-        await query('ROLLBACK');
-        return null;
-      }
-
-      await query('COMMIT');
-      console.log(`✅ Contribution ${contributionId} saved to ${dataType} table`);
-      return { success: true, id: contributionId };
-
-    } catch (error) {
+    } else {
+      console.warn(`⚠️  Unknown dataType: ${dataType}, skipping database save`);
       await query('ROLLBACK');
-      throw error;
+      return null;
     }
 
+    await query('COMMIT');
+    console.log(`✅ Contribution ${contributionId} saved to ${dataType} table`);
+    return { success: true, id: contributionId };
+
   } catch (error) {
-    console.error('❌ Error saving contribution to database:', error.message);
-    // Don't throw - allow JSON fallback to work
-    return { success: false, error: error.message };
+    // Ensure rollback on any error
+    try {
+      await query('ROLLBACK');
+    } catch (rollbackError) {
+      // Ignore rollback errors
+    }
+    
+    // Re-throw for retry logic in saveContribution wrapper
+    throw error;
   }
 }
 

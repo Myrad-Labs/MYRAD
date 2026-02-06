@@ -1,6 +1,6 @@
 // MVP API Routes for MYRAD
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import * as jsonStorage from './jsonStorage.js';
 import * as cohortService from './cohortService.js';
 import * as consentLedger from './consentLedger.js';
@@ -45,6 +45,70 @@ const enterpriseRateLimit = rateLimit({
     validate: { xForwardedForHeader: false, default: true }
 });
 
+// Rate limiting for contribution endpoints (prevent spam submissions)
+const contributionRateLimit = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10, // Max 10 contributions per minute per user
+    message: { error: 'Too many contribution attempts. Please wait a moment before trying again.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        // Rate limit by Privy ID (user) instead of IP
+        const authHeader = req.headers.authorization;
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            const parts = token.split('_');
+            if (parts[0] === 'privy' && parts.length >= 2) {
+                return `contrib_${parts[1]}`;
+            }
+        }
+        // Use proper IPv6-safe key generator as fallback
+        return `contrib_${ipKeyGenerator(req)}`;
+    },
+    validate: { xForwardedForHeader: false, default: true }
+});
+
+// Semaphore for controlling concurrent contribution processing
+// Prevents database overload during high traffic
+class ContributionSemaphore {
+    constructor(maxConcurrent = 50) {
+        this.maxConcurrent = maxConcurrent;
+        this.current = 0;
+        this.queue = [];
+    }
+
+    async acquire() {
+        if (this.current < this.maxConcurrent) {
+            this.current++;
+            return;
+        }
+
+        // Wait in queue
+        return new Promise((resolve) => {
+            this.queue.push(resolve);
+        });
+    }
+
+    release() {
+        this.current--;
+        if (this.queue.length > 0) {
+            this.current++;
+            const next = this.queue.shift();
+            next();
+        }
+    }
+
+    getStats() {
+        return {
+            current: this.current,
+            queued: this.queue.length,
+            maxConcurrent: this.maxConcurrent
+        };
+    }
+}
+
+const contributionSemaphore = new ContributionSemaphore(50);
+
 
 // Middleware to verify Privy token (stub for now)
 const verifyPrivyToken = (req, res, next) => {
@@ -57,16 +121,19 @@ const verifyPrivyToken = (req, res, next) => {
     // In production, verify with Privy API
     const token = authHeader.split(' ')[1];
 
-    // STUB: For now, decode a simple token format: "privy_userId_email"
+    // STUB: For now, decode a simple token format: "privy_userId" or "privy_userId_email"
+    // The userId from Privy should be stable and unique per user
     try {
         const parts = token.split('_');
-        if (parts[0] !== 'privy' || parts.length < 3) {
+        if (parts[0] !== 'privy' || parts.length < 2) {
             return res.status(401).json({ error: 'Invalid token format' });
         }
 
+        // privyId is always parts[1] (the Privy user.id, which should be stable)
+        // Email is optional and may be in parts[2] or later, but we'll get it from request body instead
         req.user = {
-            privyId: parts[1],
-            email: parts.slice(2).join('_')
+            privyId: parts[1], // This is the stable Privy user.id
+            email: parts.length >= 3 ? parts.slice(2).join('_') : null // Optional, prefer request body
         };
         next();
     } catch (error) {
@@ -134,33 +201,54 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
         const email = req.body.email || req.user.email || null;
         const walletAddress = req.body.walletAddress || null;
 
+        // Log for debugging duplicate account creation
+        console.log(`🔍 Auth verify: privyId=${req.user.privyId}, email=${email || 'null'}, wallet=${walletAddress ? walletAddress.slice(0, 10) + '...' : 'null'}`);
+
         let user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
             // Create new user with email and wallet address
-            user = await jsonStorage.createUser(req.user.privyId, email, walletAddress);
-        } else {
-            // Update existing user: set email if missing, set wallet if missing
-            let needsRefetch = false;
-            const updates = {};
-
-            if (email && !user.email) {
-                updates.email = email;
-                needsRefetch = true;
+            // The createUser function now handles race conditions with ON CONFLICT
+            console.log(`✅ Creating new user with privyId: ${req.user.privyId}`);
+            try {
+                user = await jsonStorage.createUser(req.user.privyId, email, walletAddress);
+            } catch (createError) {
+                // If creation fails due to race condition, try fetching again
+                if (createError.code === '23505' || createError.message.includes('unique constraint')) {
+                    console.log(`⚠️ Race condition during user creation, fetching existing user...`);
+                    user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+                    if (!user) {
+                        throw createError; // Re-throw if still not found
+                    }
+                } else {
+                    throw createError;
+                }
             }
-            if (walletAddress && !user.walletAddress) {
-                await jsonStorage.updateUserWallet(user.id, walletAddress);
-                needsRefetch = true;
-            }
-            if (Object.keys(updates).length > 0) {
-                await jsonStorage.updateUserProfile(user.id, updates);
-            }
-            // Refetch user to get latest data after updates
-            if (needsRefetch) {
-                user = await jsonStorage.getUserById(user.id);
-            }
-            await jsonStorage.updateUserActivity(user.id);
         }
+
+        // Always update email/wallet if provided (even if user already exists)
+        // This ensures data is saved even if it was null on initial creation
+        let needsRefetch = false;
+        const updates = {};
+
+        if (email && email !== user.email) {
+            updates.email = email;
+            needsRefetch = true;
+            console.log(`📧 Updating email for user ${user.id}: ${user.email || 'null'} -> ${email}`);
+        }
+        if (walletAddress && walletAddress !== user.walletAddress) {
+            await jsonStorage.updateUserWallet(user.id, walletAddress);
+            needsRefetch = true;
+            console.log(`💳 Updating wallet for user ${user.id}: ${user.walletAddress ? user.walletAddress.slice(0, 10) + '...' : 'null'} -> ${walletAddress.slice(0, 10)}...`);
+        }
+        if (Object.keys(updates).length > 0) {
+            await jsonStorage.updateUserProfile(user.id, updates);
+        }
+        // Refetch user to get latest data after updates
+        if (needsRefetch) {
+            user = await jsonStorage.getUserById(user.id);
+        }
+        await jsonStorage.updateUserActivity(user.id);
 
         res.json({
             success: true,
@@ -260,7 +348,11 @@ router.get('/user/contributions', verifyPrivyToken, async (req, res) => {
 });
 
 // Submit data contribution with enterprise data pipeline
-router.post('/contribute', verifyPrivyToken, async (req, res) => {
+// Rate limited and uses semaphore for concurrency control
+router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, res) => {
+    // Acquire semaphore to control concurrent database operations
+    await contributionSemaphore.acquire();
+    
     try {
         const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
@@ -921,6 +1013,9 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
     } catch (error) {
         console.error('Contribute error:', error);
         res.status(500).json({ error: 'Failed to submit contribution' });
+    } finally {
+        // Always release semaphore
+        contributionSemaphore.release();
     }
 });
 
@@ -1689,6 +1784,27 @@ router.post('/user/opt-out', verifyPrivyToken, async (req, res) => {
             error: 'Failed to process opt-out request',
             message: error.message 
         });
+    }
+});
+
+// System status endpoint (for monitoring concurrency and health)
+router.get('/system/status', async (req, res) => {
+    try {
+        const semaphoreStats = contributionSemaphore.getStats();
+        
+        res.json({
+            success: true,
+            timestamp: new Date().toISOString(),
+            concurrency: {
+                activeContributions: semaphoreStats.current,
+                queuedContributions: semaphoreStats.queued,
+                maxConcurrent: semaphoreStats.maxConcurrent,
+                utilizationPercent: Math.round((semaphoreStats.current / semaphoreStats.maxConcurrent) * 100)
+            },
+            status: semaphoreStats.queued > 10 ? 'high_load' : semaphoreStats.current > 25 ? 'moderate_load' : 'healthy'
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get system status' });
     }
 });
 
