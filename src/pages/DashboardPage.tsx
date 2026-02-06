@@ -502,7 +502,7 @@ const DashboardPage = () => {
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
-        setRefreshing(false);
+      setRefreshing(false);
       } else {
         setLoading(false);
       }
@@ -652,7 +652,7 @@ const DashboardPage = () => {
       let requestUrl: string;
       try {
         requestUrl = await reclaimProofRequest.getRequestUrl();
-        setVerificationUrl(requestUrl);
+      setVerificationUrl(requestUrl);
       } catch (urlError: any) {
         console.error('❌ Failed to get request URL:', urlError);
         // If it's a callback URL validation error and we're on localhost, try without callback URL
@@ -1545,8 +1545,8 @@ const DashboardPage = () => {
             // Only show error if tab is visible OR it's been more than 2 minutes
             if (!tabHidden || timeSinceStart > 120000) {
               showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-              setVerificationUrl(null);
-              setActiveProvider(null);
+          setVerificationUrl(null);
+          setActiveProvider(null);
               setContributing(null);
             }
             return;
@@ -1875,7 +1875,7 @@ const DashboardPage = () => {
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-            </button>
+              </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -1896,13 +1896,13 @@ const DashboardPage = () => {
                     </ul>
 
                   </div>
-                </div>
+            </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-                </div>
-              </div>
+          </div>
+        </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -1914,7 +1914,7 @@ const DashboardPage = () => {
                   playsInline
                   preload="metadata"
                 />
-              </div>
+          </div>
             </div>
           </div>
         )}
@@ -1929,8 +1929,8 @@ const DashboardPage = () => {
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card" style={{ position: 'relative' }}>
-                <span className="stat-label">Total Points</span>
-                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                  <span className="stat-label">Total Points</span>
+                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -1962,11 +1962,11 @@ const DashboardPage = () => {
                     className={(loading || refreshing) ? 'spin' : ''}
                   />
                 </button>
-              </div>
+                </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                <span className="stat-value">{contributions.length}</span>
-              </div>
+                  <span className="stat-value">{contributions.length}</span>
+                </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -2030,16 +2030,16 @@ const DashboardPage = () => {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                            <p className="qr-title">Scan to verify</p>
-                            <div className="qr-container">
+                        <p className="qr-title">Scan to verify</p>
+                        <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                            </div>
-                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                              Open Link
-                            </a>
+                        </div>
+                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                          Open Link
+                        </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                            </button>
+                        </button>
                           </>
                         )}
                       </div>
@@ -2047,18 +2047,18 @@ const DashboardPage = () => {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                      <button
-                        onClick={() => handleContribute(provider)}
+                    <button
+                      onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                        className="btn-verify"
+                      className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                      >
-                        {contributing === provider.id ? (
-                          <><Loader2 size={16} className="spin" /> Verifying...</>
-                        ) : (
+                    >
+                      {contributing === provider.id ? (
+                        <><Loader2 size={16} className="spin" /> Verifying...</>
+                      ) : (
                           <>Verify</>
-                        )}
-                      </button>
+                      )}
+                    </button>
                     )}
                   </div>
                 ))}
@@ -2082,29 +2082,28 @@ const DashboardPage = () => {
               <div className="activity-list">
                 {contributions.length > 0 ? (
                   contributions.slice(0, 10).map((contrib: any) => {
-                    const provider = getProviderInfo(contrib.dataType);
-                    // Get expected points based on dataType and data
-                    let expectedPoints = 0;
-                    if (contrib.dataType === 'github_profile') {
-                      expectedPoints = 20;
-                    } else if (contrib.dataType === 'netflix_watch_history') {
-                      const titles = contrib.totalTitles || contrib.sellableData?.metadata?.data_quality?.completeness || 0;
-                      expectedPoints = 50 + (parseInt(titles) || 0) * 10;
-                    } else if (contrib.dataType === 'zomato_order_history') {
-                      const orders = contrib.totalOrders || contrib.sellableData?.order_metrics?.total_orders || 0;
-                      expectedPoints = 50 + (parseInt(orders) || 0) * 10;
+                    // Determine dataType if not set - check sellable_data for dataset_id
+                    let dataType = contrib.dataType;
+                    if (!dataType && contrib.sellableData?.dataset_id) {
+                      if (contrib.sellableData.dataset_id.includes('zepto')) {
+                        dataType = 'zepto_order_history';
+                      } else if (contrib.sellableData.dataset_id.includes('zomato')) {
+                        dataType = 'zomato_order_history';
+                      } else if (contrib.sellableData.dataset_id.includes('github')) {
+                        dataType = 'github_profile';
+                      } else if (contrib.sellableData.dataset_id.includes('netflix')) {
+                        dataType = 'netflix_watch_history';
+                      } else if (contrib.sellableData.dataset_id.includes('blinkit')) {
+                        dataType = 'blinkit_order_history';
+                      } else if (contrib.sellableData.dataset_id.includes('ubereats')) {
+                        dataType = 'ubereats_order_history';
+                      } else if (contrib.sellableData.dataset_id.includes('uber_rides')) {
+                        dataType = 'uber_ride_history';
+                      } else if (contrib.sellableData.dataset_id.includes('strava')) {
+                        dataType = 'strava_fitness';
+                      }
                     }
-
-                    // Match points from history - find closest match within 30 seconds for this specific contribution
-                    const contribTime = new Date(contrib.createdAt).getTime();
-                    const matchedPoints = points?.history?.find((p: any) => {
-                      const pointsTime = new Date(p.createdAt).getTime();
-                      const diff = Math.abs(pointsTime - contribTime);
-                      // Tighter time window (30 seconds) to avoid cross-matching
-                      return p.reason === 'data_contribution' && diff < 30 * 1000;
-                    });
-                    // Use matched points if found, otherwise use expected points based on contribution data
-                    const pointsAmount = matchedPoints?.points || expectedPoints;
+                    const provider = getProviderInfo(dataType || 'general');
                     return (
                       <div key={contrib.id} className="activity-item">
                         <div className="activity-info">
@@ -2116,9 +2115,6 @@ const DashboardPage = () => {
                             minute: '2-digit'
                           })}</span>
                         </div>
-                        {pointsAmount > 0 && (
-                          <div className="activity-points">+{pointsAmount}</div>
-                        )}
                       </div>
                     );
                   })

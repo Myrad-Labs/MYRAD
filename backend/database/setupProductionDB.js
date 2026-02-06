@@ -22,7 +22,8 @@ const MIGRATIONS = [
   '009_add_ubereats_table.sql',
   '010_add_uber_rides_table.sql',
   '011_add_strava_table.sql',
-  '012_add_opt_out_column.sql'
+  '012_add_opt_out_column.sql',
+  '013_add_zepto_table.sql'
 ];
 
 async function runMigration(migrationFile) {
@@ -70,6 +71,7 @@ async function setupProductionDatabase() {
     console.log('   - ubereats_contributions');
     console.log('   - uber_rides_contributions');
     console.log('   - strava_contributions');
+    console.log('   - zepto_contributions');
     console.log('   - users');
     console.log('   - points_history');
     console.log('\n✅ Production database is ready!');

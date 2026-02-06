@@ -339,6 +339,46 @@ function extractStravaFields(sellableData) {
 }
 
 /**
+ * Extract key fields from sellableData for indexing (Zepto)
+ */
+function extractZeptoFields(sellableData) {
+  if (!sellableData) return {};
+
+  const toInt = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? null : num;
+  };
+
+  const toDecimal = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  };
+
+  return {
+    total_orders: toInt(sellableData?.transaction_data?.summary?.total_orders),
+    total_spend: toDecimal(sellableData?.transaction_data?.summary?.total_spend),
+    avg_order_value: toDecimal(sellableData?.transaction_data?.summary?.avg_order_value),
+    total_items: toInt(sellableData?.transaction_data?.summary?.total_items),
+    avg_items_per_order: toDecimal(sellableData?.transaction_data?.summary?.avg_items_per_order),
+    data_window_days: toInt(sellableData?.transaction_data?.summary?.data_window_days),
+    top_categories: sellableData?.category_preferences?.top_categories || null,
+    category_diversity_score: toInt(sellableData?.category_preferences?.category_diversity_score),
+    essentials_buyer: sellableData?.category_preferences?.essentials_buyer || false,
+    snacks_buyer: sellableData?.category_preferences?.snacks_buyer || false,
+    personal_care_buyer: sellableData?.category_preferences?.personal_care_buyer || false,
+    top_brands: sellableData?.brand_affinity?.top_brands || null,
+    brand_loyalty_score: sellableData?.brand_affinity?.brand_loyalty_score || null,
+    spend_bracket: sellableData?.behavioral_insights?.spend_bracket || null,
+    order_frequency: sellableData?.behavioral_insights?.order_frequency || null,
+    segment_id: sellableData?.audience_segment?.segment_id || null,
+    cohort_id: sellableData?.audience_segment?.cohort_id || null,
+    data_quality_score: toInt(sellableData?.metadata?.data_quality?.score)
+  };
+}
+
+/**
  * Save a contribution to the appropriate table based on dataType
  */
 export async function saveContribution(contribution) {
@@ -486,6 +526,32 @@ export async function saveContribution(contribution) {
             isDuplicate = true;
             console.log(`⚠️ DUPLICATE Strava data detected, rejecting`);
             return { success: false, isDuplicate: true, existingId: existingStrava.id, message: 'This Strava data has already been submitted.' };
+          }
+        }
+      }
+    }
+
+    // For Zepto: check by total_orders + total_spend
+    if (dataType === 'zepto_order_history') {
+      const indexedFields = extractZeptoFields(sellableData);
+      if (indexedFields.total_orders !== null && indexedFields.total_spend !== null) {
+        // First check for non-opted-out contributions (standard duplicate check)
+        const existingZepto = await findZeptoContributionByData(indexedFields.total_orders, indexedFields.total_spend);
+        if (existingZepto) {
+          if (indexedFields.total_orders > (existingZepto.total_orders || 0)) {
+            contributionId = existingZepto.id;
+            console.log(`🔄 Updating Zepto contribution with MORE data`);
+          } else {
+            isDuplicate = true;
+            console.log(`⚠️ DUPLICATE Zepto data detected, rejecting`);
+            return { success: false, isDuplicate: true, existingId: existingZepto.id, message: 'This Zepto data has already been submitted.' };
+          }
+        } else {
+          // Also check for opted-out contributions from the same user to update instead of creating new row
+          const optedOutZepto = await findZeptoContributionByUserAndData(userId, indexedFields.total_orders, indexedFields.total_spend);
+          if (optedOutZepto) {
+            contributionId = optedOutZepto.id;
+            console.log(`🔄 Found opted-out Zepto contribution, will update instead of creating new row`);
           }
         }
       }
@@ -970,6 +1036,64 @@ export async function saveContribution(contribution) {
             indexedFields.outdoor_enthusiast,
             indexedFields.region,
             indexedFields.country,
+            indexedFields.segment_id,
+            indexedFields.cohort_id,
+            indexedFields.data_quality_score,
+            walletAddress || null,
+          ]
+        );
+
+      } else if (dataType === 'zepto_order_history') {
+        const indexedFields = extractZeptoFields(sellableData);
+
+        await query(
+          `INSERT INTO zepto_contributions (
+            id, user_id, reclaim_proof_id, status, processing_method, created_at,
+            sellable_data, metadata,
+            total_orders, total_spend, avg_order_value, total_items, avg_items_per_order,
+            data_window_days, top_categories, category_diversity_score,
+            essentials_buyer, snacks_buyer, personal_care_buyer,
+            top_brands, brand_loyalty_score, spend_bracket, order_frequency,
+            segment_id, cohort_id, data_quality_score, wallet_address, opt_out
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+            $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, FALSE
+          )
+          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
+            id = EXCLUDED.id,
+            user_id = EXCLUDED.user_id,
+            reclaim_proof_id = EXCLUDED.reclaim_proof_id,
+            status = EXCLUDED.status,
+            sellable_data = EXCLUDED.sellable_data,
+            metadata = EXCLUDED.metadata,
+            total_orders = EXCLUDED.total_orders,
+            total_spend = EXCLUDED.total_spend,
+            avg_order_value = EXCLUDED.avg_order_value,
+            top_categories = EXCLUDED.top_categories,
+            top_brands = EXCLUDED.top_brands,
+            spend_bracket = EXCLUDED.spend_bracket,
+            wallet_address = EXCLUDED.wallet_address,
+            opt_out = FALSE,
+            updated_at = NOW()`,
+          [
+            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+            JSON.stringify(sellableData),
+            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+            indexedFields.total_orders,
+            indexedFields.total_spend,
+            indexedFields.avg_order_value,
+            indexedFields.total_items,
+            indexedFields.avg_items_per_order,
+            indexedFields.data_window_days,
+            indexedFields.top_categories ? JSON.stringify(indexedFields.top_categories) : null,
+            indexedFields.category_diversity_score,
+            indexedFields.essentials_buyer,
+            indexedFields.snacks_buyer,
+            indexedFields.personal_care_buyer,
+            indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
+            indexedFields.brand_loyalty_score,
+            indexedFields.spend_bracket,
+            indexedFields.order_frequency,
             indexedFields.segment_id,
             indexedFields.cohort_id,
             indexedFields.data_quality_score,
@@ -1608,6 +1732,109 @@ export async function queryStravaContributions(filters = {}) {
 }
 
 /**
+ * Query Zepto contributions with filters
+ */
+export async function queryZeptoContributions(filters = {}) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return [];
+  }
+
+  try {
+    let sql = `
+      SELECT id, user_id, reclaim_proof_id, status, created_at,
+             sellable_data, metadata,
+             total_orders, total_spend, avg_order_value, spend_bracket,
+             order_frequency, segment_id, cohort_id, data_quality_score
+      FROM zepto_contributions
+      WHERE 1=1
+      AND (opt_out = FALSE OR opt_out IS NULL)
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    if (filters.userId) {
+      sql += ` AND user_id = $${paramIndex++}`;
+      params.push(String(filters.userId));
+    }
+
+    if (filters.minOrders) {
+      sql += ` AND total_orders >= $${paramIndex++}`;
+      params.push(filters.minOrders);
+    }
+
+    if (filters.minSpend) {
+      sql += ` AND total_spend >= $${paramIndex++}`;
+      params.push(filters.minSpend);
+    }
+
+    if (filters.spendBracket) {
+      sql += ` AND spend_bracket = $${paramIndex++}`;
+      params.push(filters.spendBracket);
+    }
+
+    if (filters.startDate) {
+      sql += ` AND created_at >= $${paramIndex++}`;
+      params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      sql += ` AND created_at <= $${paramIndex++}`;
+      params.push(filters.endDate);
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    if (filters.limit) {
+      sql += ` LIMIT $${paramIndex++}`;
+      params.push(filters.limit);
+    }
+
+    if (filters.offset) {
+      sql += ` OFFSET $${paramIndex++}`;
+      params.push(filters.offset);
+    }
+
+    const result = await query(sql, params);
+
+    // Helper to parse JSONB fields
+    const parseJsonb = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') {
+        try {
+          return JSON.parse(val);
+        } catch (e) {
+          return val;
+        }
+      }
+      return val;
+    };
+
+    return result.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      reclaimProofId: row.reclaim_proof_id,
+      status: row.status,
+      createdAt: row.created_at,
+      sellableData: parseJsonb(row.sellable_data),
+      metadata: parseJsonb(row.metadata),
+      dataType: 'zepto_order_history',
+      totalOrders: row.total_orders,
+      totalSpend: row.total_spend ? parseFloat(row.total_spend) : null,
+      avgOrderValue: row.avg_order_value ? parseFloat(row.avg_order_value) : null,
+      spendBracket: row.spend_bracket,
+      orderFrequency: row.order_frequency,
+      segmentId: row.segment_id,
+      cohortId: row.cohort_id,
+      dataQualityScore: row.data_quality_score
+    }));
+  } catch (error) {
+    console.error('Error querying Zepto contributions:', error);
+    return [];
+  }
+}
+
+/**
  * Query contributions with filters (routes to appropriate table)
  */
 export async function queryContributions(filters = {}) {
@@ -1626,6 +1853,8 @@ export async function queryContributions(filters = {}) {
     return await queryUberRidesContributions(filters);
   } else if (filters.dataType === 'strava_fitness') {
     return await queryStravaContributions(filters);
+  } else if (filters.dataType === 'zepto_order_history') {
+    return await queryZeptoContributions(filters);
   } else {
     // If no dataType specified, return all
     const zomato = await queryZomatoContributions({ ...filters, dataType: 'zomato_order_history' });
@@ -1635,7 +1864,8 @@ export async function queryContributions(filters = {}) {
     const ubereats = await queryUberEatsContributions({ ...filters, dataType: 'ubereats_order_history' });
     const uberRides = await queryUberRidesContributions({ ...filters, dataType: 'uber_ride_history' });
     const strava = await queryStravaContributions({ ...filters, dataType: 'strava_fitness' });
-    return [...zomato, ...github, ...netflix, ...blinkit, ...ubereats, ...uberRides, ...strava];
+    const zepto = await queryZeptoContributions({ ...filters, dataType: 'zepto_order_history' });
+    return [...zomato, ...github, ...netflix, ...blinkit, ...ubereats, ...uberRides, ...strava, ...zepto];
   }
 }
 
@@ -1659,9 +1889,10 @@ export async function getUserContributions(userId) {
     const ubereats = await queryUberEatsContributions({ userId });
     const uberRides = await queryUberRidesContributions({ userId });
     const strava = await queryStravaContributions({ userId });
+    const zepto = await queryZeptoContributions({ userId });
 
     // Transform database format to match expected format
-    return [...zomato, ...github, ...netflix, ...blinkit, ...ubereats, ...uberRides, ...strava].map(contrib => {
+    return [...zomato, ...github, ...netflix, ...blinkit, ...ubereats, ...uberRides, ...strava, ...zepto].map(contrib => {
       // Determine dataType based on which table it came from or sellable_data structure
       let dataType = 'general';
       if (contrib.sellable_data?.dataset_id) {
@@ -1679,6 +1910,8 @@ export async function getUserContributions(userId) {
           dataType = 'uber_ride_history';
         } else if (contrib.sellable_data.dataset_id.includes('strava')) {
           dataType = 'strava_fitness';
+        } else if (contrib.sellable_data.dataset_id.includes('zepto')) {
+          dataType = 'zepto_order_history';
         }
       } else {
         // Fallback: check if it has provider-specific fields
@@ -1962,6 +2195,49 @@ export async function findStravaContributionByData(totalActivities, totalDistanc
 }
 
 /**
+ * Find existing Zepto contribution by data characteristics
+ */
+export async function findZeptoContributionByData(totalOrders, totalSpend) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || totalOrders === null || totalOrders === undefined || totalSpend === null || totalSpend === undefined) {
+    return null;
+  }
+
+  try {
+    // Only check for duplicates among contributions that haven't opted out
+    const result = await query(
+      'SELECT id, user_id, reclaim_proof_id, total_orders, total_spend FROM zepto_contributions WHERE total_orders = $1 AND total_spend = $2 AND (opt_out = FALSE OR opt_out IS NULL) ORDER BY created_at DESC LIMIT 1',
+      [totalOrders, totalSpend]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding Zepto contribution by data characteristics:', error);
+    return null;
+  }
+}
+
+/**
+ * Find existing Zepto contribution by user and data characteristics (including opted-out)
+ * Used to update opted-out contributions when user resubmits
+ */
+export async function findZeptoContributionByUserAndData(userId, totalOrders, totalSpend) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL || !userId || totalOrders === null || totalOrders === undefined || totalSpend === null || totalSpend === undefined) {
+    return null;
+  }
+
+  try {
+    // Check for contributions from the same user with same data (including opted-out ones)
+    const result = await query(
+      'SELECT id, user_id, reclaim_proof_id, total_orders, total_spend, opt_out FROM zepto_contributions WHERE user_id = $1 AND total_orders = $2 AND total_spend = $3 ORDER BY created_at DESC LIMIT 1',
+      [String(userId), totalOrders, totalSpend]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error finding Zepto contribution by user and data characteristics:', error);
+    return null;
+  }
+}
+
+/**
  * Find duplicate contribution by content signature
  * This detects duplicate submissions based on the actual data content, regardless of user/wallet
  * @param {string} dataType - The type of contribution (zomato_order_history, github_profile, netflix_watch_history)
@@ -2196,7 +2472,8 @@ export async function optOutUser(userId) {
         'blinkit_contributions',
         'ubereats_contributions',
         'uber_rides_contributions',
-        'strava_contributions'
+        'strava_contributions',
+        'zepto_contributions'
       ];
 
       let totalUpdated = 0;

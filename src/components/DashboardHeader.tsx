@@ -425,7 +425,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
               <AlertTriangle size={32} />
             </div>
 
-            <h2 className="opt-out-title">Opt Out of Data Marketplace</h2>
+            <h2 className="opt-out-title">Opt Out of Myrad</h2>
 
             <div className="opt-out-warning">
               <p className="opt-out-warning-title">
@@ -434,7 +434,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
               </p>
               <ul className="opt-out-warning-list">
                 <li>All your points will be reset to 10 (initial bonus)</li>
-                <li>All your data contributions will be removed from our data marketplace</li>
+                <li>All your contributions will be removed from Myrad</li>
                 <li>Your verification history will be excluded from analytics</li>
                 <li>You will need to re-verify to earn points again</li>
               </ul>
@@ -442,7 +442,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
 
             <p className="opt-out-description">
               By confirming, you acknowledge that your contributed data will no longer be available 
-              in our data marketplace, and your accumulated points will be reset.
+              in Myrad, and your accumulated points will be reset.
             </p>
 
             <div className="opt-out-buttons">
