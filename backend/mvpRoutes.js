@@ -1,6 +1,6 @@
 // MVP API Routes for MYRAD
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import * as jsonStorage from './jsonStorage.js';
 import * as cohortService from './cohortService.js';
 import * as consentLedger from './consentLedger.js';
@@ -45,6 +45,70 @@ const enterpriseRateLimit = rateLimit({
     validate: { xForwardedForHeader: false, default: true }
 });
 
+// Rate limiting for contribution endpoints (prevent spam submissions)
+const contributionRateLimit = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10, // Max 10 contributions per minute per user
+    message: { error: 'Too many contribution attempts. Please wait a moment before trying again.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        // Rate limit by Privy ID (user) instead of IP
+        const authHeader = req.headers.authorization;
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            const parts = token.split('_');
+            if (parts[0] === 'privy' && parts.length >= 2) {
+                return `contrib_${parts[1]}`;
+            }
+        }
+        // Use proper IPv6-safe key generator as fallback
+        return `contrib_${ipKeyGenerator(req)}`;
+    },
+    validate: { xForwardedForHeader: false, default: true }
+});
+
+// Semaphore for controlling concurrent contribution processing
+// Prevents database overload during high traffic
+class ContributionSemaphore {
+    constructor(maxConcurrent = 50) {
+        this.maxConcurrent = maxConcurrent;
+        this.current = 0;
+        this.queue = [];
+    }
+
+    async acquire() {
+        if (this.current < this.maxConcurrent) {
+            this.current++;
+            return;
+        }
+
+        // Wait in queue
+        return new Promise((resolve) => {
+            this.queue.push(resolve);
+        });
+    }
+
+    release() {
+        this.current--;
+        if (this.queue.length > 0) {
+            this.current++;
+            const next = this.queue.shift();
+            next();
+        }
+    }
+
+    getStats() {
+        return {
+            current: this.current,
+            queued: this.queue.length,
+            maxConcurrent: this.maxConcurrent
+        };
+    }
+}
+
+const contributionSemaphore = new ContributionSemaphore(50);
+
 
 // Middleware to verify Privy token (stub for now)
 const verifyPrivyToken = (req, res, next) => {
@@ -57,16 +121,19 @@ const verifyPrivyToken = (req, res, next) => {
     // In production, verify with Privy API
     const token = authHeader.split(' ')[1];
 
-    // STUB: For now, decode a simple token format: "privy_userId_email"
+    // STUB: For now, decode a simple token format: "privy_userId" or "privy_userId_email"
+    // The userId from Privy should be stable and unique per user
     try {
         const parts = token.split('_');
-        if (parts[0] !== 'privy' || parts.length < 3) {
+        if (parts[0] !== 'privy' || parts.length < 2) {
             return res.status(401).json({ error: 'Invalid token format' });
         }
 
+        // privyId is always parts[1] (the Privy user.id, which should be stable)
+        // Email is optional and may be in parts[2] or later, but we'll get it from request body instead
         req.user = {
-            privyId: parts[1],
-            email: parts.slice(2).join('_')
+            privyId: parts[1], // This is the stable Privy user.id
+            email: parts.length >= 3 ? parts.slice(2).join('_') : null // Optional, prefer request body
         };
         next();
     } catch (error) {
@@ -134,33 +201,54 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
         const email = req.body.email || req.user.email || null;
         const walletAddress = req.body.walletAddress || null;
 
+        // Log for debugging duplicate account creation
+        console.log(`🔍 Auth verify: privyId=${req.user.privyId}, email=${email || 'null'}, wallet=${walletAddress ? walletAddress.slice(0, 10) + '...' : 'null'}`);
+
         let user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
             // Create new user with email and wallet address
-            user = await jsonStorage.createUser(req.user.privyId, email, walletAddress);
-        } else {
-            // Update existing user: set email if missing, set wallet if missing
-            let needsRefetch = false;
-            const updates = {};
-
-            if (email && !user.email) {
-                updates.email = email;
-                needsRefetch = true;
+            // The createUser function now handles race conditions with ON CONFLICT
+            console.log(`✅ Creating new user with privyId: ${req.user.privyId}`);
+            try {
+                user = await jsonStorage.createUser(req.user.privyId, email, walletAddress);
+            } catch (createError) {
+                // If creation fails due to race condition, try fetching again
+                if (createError.code === '23505' || createError.message.includes('unique constraint')) {
+                    console.log(`⚠️ Race condition during user creation, fetching existing user...`);
+                    user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+                    if (!user) {
+                        throw createError; // Re-throw if still not found
+                    }
+                } else {
+                    throw createError;
+                }
             }
-            if (walletAddress && !user.walletAddress) {
-                await jsonStorage.updateUserWallet(user.id, walletAddress);
-                needsRefetch = true;
-            }
-            if (Object.keys(updates).length > 0) {
-                await jsonStorage.updateUserProfile(user.id, updates);
-            }
-            // Refetch user to get latest data after updates
-            if (needsRefetch) {
-                user = await jsonStorage.getUserById(user.id);
-            }
-            await jsonStorage.updateUserActivity(user.id);
         }
+
+        // Always update email/wallet if provided (even if user already exists)
+        // This ensures data is saved even if it was null on initial creation
+        let needsRefetch = false;
+        const updates = {};
+
+        if (email && email !== user.email) {
+            updates.email = email;
+            needsRefetch = true;
+            console.log(`📧 Updating email for user ${user.id}: ${user.email || 'null'} -> ${email}`);
+        }
+        if (walletAddress && walletAddress !== user.walletAddress) {
+            await jsonStorage.updateUserWallet(user.id, walletAddress);
+            needsRefetch = true;
+            console.log(`💳 Updating wallet for user ${user.id}: ${user.walletAddress ? user.walletAddress.slice(0, 10) + '...' : 'null'} -> ${walletAddress.slice(0, 10)}...`);
+        }
+        if (Object.keys(updates).length > 0) {
+            await jsonStorage.updateUserProfile(user.id, updates);
+        }
+        // Refetch user to get latest data after updates
+        if (needsRefetch) {
+            user = await jsonStorage.getUserById(user.id);
+        }
+        await jsonStorage.updateUserActivity(user.id);
 
         res.json({
             success: true,
@@ -260,7 +348,11 @@ router.get('/user/contributions', verifyPrivyToken, async (req, res) => {
 });
 
 // Submit data contribution with enterprise data pipeline
-router.post('/contribute', verifyPrivyToken, async (req, res) => {
+// Rate limited and uses semaphore for concurrency control
+router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, res) => {
+    // Acquire semaphore to control concurrent database operations
+    await contributionSemaphore.acquire();
+    
     try {
         const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
@@ -321,6 +413,35 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             const titles = anonymizedData.titles;
             const firstTitle = titles[0];
             contentSignature = `netflix_${titles.length}_${firstTitle?.title || firstTitle?.name || ''}`;
+        } else if (dataType === 'ubereats_order_history' && anonymizedData.orders?.length > 0) {
+            // For Uber Eats: hash based on order count + first order details
+            const orders = anonymizedData.orders;
+            const firstOrder = orders[0];
+            contentSignature = `ubereats_${anonymizedData.userId || ''}_${orders.length}_${firstOrder?.restaurant || firstOrder?.restaurant_name || ''}_${firstOrder?.timestamp || firstOrder?.date || ''}`;
+        } else if (dataType === 'strava_fitness') {
+            // For Strava: hash based on activity totals and primary stats
+            contentSignature = `strava_${anonymizedData.running_total || 0}_${anonymizedData.cycling_total || 0}_${anonymizedData.total_activities || 0}_${anonymizedData.location || ''}`;
+        } else if (dataType === 'blinkit_order_history' && anonymizedData.orders?.length > 0) {
+            // For Blinkit: hash based on order count + first order details
+            const orders = anonymizedData.orders;
+            const firstOrder = orders[0];
+            contentSignature = `blinkit_${orders.length}_${firstOrder?.items || ''}_${firstOrder?.total || firstOrder?.price || ''}`;
+        } else if (dataType === 'uber_ride_history' && anonymizedData.rides?.length > 0) {
+            // For Uber Rides: hash based on ride count + first ride details
+            const rides = anonymizedData.rides;
+            const firstRide = rides[0];
+            contentSignature = `uber_rides_${rides.length}_${firstRide?.fare || firstRide?.total || ''}_${firstRide?.timestamp || firstRide?.date || ''}`;
+        } else if (dataType === 'zepto_order_history') {
+            // For Zepto: hash based on total amount + item count + first product name
+            const productsStr = anonymizedData.productsNamesAndCounts || '';
+            let firstProduct = '';
+            try {
+                const products = typeof productsStr === 'string' ? JSON.parse(productsStr) : productsStr;
+                if (Array.isArray(products) && products.length > 0) {
+                    firstProduct = products[0]?.name || '';
+                }
+            } catch (e) { /* ignore parse errors */ }
+            contentSignature = `zepto_${anonymizedData.grandTotalAmount || 0}_${anonymizedData.itemQuantityCount || 0}_${firstProduct}`;
         }
 
         if (contentSignature) {
@@ -405,6 +526,112 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             }
         }
 
+        // Process Uber Eats data through order history pipeline
+        if (dataType === 'ubereats_order_history') {
+            try {
+                const { processUberEatsData } = await import('./ubereatsPipeline.js');
+
+                console.log('🍔 Processing Uber Eats data through order pipeline...');
+                // Raw data logging removed for security
+
+                const result = processUberEatsData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Uber Eats order pipeline complete');
+                    console.log(`📊 Order count: ${sellableData?.transaction_data?.summary?.total_orders || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Uber Eats pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
+        // Process Strava data through fitness pipeline
+        if (dataType === 'strava_fitness') {
+            try {
+                const { processStravaData } = await import('./stravaPipeline.js');
+
+                console.log('🏃 Processing Strava fitness data through pipeline...');
+
+                const result = processStravaData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Strava fitness pipeline complete');
+                    console.log(`🏆 Fitness tier: ${sellableData?.fitness_profile?.tier || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Strava pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
+        // Process Blinkit data through grocery order pipeline
+        if (dataType === 'blinkit_order_history') {
+            try {
+                const { processBlinkitData } = await import('./blinkitPipeline.js');
+
+                console.log('🛒 Processing Blinkit data through order pipeline...');
+
+                const result = processBlinkitData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Blinkit order pipeline complete');
+                    console.log(`📊 Order count: ${sellableData?.transaction_data?.summary?.total_orders || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Blinkit pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
+        // Process Uber Rides data through mobility pipeline
+        if (dataType === 'uber_ride_history') {
+            try {
+                const { processUberRidesData } = await import('./uberRidesPipeline.js');
+
+                console.log('🚗 Processing Uber Rides data through mobility pipeline...');
+
+                const result = processUberRidesData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Uber Rides pipeline complete');
+                    console.log(`🚕 Ride count: ${sellableData?.ride_summary?.total_rides || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Uber Rides pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
+        // Process Zepto data through grocery order pipeline
+        if (dataType === 'zepto_order_history') {
+            try {
+                const { processZeptoData } = await import('./zeptoPipeline.js');
+
+                console.log('🛒 Processing Zepto data through order pipeline...');
+
+                const result = processZeptoData(anonymizedData);
+
+                if (result.success) {
+                    sellableData = result.sellableRecord;
+                    processedData = result.rawProcessed;
+                    console.log('✅ Zepto order pipeline complete');
+                    console.log(`📊 Order count: ${sellableData?.transaction_data?.summary?.total_orders || 'unknown'}`);
+                }
+            } catch (pipelineError) {
+                console.error('⚠️ Zepto pipeline error:', pipelineError.message);
+                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+            }
+        }
+
         // Store contribution with sellable data format
         const finalWalletAddress = user.walletAddress || walletAddress || null;
         let contribution;
@@ -481,6 +708,91 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
             });
         }
 
+        // Validate Uber Eats order history
+        const ubereatsOrderCount = sellableData?.transaction_data?.summary?.total_orders || 0;
+        if (dataType === 'ubereats_order_history' && ubereatsOrderCount === 0) {
+            console.log(`⚠️ Zero Uber Eats orders detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No orders found',
+                message: 'Your Uber Eats order history appears to be empty. We can only award points for verifiable order data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    orderCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
+        // Validate Strava fitness data
+        const stravaActivities = sellableData?.activity_totals?.total_activities || 0;
+        if (dataType === 'strava_fitness' && stravaActivities === 0) {
+            console.log(`⚠️ Zero Strava activities detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No fitness activities found',
+                message: 'Your Strava activity history appears to be empty. We can only award points for verifiable fitness data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    activities: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
+        // Validate Blinkit order history
+        const blinkitOrderCount = sellableData?.transaction_data?.summary?.total_orders || 0;
+        if (dataType === 'blinkit_order_history' && blinkitOrderCount === 0) {
+            console.log(`⚠️ Zero Blinkit orders detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No orders found',
+                message: 'Your Blinkit order history appears to be empty. We can only award points for verifiable order data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    orderCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
+        // Validate Uber Rides history
+        const uberRidesCount = sellableData?.ride_summary?.total_rides || 0;
+        if (dataType === 'uber_ride_history' && uberRidesCount === 0) {
+            console.log(`⚠️ Zero Uber rides detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No rides found',
+                message: 'Your Uber ride history appears to be empty. We can only award points for verifiable ride data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    rideCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
+        // Validate Zepto order history
+        const zeptoOrderCount = sellableData?.transaction_data?.summary?.total_orders || 0;
+        if (dataType === 'zepto_order_history' && zeptoOrderCount === 0) {
+            console.log(`⚠️ Zero Zepto orders detected for user ${user.id}. No points awarded.`);
+            return res.status(400).json({
+                success: false,
+                error: 'No orders found',
+                message: 'Your Zepto order history appears to be empty. We can only award points for verifiable order data.',
+                contribution: {
+                    id: contribution.id,
+                    pointsAwarded: 0,
+                    orderCount: 0,
+                    createdAt: contribution.createdAt
+                }
+            });
+        }
+
         // Calculate rewards based on new points system
         let rewardResult;
         if (dataType === 'github_profile') {
@@ -517,6 +829,72 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
                 }
             };
             console.log(`🍽️ Zomato order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${orderCount} orders).`);
+        } else if (dataType === 'ubereats_order_history') {
+            // Uber Eats: 50 points base + (total_orders * 10) additional (same as Zomato)
+            const additionalPoints = ubereatsOrderCount * 10;
+            const totalPoints = 50 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 50,
+                    bonus: additionalPoints
+                }
+            };
+            console.log(`🍔 Uber Eats order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${ubereatsOrderCount} orders).`);
+        } else if (dataType === 'strava_fitness') {
+            // Strava: HIGH VALUE - 75 points base + (activities * 5) additional (premium fitness audience)
+            const fitnessTier = sellableData?.fitness_profile?.tier || 'casual';
+            const tierBonus = fitnessTier === 'elite' ? 50 : fitnessTier === 'enthusiast' ? 25 : 0;
+            const additionalPoints = (stravaActivities * 5) + tierBonus;
+            const totalPoints = 75 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 75,
+                    bonus: additionalPoints,
+                    tierBonus
+                }
+            };
+            console.log(`🏃 Strava fitness verified for user ${user.id}. Awarding ${totalPoints} points (75 base + ${additionalPoints} bonus, tier: ${fitnessTier}).`);
+        } else if (dataType === 'blinkit_order_history') {
+            // Blinkit: 50 points base + (total_orders * 10) additional
+            const additionalPoints = blinkitOrderCount * 10;
+            const totalPoints = 50 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 50,
+                    bonus: additionalPoints
+                }
+            };
+            console.log(`🛒 Blinkit order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${blinkitOrderCount} orders).`);
+        } else if (dataType === 'zepto_order_history') {
+            // Zepto: 50 points base + (total_orders * 10) additional (same as Blinkit)
+            const additionalPoints = zeptoOrderCount * 10;
+            const totalPoints = 50 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 50,
+                    bonus: additionalPoints
+                }
+            };
+            console.log(`🛒 Zepto order history verified for user ${user.id}. Awarding ${totalPoints} points (50 base + ${additionalPoints} bonus for ${zeptoOrderCount} orders).`);
+        } else if (dataType === 'uber_ride_history') {
+            // Uber Rides: 60 points base + (rides * 5) + commuter bonus
+            const isCommuter = sellableData?.temporal_behavior?.is_commuter || false;
+            const commuterBonus = isCommuter ? 20 : 0;
+            const additionalPoints = (uberRidesCount * 5) + commuterBonus;
+            const totalPoints = 60 + additionalPoints;
+            rewardResult = {
+                totalPoints,
+                breakdown: {
+                    base: 60,
+                    bonus: additionalPoints,
+                    commuterBonus
+                }
+            };
+            console.log(`🚗 Uber Rides verified for user ${user.id}. Awarding ${totalPoints} points (60 base + ${additionalPoints} bonus, commuter: ${isCommuter}).`);
         } else {
             // Fallback for unknown data types
             rewardResult = {
@@ -635,6 +1013,9 @@ router.post('/contribute', verifyPrivyToken, async (req, res) => {
     } catch (error) {
         console.error('Contribute error:', error);
         res.status(500).json({ error: 'Failed to submit contribution' });
+    } finally {
+        // Always release semaphore
+        contributionSemaphore.release();
     }
 });
 
@@ -1138,11 +1519,30 @@ setInterval(() => {
 }, 60 * 1000); // Check every minute
 
 router.post('/reclaim-callback', async (req, res) => {
+    // CRITICAL: Set a response timeout to ensure we ALWAYS respond to Reclaim app
+    // The Reclaim app will show an error if it doesn't get a response within ~10 seconds
+    const timeout = setTimeout(() => {
+        if (!res.headersSent) {
+            console.error('⚠️ Callback timeout - sending 200 response to prevent app error');
+            const fallbackSessionId = req.query?.sessionId || req.query?.sessionld || `timeout_${Date.now()}`;
+            res.status(200).json({
+                success: true,
+                sessionId: fallbackSessionId,
+                message: 'Proof received',
+                warning: 'Response delayed but proof was received'
+            });
+        }
+    }, 8000); // 8 second timeout (Reclaim app times out around 10 seconds)
+
     try {
         console.log('📲 Reclaim callback received at /api/reclaim-callback');
+        console.log('📲 Query params:', JSON.stringify(req.query));
+        console.log('📲 Request method:', req.method);
+        console.log('📲 Content-Type:', req.headers['content-type']);
 
         // Get the user's session ID from query parameter (passed by frontend when setting callback URL)
-        const userSessionId = req.query.sessionId;
+        // Handle both sessionId and sessionld (typo in some cases)
+        const userSessionId = req.query.sessionId || req.query.sessionld;
         console.log('📲 User session ID from query:', userSessionId);
         console.log('📲 Raw body available:', !!req.rawBody);
         console.log('📲 Raw body length:', req.rawBody?.length || 0);
@@ -1155,7 +1555,14 @@ router.post('/reclaim-callback', async (req, res) => {
         if (req.rawBody && req.rawBody.length > 0) {
             console.log('📲 Using raw body for parsing (avoids depth truncation)');
             // Raw body is URL-encoded, decode it first
-            const decoded = decodeURIComponent(req.rawBody);
+            // Use try-catch to handle malformed encoding
+            let decoded;
+            try {
+                decoded = decodeURIComponent(req.rawBody);
+            } catch (decodeError) {
+                console.warn('⚠️ Failed to decode raw body, using as-is:', decodeError.message);
+                decoded = req.rawBody;
+            }
             console.log('📲 Decoded raw body length:', decoded.length);
 
             // Instead of trying to reconstruct the malformed object structure,
@@ -1232,30 +1639,64 @@ router.post('/reclaim-callback', async (req, res) => {
         console.log('📲 Final sessionId:', sessionId);
 
         // Store the proof for frontend to fetch - keyed by the user's session ID
-        const proofDataStr = JSON.stringify(proofData);
-        console.log('📲 STORING proofData type:', typeof proofData);
-        console.log('📲 STORING proofData keys:', Object.keys(proofData || {}));
-        console.log('📲 STORING proofData length:', proofDataStr.length);
-        console.log('📲 STORING proofData sample (first 1000 chars):', proofDataStr.substring(0, 1000));
+        // Use safe stringify to handle circular references or very large objects
+        let proofDataStr = '';
+        try {
+            proofDataStr = JSON.stringify(proofData);
+            console.log('📲 STORING proofData type:', typeof proofData);
+            console.log('📲 STORING proofData keys:', Object.keys(proofData || {}));
+            console.log('📲 STORING proofData length:', proofDataStr.length);
+            console.log('📲 STORING proofData sample (first 1000 chars):', proofDataStr.substring(0, 1000));
+        } catch (stringifyError) {
+            console.warn('⚠️ Failed to stringify proofData (might have circular refs):', stringifyError.message);
+            // Store as-is even if stringify fails
+            proofDataStr = '[Unable to stringify - stored as object]';
+        }
 
-        pendingProofs.set(sessionId, {
-            proof: proofData,
-            timestamp: Date.now()
-        });
+        // Store the proof - wrap in try-catch in case storage fails
+        try {
+            pendingProofs.set(sessionId, {
+                proof: proofData,
+                timestamp: Date.now()
+            });
+            console.log('📲 Stored proof with sessionId:', sessionId);
+            console.log('📲 Pending proofs count:', pendingProofs.size);
+        } catch (storageError) {
+            console.error('❌ Failed to store proof in memory:', storageError);
+            // Continue anyway - we'll still return success
+        }
 
-        console.log('📲 Stored proof with sessionId:', sessionId);
-        console.log('📲 Pending proofs count:', pendingProofs.size);
-
-        // Return success - the Reclaim app just needs a 200 response
-        // The frontend will poll /api/reclaim-proof/:sessionId to get the data
-        res.status(200).json({
-            success: true,
-            sessionId,
-            message: 'Proof received and stored'
-        });
+        // Return success IMMEDIATELY - the Reclaim app just needs a 200 response
+        // Don't wait for anything else - respond as fast as possible
+        clearTimeout(timeout);
+        if (!res.headersSent) {
+            res.status(200).json({
+                success: true,
+                sessionId,
+                message: 'Proof received and stored'
+            });
+            console.log('✅ Response sent to Reclaim app');
+        } else {
+            console.warn('⚠️ Response already sent, skipping');
+        }
     } catch (error) {
-        console.error('Reclaim callback error:', error);
-        res.status(500).json({ success: false, error: 'Failed to process proof' });
+        clearTimeout(timeout);
+        console.error('❌ Reclaim callback error:', error);
+        console.error('❌ Error stack:', error.stack);
+
+        // CRITICAL: Always return 200 to Reclaim app, even on error
+        // The Reclaim app will show an error if it gets anything other than 200
+        // We'll log the error but still return success so the app doesn't fail
+        if (!res.headersSent) {
+            const fallbackSessionId = req.query?.sessionId || req.query?.sessionld || `error_${Date.now()}`;
+            console.log('📲 Returning 200 to Reclaim app despite error (to prevent app error)');
+            res.status(200).json({
+                success: true,
+                sessionId: fallbackSessionId,
+                message: 'Proof received',
+                warning: 'Processing encountered issues but proof was received'
+            });
+        }
     }
 });
 
@@ -1290,6 +1731,81 @@ router.get('/reclaim-proofs/pending', (req, res) => {
 router.get('/reclaim-callback', (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://www.myradhq.xyz';
     res.redirect(302, `${frontendUrl}/dashboard`);
+});
+
+// ============================================
+// OPT-OUT ENDPOINTS
+// ============================================
+
+// Get user's opt-out status
+router.get('/user/opt-out-status', verifyPrivyToken, async (req, res) => {
+    try {
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const { getUserOptOutStatus } = await import('./database/contributionService.js');
+        const status = await getUserOptOutStatus(user.id);
+
+        res.json({
+            success: true,
+            ...status
+        });
+    } catch (error) {
+        console.error('Get opt-out status error:', error);
+        res.status(500).json({ error: 'Failed to get opt-out status' });
+    }
+});
+
+// Process user opt-out
+router.post('/user/opt-out', verifyPrivyToken, async (req, res) => {
+    try {
+        const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        console.log(`🚫 Opt-out request received for user ${user.id}`);
+
+        const { optOutUser } = await import('./database/contributionService.js');
+        const result = await optOutUser(user.id);
+
+        res.json({
+            success: true,
+            message: 'Successfully opted out. Your data contributions have been excluded from the marketplace and your points have been reset.',
+            ...result
+        });
+    } catch (error) {
+        console.error('Opt-out error:', error);
+        res.status(500).json({ 
+            error: 'Failed to process opt-out request',
+            message: error.message 
+        });
+    }
+});
+
+// System status endpoint (for monitoring concurrency and health)
+router.get('/system/status', async (req, res) => {
+    try {
+        const semaphoreStats = contributionSemaphore.getStats();
+        
+        res.json({
+            success: true,
+            timestamp: new Date().toISOString(),
+            concurrency: {
+                activeContributions: semaphoreStats.current,
+                queuedContributions: semaphoreStats.queued,
+                maxConcurrent: semaphoreStats.maxConcurrent,
+                utilizationPercent: Math.round((semaphoreStats.current / semaphoreStats.maxConcurrent) * 100)
+            },
+            status: semaphoreStats.queued > 10 ? 'high_load' : semaphoreStats.current > 25 ? 'moderate_load' : 'healthy'
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get system status' });
+    }
 });
 
 export default router;

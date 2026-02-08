@@ -4,9 +4,21 @@ import { query, testConnection, closePool } from './db.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Load .env file from project root (2 levels up from this file)
+const rootEnvPath = path.join(__dirname, '../../.env');
+if (fs.existsSync(rootEnvPath)) {
+  dotenv.config({ path: rootEnvPath });
+  console.log('✅ Loaded .env from:', rootEnvPath);
+} else {
+  // Fallback: try current directory
+  dotenv.config();
+  console.log('ℹ️  Using default .env location');
+}
 
 async function runMigrations() {
   // Get migration file from command line argument or use default

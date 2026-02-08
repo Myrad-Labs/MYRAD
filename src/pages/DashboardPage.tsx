@@ -55,6 +55,72 @@ const PROVIDERS = [
     icon: Clapperboard,
     iconColor: '#ffffff',
     iconBg: '#e50914' // Netflix Red
+  },
+  {
+    id: 'ubereats',
+    name: 'Uber Eats',
+    description: 'Order History',
+    providerId: import.meta.env.VITE_UBEREATS_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #06C167 0%, #000000 100%)',
+    points: 10,
+    dataType: 'ubereats_order_history',
+    icon: UtensilsCrossed,
+    iconColor: '#ffffff',
+    iconBg: '#06C167' // Uber Eats Green
+  },
+  {
+    id: 'strava',
+    name: 'Strava',
+    description: 'Fitness Activities',
+    providerId: import.meta.env.VITE_STRAVA_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #FC4C02 0%, #000000 100%)',
+    points: 25,
+    dataType: 'strava_fitness',
+    icon: PlayCircle, // Using PlayCircle as activity icon
+    iconColor: '#ffffff',
+    iconBg: '#FC4C02' // Strava Orange
+  },
+  {
+    id: 'blinkit',
+    name: 'Blinkit',
+    description: 'Last 10 Orders',
+    providerId: import.meta.env.VITE_BLINKIT_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #F8CB46 0%, #000000 100%)',
+    points: 10,
+    dataType: 'blinkit_order_history',
+    icon: UtensilsCrossed, // Using same icon as food delivery
+    iconColor: '#000000',
+    iconBg: '#F8CB46', // Blinkit Yellow
+    hidden: true // Hide Blinkit from frontend
+  },
+  {
+    id: 'uber_rides',
+    name: 'Uber Rides',
+    description: 'Ride History',
+    providerId: import.meta.env.VITE_UBER_RIDES_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #000000 0%, #276EF1 100%)',
+    points: 15,
+    dataType: 'uber_ride_history',
+    icon: PlayCircle, // Using as transportation icon
+    iconColor: '#ffffff',
+    iconBg: '#000000' // Uber Black
+  },
+  {
+    id: 'zepto',
+    name: 'Zepto',
+    description: 'Order History',
+    providerId: import.meta.env.VITE_ZEPTO_PROVIDER_ID || '',
+    color: '#000000',
+    bgGradient: 'linear-gradient(135deg, #8B5CF6 0%, #000000 100%)',
+    points: 10,
+    dataType: 'zepto_order_history',
+    icon: UtensilsCrossed, // Using same icon as grocery delivery
+    iconColor: '#ffffff',
+    iconBg: '#8B5CF6' // Zepto Purple
   }
 ];
 
@@ -81,6 +147,18 @@ const DashboardPage = () => {
   // Toast notification state
   const [toast, setToast] = useState<ToastState>({ show: false, type: 'info', title: '', message: '' });
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Verification progress state
+  const [verificationProgress, setVerificationProgress] = useState(false);
+  const [verificationProgressText, setVerificationProgressText] = useState('This will take a few seconds...');
+  const [verificationProgressComplete, setVerificationProgressComplete] = useState(false);
+
+  // Success modal state
+  const [successModal, setSuccessModal] = useState<{ show: boolean; provider: string; points: number }>({
+    show: false,
+    provider: '',
+    points: 0
+  });
 
   const showToast = (type: ToastType, title: string, message: string, persistent = false) => {
     // Clear any existing timeout
@@ -110,7 +188,7 @@ const DashboardPage = () => {
     };
   }, []);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
   // Helper function to log errors to server (Render logs)
   const logErrorToServer = async (error: any, context: string, additionalData?: any) => {
@@ -393,11 +471,20 @@ const DashboardPage = () => {
         })
       });
 
-      // Fetch all data in parallel
+      // Fetch all data in parallel with cache-busting for refresh
       const [profileRes, pointsRes, contribRes] = await Promise.all([
-        fetch(`${API_URL}/api/user/profile`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/user/points`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/user/contributions`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/api/user/profile?_t=${Date.now()}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: showRefresh ? 'no-cache' : 'default'
+        }),
+        fetch(`${API_URL}/api/user/points?_t=${Date.now()}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: showRefresh ? 'no-cache' : 'default'
+        }),
+        fetch(`${API_URL}/api/user/contributions?_t=${Date.now()}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: showRefresh ? 'no-cache' : 'default'
+        })
       ]);
 
       const [profileData, pointsData, contribData] = await Promise.all([
@@ -415,7 +502,7 @@ const DashboardPage = () => {
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
-        setRefreshing(false);
+      setRefreshing(false);
       } else {
         setLoading(false);
       }
@@ -486,7 +573,7 @@ const DashboardPage = () => {
 
       console.log(`🚀 Initializing Reclaim for ${provider.name}...`);
 
-      const reclaimProofRequest = await ReclaimProofRequest.init(APP_ID, APP_SECRET, provider.providerId, {
+      let reclaimProofRequest = await ReclaimProofRequest.init(APP_ID, APP_SECRET, provider.providerId, {
         log: true,
         acceptAiProviders: true
       });
@@ -535,12 +622,56 @@ const DashboardPage = () => {
       // Log callback URL configuration for debugging
       fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute', message: 'Setting callback URL with session', data: { callbackUrl, verificationSessionId, apiUrl: API_URL, windowOrigin, isProduction, hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run10', hypothesisId: 'M' }) }).catch(() => { });
 
-      console.log('📱 Setting Reclaim callback URL:', callbackUrl);
-      reclaimProofRequest.setAppCallbackUrl(callbackUrl);
-      console.log('✅ Callback URL set successfully with sessionId:', verificationSessionId);
+      // For development with localhost, the Reclaim mobile app can't access localhost URLs
+      // So we'll only set the callback URL if it's a public URL (not localhost)
+      // When callback URL is not set, the SDK will use the redirect flow (proof in URL hash)
+      const isLocalhost = callbackUrl.includes('localhost') || callbackUrl.includes('127.0.0.1');
 
-      const requestUrl = await reclaimProofRequest.getRequestUrl();
+      // Store isLocalhost for use in error handler
+      (window as any).__reclaimIsLocalhost = isLocalhost;
+
+      if (!isLocalhost) {
+        console.log('📱 Setting Reclaim callback URL:', callbackUrl);
+        try {
+          reclaimProofRequest.setAppCallbackUrl(callbackUrl);
+          console.log('✅ Callback URL set successfully with sessionId:', verificationSessionId);
+        } catch (callbackError) {
+          console.warn('⚠️ Failed to set callback URL, continuing without it:', callbackError);
+          // Continue without callback URL - will use redirect flow instead
+          // Clear the session ID since we won't be using polling
+          (window as any).__currentVerificationSessionId = null;
+        }
+      } else {
+        console.log('ℹ️ Skipping callback URL for localhost (mobile app can\'t access it)');
+        console.log('ℹ️ Will use redirect flow instead (proof will be in URL hash)');
+        // Clear the session ID since we won't be using polling
+        (window as any).__currentVerificationSessionId = null;
+      }
+
+      // Get request URL - wrap in try-catch in case SDK validation fails
+      let requestUrl: string;
+      try {
+        requestUrl = await reclaimProofRequest.getRequestUrl();
       setVerificationUrl(requestUrl);
+      } catch (urlError: any) {
+        console.error('❌ Failed to get request URL:', urlError);
+        // If it's a callback URL validation error and we're on localhost, try without callback URL
+        if (isLocalhost && (urlError?.message?.includes('callback') || urlError?.message?.includes('url') || urlError?.name === 'ProofSubmissionFailedError')) {
+          console.log('🔄 Retrying without callback URL...');
+          // Create a new instance without callback URL
+          const newReclaimProofRequest = await ReclaimProofRequest.init(APP_ID, APP_SECRET, provider.providerId, {
+            log: true,
+            acceptAiProviders: true
+          });
+          // Don't set callback URL - use redirect flow
+          requestUrl = await newReclaimProofRequest.getRequestUrl();
+          setVerificationUrl(requestUrl);
+          // Update the reference
+          reclaimProofRequest = newReclaimProofRequest;
+        } else {
+          throw urlError; // Re-throw if it's a different error
+        }
+      }
 
       // Intercept console.log to capture proof data from SDK's internal logs
       // Using window global so it persists and can be checked in onError
@@ -614,6 +745,11 @@ const DashboardPage = () => {
           // Restore original console.log
           console.log = originalConsoleLog;
 
+          // Show verification progress when proof is received
+          setVerificationProgress(true);
+          setVerificationProgressComplete(false);
+          setVerificationProgressText('This will take a few seconds...');
+
           // #region agent log - RAW PROOFS RECEIVED
           fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.rawProofs', message: 'RAW proofs received from SDK', data: { provider: provider.id, proofsType: typeof proofs, isArray: Array.isArray(proofs), proofsLength: Array.isArray(proofs) ? proofs.length : null, proofsKeys: proofs && typeof proofs === 'object' ? Object.keys(proofs) : [], rawProofsStringified: JSON.stringify(proofs).substring(0, 3000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run5', hypothesisId: 'E' }) }).catch(() => { });
           // #endregion
@@ -626,6 +762,10 @@ const DashboardPage = () => {
             fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.callbackMode', message: 'Callback URL mode detected - polling for proof', data: { provider: provider.id, message: proofs }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run7', hypothesisId: 'J' }) }).catch(() => { });
             // #endregion
 
+            // Show verification progress
+            setVerificationProgress(true);
+            setVerificationProgressComplete(false);
+            setVerificationProgressText('Verification complete, validating your contribution...');
             showToast('info', 'Processing...', 'Verification complete, validating your contribution...', true);
 
             // Poll the backend for the stored proof using THIS user's specific session ID
@@ -749,6 +889,69 @@ const DashboardPage = () => {
                           console.log(`📺 Extracted ${watchHistory.length} Netflix titles (no dates)`);
                           return { watchHistory };
                         } catch (e) { /* ignore */ }
+                      }
+                    }
+                    // For Uber Eats - extract order history (similar to Zomato format)
+                    if (providerType === 'ubereats') {
+                      // Try various Uber Eats order formats
+                      const orderMatches = rawStr.match(/\{"items":"[^"]+","price":"[^"]+","timestamp":"[^"]+","restaurant":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"restaurant":"[^"]+","items":"[^"]+","total":"[^"]+","date":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"restaurant_name":"[^"]+","order_items":"[^"]+","amount":"[^"]+","order_date":"[^"]+"\}/g);
+                      if (orderMatches && orderMatches.length > 0) {
+                        try {
+                          const orders = orderMatches.map((m: string) => JSON.parse(m));
+                          console.log(`🍔 Extracted ${orders.length} Uber Eats orders`);
+                          return { orders };
+                        } catch (e) { /* ignore parse errors */ }
+                      }
+                    }
+                    // For Strava - extract fitness activity data
+                    if (providerType === 'strava') {
+                      // Try to extract fitness stats
+                      const runningMatch = rawStr.match(/running[_\s]?total["\s:]+["']?([\d.]+)/i);
+                      const cyclingMatch = rawStr.match(/(?:cycling|ride)[_\s]?total["\s:]+["']?([\d.]+)/i);
+                      const walkingMatch = rawStr.match(/walking[_\s]?total["\s:]+["']?([\d.]+)/i);
+                      const activitiesMatch = rawStr.match(/total[_\s]?activities["\s:]+["']?(\d+)/i);
+                      const locationMatch = rawStr.match(/(?:location|city|country)["\s:]+["']?([^"',}]+)/i);
+                      const nameMatch = rawStr.match(/(?:name|username|athlete_name)["\s:]+["']?([^"',}]+)/i);
+
+                      if (runningMatch || cyclingMatch || activitiesMatch) {
+                        const stravaData = {
+                          running_total: runningMatch?.[1] || '0',
+                          cycling_total: cyclingMatch?.[1] || '0',
+                          walking_total: walkingMatch?.[1] || '0',
+                          total_activities: activitiesMatch?.[1] || '0',
+                          location: locationMatch?.[1] || null,
+                          name: nameMatch?.[1] || null
+                        };
+                        console.log(`🏃 Extracted Strava fitness data:`, stravaData);
+                        return stravaData;
+                      }
+                    }
+                    // For Blinkit - extract grocery order history
+                    if (providerType === 'blinkit') {
+                      // Try various Blinkit order formats
+                      const orderMatches = rawStr.match(/\{"items":"[^"]+","(?:price|total)":"[^"]+","(?:timestamp|date)":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"order_items":"[^"]+","order_total":"[^"]+","order_date":"[^"]+"\}/g);
+                      if (orderMatches && orderMatches.length > 0) {
+                        try {
+                          const orders = orderMatches.map((m: string) => JSON.parse(m));
+                          console.log(`🛒 Extracted ${orders.length} Blinkit orders`);
+                          return { orders };
+                        } catch (e) { /* ignore parse errors */ }
+                      }
+                    }
+                    // For Uber Rides - extract ride history
+                    if (providerType === 'uber_rides') {
+                      // Try various Uber ride formats
+                      const rideMatches = rawStr.match(/\{"(?:fare|total)":"[^"]+","(?:timestamp|date|pickup_time)":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"trip_id":"[^"]+","fare":"[^"]+"\}/g);
+                      if (rideMatches && rideMatches.length > 0) {
+                        try {
+                          const rides = rideMatches.map((m: string) => JSON.parse(m));
+                          console.log(`🚗 Extracted ${rides.length} Uber rides`);
+                          return { rides };
+                        } catch (e) { /* ignore parse errors */ }
                       }
                     }
                   }
@@ -1234,10 +1437,38 @@ const DashboardPage = () => {
           // #endregion
 
           if (data.success) {
-            // Immediately refresh data
-            await fetchUserData(true);
+            // Complete the progress bar first
+            setVerificationProgressComplete(true);
+
+            // Small delay to show progress completion, then show modal
+            setTimeout(() => {
+              // Show prominent success modal
+              setSuccessModal({
+                show: true,
+                provider: provider.name,
+                points: data.contribution?.pointsAwarded || 0
+              });
+
+              // Hide progress indicator
+              setVerificationProgress(false);
+              setVerificationProgressComplete(false);
+            }, 300); // 300ms delay for smooth transition
+
+            // Refresh data in the background (don't await)
+            fetchUserData(true).catch(err => console.error('Error refreshing data:', err));
+
+            // Also show toast for consistency
             showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
           } else {
+            // Complete progress bar on error
+            setVerificationProgressComplete(true);
+
+            // Small delay then hide
+            setTimeout(() => {
+              setVerificationProgress(false);
+              setVerificationProgressComplete(false);
+            }, 300);
+
             // Log backend error to server
             logErrorToServer(new Error(data.message || 'Unknown error'), `DashboardPage.handleContribute.${provider.id}.backendError`, {
               provider: provider.id,
@@ -1251,13 +1482,19 @@ const DashboardPage = () => {
           console.log = originalConsoleLog;
 
           console.error('Reclaim error:', error);
+          console.error('Error details:', {
+            message: error?.message,
+            name: error?.name,
+            stack: error?.stack,
+            toString: error?.toString()
+          });
 
           // Check if tab is hidden - if so, don't show error yet (verification might still be in progress)
           const tabHidden = document.hidden || !isTabVisible;
           const timeSinceStart = verificationStartTime ? Date.now() - verificationStartTime : 0;
 
           // Log to server with tab visibility info
-          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute.onError', message: 'Reclaim error triggered', data: { provider: provider.id, errorMessage: error?.message || error?.toString(), tabHidden, isTabVisible, timeSinceStart, verificationUrl: verificationUrl || null }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute.onError', message: 'Reclaim error triggered', data: { provider: provider.id, errorMessage: error?.message || error?.toString(), errorName: error?.name, tabHidden, isTabVisible, timeSinceStart, verificationUrl: verificationUrl || null, isLocalhost: callbackUrl?.includes('localhost') || false }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
 
           logErrorToServer(error, `DashboardPage.handleContribute.${provider.id}.onError`, {
             provider: provider.id,
@@ -1270,6 +1507,27 @@ const DashboardPage = () => {
 
           // Mobile-specific error handling
           const errorMessage = error?.message || error?.toString() || 'Unknown error';
+          const errorName = error?.name || '';
+          const isLocalhostError = (window as any).__reclaimIsLocalhost || false;
+
+          // Handle ProofSubmissionFailedError specifically - this usually means callback URL validation failed
+          if (errorName === 'ProofSubmissionFailedError' || errorMessage.includes('ProofSubmissionFailed') || errorMessage.includes('callback')) {
+            console.log('🔍 ProofSubmissionFailedError detected - likely callback URL issue');
+            console.log('🔍 Is localhost:', isLocalhostError);
+
+            // If we're on localhost and this error occurs, it's expected - the mobile app can't reach localhost
+            if (isLocalhostError) {
+              console.log('ℹ️ This is expected for localhost - mobile app cannot access localhost URLs');
+              console.log('ℹ️ The verification should still work via redirect flow (proof in URL hash)');
+
+              // Don't show error immediately - wait a bit to see if redirect flow works
+              if (timeSinceStart < 10000) { // Less than 10 seconds - might still be processing
+                console.log('⏳ Waiting a bit longer - verification might still succeed via redirect');
+                // Don't clear state - let the redirect flow complete
+                return; // Exit early - don't show error yet
+              }
+            }
+          }
 
           // CRITICAL FIX: If tab is hidden, don't show error immediately
           // Verification might still be in progress in Reclaim app
@@ -1287,8 +1545,8 @@ const DashboardPage = () => {
             // Only show error if tab is visible OR it's been more than 2 minutes
             if (!tabHidden || timeSinceStart > 120000) {
               showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-              setVerificationUrl(null);
-              setActiveProvider(null);
+          setVerificationUrl(null);
+          setActiveProvider(null);
               setContributing(null);
             }
             return;
@@ -1536,6 +1794,46 @@ const DashboardPage = () => {
       {/* Sidebar Navigation */}
       <Sidebar />
 
+      {/* Verification Progress Indicator */}
+      {verificationProgress && (
+        <div className="verification-progress-overlay">
+          <div className="verification-progress-container">
+            <h3 className="verification-progress-title">Verification Processing</h3>
+            <p className="verification-progress-text">{verificationProgressText}</p>
+            <div className="verification-progress-bar">
+              <div className={`verification-progress-fill ${verificationProgressComplete ? 'complete' : ''}`}></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {successModal.show && (
+        <div className="success-modal-overlay" onClick={() => setSuccessModal({ show: false, provider: '', points: 0 })}>
+          <div className="success-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="success-modal-icon">
+              <CheckCircle size={64} />
+            </div>
+            <h2 className="success-modal-title">Verification Successful!</h2>
+            <p className="success-modal-provider">{successModal.provider} verified successfully</p>
+            <div className="success-modal-points">
+              <span className="success-modal-points-label">Points Earned</span>
+              <span className="success-modal-points-value">+{successModal.points}</span>
+            </div>
+            <button
+              className="success-modal-button"
+              onClick={() => {
+                setSuccessModal({ show: false, provider: '', points: 0 });
+                setVerificationUrl(null);
+                setActiveProvider(null);
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toast.show && (
         <div className={`toast toast-${toast.type}`}>
@@ -1553,7 +1851,7 @@ const DashboardPage = () => {
       )}
 
       {/* Shared Dashboard Header */}
-      <DashboardHeader />
+      <DashboardHeader onOptOutSuccess={() => fetchUserData(true)} />
 
       <main className="dashboard-main">
         {/* Welcome */}
@@ -1577,7 +1875,7 @@ const DashboardPage = () => {
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-            </button>
+              </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -1598,13 +1896,13 @@ const DashboardPage = () => {
                     </ul>
 
                   </div>
-                </div>
+            </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-                </div>
-              </div>
+          </div>
+        </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -1616,7 +1914,7 @@ const DashboardPage = () => {
                   playsInline
                   preload="metadata"
                 />
-              </div>
+          </div>
             </div>
           </div>
         )}
@@ -1631,8 +1929,8 @@ const DashboardPage = () => {
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card" style={{ position: 'relative' }}>
-                <span className="stat-label">Total Points</span>
-                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                  <span className="stat-label">Total Points</span>
+                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -1664,11 +1962,11 @@ const DashboardPage = () => {
                     className={(loading || refreshing) ? 'spin' : ''}
                   />
                 </button>
-              </div>
+                </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                <span className="stat-value">{contributions.length}</span>
-              </div>
+                  <span className="stat-value">{contributions.length}</span>
+                </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -1683,7 +1981,7 @@ const DashboardPage = () => {
               </div>
 
               <div className="providers-grid">
-                {PROVIDERS.map((provider) => (
+                {PROVIDERS.filter(p => !p.hidden).map((provider) => (
                   <div
                     key={provider.id}
                     className={`provider-card ${activeProvider === provider.id ? "active" : ""}`}
@@ -1732,16 +2030,16 @@ const DashboardPage = () => {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                            <p className="qr-title">Scan to verify</p>
-                            <div className="qr-container">
+                        <p className="qr-title">Scan to verify</p>
+                        <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                            </div>
-                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                              Open Link
-                            </a>
+                        </div>
+                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                          Open Link
+                        </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                            </button>
+                        </button>
                           </>
                         )}
                       </div>
@@ -1749,18 +2047,18 @@ const DashboardPage = () => {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                      <button
-                        onClick={() => handleContribute(provider)}
+                    <button
+                      onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                        className="btn-verify"
+                      className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                      >
-                        {contributing === provider.id ? (
-                          <><Loader2 size={16} className="spin" /> Verifying...</>
-                        ) : (
+                    >
+                      {contributing === provider.id ? (
+                        <><Loader2 size={16} className="spin" /> Verifying...</>
+                      ) : (
                           <>Verify</>
-                        )}
-                      </button>
+                      )}
+                    </button>
                     )}
                   </div>
                 ))}
@@ -1784,29 +2082,28 @@ const DashboardPage = () => {
               <div className="activity-list">
                 {contributions.length > 0 ? (
                   contributions.slice(0, 10).map((contrib: any) => {
-                    const provider = getProviderInfo(contrib.dataType);
-                    // Get expected points based on dataType and data
-                    let expectedPoints = 0;
-                    if (contrib.dataType === 'github_profile') {
-                      expectedPoints = 20;
-                    } else if (contrib.dataType === 'netflix_watch_history') {
-                      const titles = contrib.totalTitles || contrib.sellableData?.metadata?.data_quality?.completeness || 0;
-                      expectedPoints = 50 + (parseInt(titles) || 0) * 10;
-                    } else if (contrib.dataType === 'zomato_order_history') {
-                      const orders = contrib.totalOrders || contrib.sellableData?.order_metrics?.total_orders || 0;
-                      expectedPoints = 50 + (parseInt(orders) || 0) * 10;
+                    // Determine dataType if not set - check sellable_data for dataset_id
+                    let dataType = contrib.dataType;
+                    if (!dataType && contrib.sellableData?.dataset_id) {
+                      if (contrib.sellableData.dataset_id.includes('zepto')) {
+                        dataType = 'zepto_order_history';
+                      } else if (contrib.sellableData.dataset_id.includes('zomato')) {
+                        dataType = 'zomato_order_history';
+                      } else if (contrib.sellableData.dataset_id.includes('github')) {
+                        dataType = 'github_profile';
+                      } else if (contrib.sellableData.dataset_id.includes('netflix')) {
+                        dataType = 'netflix_watch_history';
+                      } else if (contrib.sellableData.dataset_id.includes('blinkit')) {
+                        dataType = 'blinkit_order_history';
+                      } else if (contrib.sellableData.dataset_id.includes('ubereats')) {
+                        dataType = 'ubereats_order_history';
+                      } else if (contrib.sellableData.dataset_id.includes('uber_rides')) {
+                        dataType = 'uber_ride_history';
+                      } else if (contrib.sellableData.dataset_id.includes('strava')) {
+                        dataType = 'strava_fitness';
+                      }
                     }
-
-                    // Match points from history - find closest match within 30 seconds for this specific contribution
-                    const contribTime = new Date(contrib.createdAt).getTime();
-                    const matchedPoints = points?.history?.find((p: any) => {
-                      const pointsTime = new Date(p.createdAt).getTime();
-                      const diff = Math.abs(pointsTime - contribTime);
-                      // Tighter time window (30 seconds) to avoid cross-matching
-                      return p.reason === 'data_contribution' && diff < 30 * 1000;
-                    });
-                    // Use matched points if found, otherwise use expected points based on contribution data
-                    const pointsAmount = matchedPoints?.points || expectedPoints;
+                    const provider = getProviderInfo(dataType || 'general');
                     return (
                       <div key={contrib.id} className="activity-item">
                         <div className="activity-info">
@@ -1818,9 +2115,6 @@ const DashboardPage = () => {
                             minute: '2-digit'
                           })}</span>
                         </div>
-                        {pointsAmount > 0 && (
-                          <div className="activity-points">+{pointsAmount}</div>
-                        )}
                       </div>
                     );
                   })
@@ -2260,7 +2554,7 @@ const styles = `
     }
 
     .onboarding-description {
-      font-size: 14px;
+    font-size: 14px;
     }
 
     .onboarding-icon {
@@ -2360,6 +2654,236 @@ const styles = `
   .toast-content p { font-size: 13px; color: rgba(255, 255, 255, 0.6); margin: 0; line-height: 1.4; }
   .toast-close { flex-shrink: 0; background: none; border: none; color: rgba(255, 255, 255, 0.4); cursor: pointer; padding: 4px; border-radius: 4px; }
   .toast-close:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+  /* Verification Progress Overlay */
+  .verification-progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .verification-progress-container {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 48px 56px;
+    text-align: center;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .verification-progress-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.01em;
+  }
+
+  .verification-progress-text {
+    font-size: 15px;
+    color: #6b7280;
+    margin: 0 0 32px 0;
+    font-weight: 500;
+  }
+
+  .verification-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #f3f4f6;
+    border-radius: 100px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .verification-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #111827 0%, #374151 100%);
+    border-radius: 100px;
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: progressFill 2.5s linear forwards;
+  }
+
+  .verification-progress-fill.complete {
+    animation: none;
+    width: 100%;
+  }
+
+  @keyframes progressFill {
+    from {
+      width: 0%;
+    }
+    to {
+      width: 95%;
+    }
+  }
+
+  /* Success Modal */
+  .success-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .success-modal-container {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 56px 64px;
+    text-align: center;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .success-modal-icon {
+    color: #22C55E;
+    margin: 0 auto 24px;
+    display: block;
+    animation: checkmarkPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  }
+
+  @keyframes checkmarkPop {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .success-modal-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+  }
+
+  .success-modal-provider {
+    font-size: 16px;
+    color: #6b7280;
+    margin: 0 0 32px 0;
+    font-weight: 500;
+  }
+
+  .success-modal-points {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 2px solid #22C55E;
+    border-radius: 16px;
+    padding: 24px 32px;
+    margin: 0 0 32px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .success-modal-points-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #059669;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .success-modal-points-value {
+    font-size: 48px;
+    font-weight: 700;
+    color: #059669;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .success-modal-button {
+    width: 100%;
+    padding: 16px 24px;
+    background: #111827;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Satoshi', sans-serif;
+  }
+
+  .success-modal-button:hover {
+    background: #000000;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .success-modal-button:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 640px) {
+    .verification-progress-container,
+    .success-modal-container {
+      padding: 40px 32px;
+    }
+
+    .success-modal-title {
+      font-size: 28px;
+    }
+
+    .success-modal-points-value {
+      font-size: 40px;
+    }
+  }
 `;
 
 export default DashboardPage;

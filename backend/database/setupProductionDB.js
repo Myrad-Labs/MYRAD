@@ -17,7 +17,13 @@ const MIGRATIONS = [
   '004_add_netflix_table.sql',
   '005_add_netflix_content_catalog.sql',
   '006_add_users_and_points_tables.sql',
-  '007_add_wallet_address_to_contributions.sql'
+  '007_add_wallet_address_to_contributions.sql',
+  '008_add_blinkit_table.sql',
+  '009_add_ubereats_table.sql',
+  '010_add_uber_rides_table.sql',
+  '011_add_strava_table.sql',
+  '012_add_opt_out_column.sql',
+  '013_add_zepto_table.sql'
 ];
 
 async function runMigration(migrationFile) {
@@ -61,6 +67,11 @@ async function setupProductionDatabase() {
     console.log('   - zomato_contributions');
     console.log('   - github_contributions');
     console.log('   - netflix_contributions');
+    console.log('   - blinkit_contributions');
+    console.log('   - ubereats_contributions');
+    console.log('   - uber_rides_contributions');
+    console.log('   - strava_contributions');
+    console.log('   - zepto_contributions');
     console.log('   - users');
     console.log('   - points_history');
     console.log('\n✅ Production database is ready!');
