@@ -847,6 +847,14 @@ const DashboardPage = () => {
                       return stravaData;
                     }
                   }
+                  // For Uber Rides, first check if rides array exists directly in the object
+                  if (providerType === 'uber_rides') {
+                    const rides = obj.rides || obj.ride_history || obj.trips;
+                    if (Array.isArray(rides) && rides.length > 0) {
+                      console.log(`🚗 Found Uber Rides array directly in object with ${rides.length} rides`);
+                      return { rides };
+                    }
+                  }
 
                   // Handle _rawProofString from backend (contains full undecoded proof)
                   if (obj._rawProofString && typeof obj._rawProofString === 'string') {
@@ -907,14 +915,29 @@ const DashboardPage = () => {
                     }
                     // For Uber Eats - extract order history (similar to Zomato format)
                     if (providerType === 'ubereats') {
-                      // Try various Uber Eats order formats
+                      // First, try to find orders array in the raw string (structured JSON)
+                      try {
+                        const parsed = JSON.parse(rawStr);
+                        const orders = parsed.orders || parsed.order_history ||
+                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.order_history;
+                        
+                        if (Array.isArray(orders) && orders.length > 0) {
+                          console.log(`🍔 Extracted Uber Eats orders array with ${orders.length} orders from structured JSON`);
+                          return { orders };
+                        }
+                      } catch (e) {
+                        // If parsing fails, continue with regex fallback
+                      }
+                      
+                      // Fallback: Try various Uber Eats order formats using regex
                       const orderMatches = rawStr.match(/\{"items":"[^"]+","price":"[^"]+","timestamp":"[^"]+","restaurant":"[^"]+"\}/g) ||
                         rawStr.match(/\{"restaurant":"[^"]+","items":"[^"]+","total":"[^"]+","date":"[^"]+"\}/g) ||
                         rawStr.match(/\{"restaurant_name":"[^"]+","order_items":"[^"]+","amount":"[^"]+","order_date":"[^"]+"\}/g);
                       if (orderMatches && orderMatches.length > 0) {
                         try {
                           const orders = orderMatches.map((m: string) => JSON.parse(m));
-                          console.log(`🍔 Extracted ${orders.length} Uber Eats orders`);
+                          console.log(`🍔 Extracted ${orders.length} Uber Eats orders (legacy format)`);
                           return { orders };
                         } catch (e) { /* ignore parse errors */ }
                       }
@@ -987,26 +1010,105 @@ const DashboardPage = () => {
                     }
                     // For Blinkit - extract grocery order history
                     if (providerType === 'blinkit') {
-                      // Try various Blinkit order formats
+                      // First, try to find orders array in the raw string (structured JSON)
+                      try {
+                        const parsed = JSON.parse(rawStr);
+                        const orders = parsed.orders || parsed.order_history ||
+                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.order_history;
+                        
+                        if (Array.isArray(orders) && orders.length > 0) {
+                          console.log(`🛒 Extracted Blinkit orders array with ${orders.length} orders from structured JSON`);
+                          return { orders };
+                        }
+                      } catch (e) {
+                        // If parsing fails, continue with regex fallback
+                      }
+                      
+                      // Fallback: Try various Blinkit order formats using regex
                       const orderMatches = rawStr.match(/\{"items":"[^"]+","(?:price|total)":"[^"]+","(?:timestamp|date)":"[^"]+"\}/g) ||
                         rawStr.match(/\{"order_items":"[^"]+","order_total":"[^"]+","order_date":"[^"]+"\}/g);
                       if (orderMatches && orderMatches.length > 0) {
                         try {
                           const orders = orderMatches.map((m: string) => JSON.parse(m));
-                          console.log(`🛒 Extracted ${orders.length} Blinkit orders`);
+                          console.log(`🛒 Extracted ${orders.length} Blinkit orders (legacy format)`);
+                          return { orders };
+                        } catch (e) { /* ignore parse errors */ }
+                      }
+                    }
+                    // For Zepto - extract grocery order history
+                    if (providerType === 'zepto') {
+                      // First, try to find orders array in the raw string (structured JSON)
+                      try {
+                        const parsed = JSON.parse(rawStr);
+                        const orders = parsed.orders || parsed.order_history ||
+                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.order_history;
+                        
+                        if (Array.isArray(orders) && orders.length > 0) {
+                          console.log(`🛍️ Extracted Zepto orders array with ${orders.length} orders from structured JSON`);
+                          return { orders };
+                        }
+                      } catch (e) {
+                        // If parsing fails, continue with regex fallback
+                      }
+                      
+                      // Fallback: Try various Zepto order formats using regex
+                      const orderMatches = rawStr.match(/\{"items":"[^"]+","(?:price|total|amount)":"[^"]+","(?:timestamp|date)":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"product":"[^"]+","quantity":"[^"]+","price":"[^"]+"\}/g);
+                      if (orderMatches && orderMatches.length > 0) {
+                        try {
+                          const orders = orderMatches.map((m: string) => JSON.parse(m));
+                          console.log(`🛍️ Extracted ${orders.length} Zepto orders (legacy format)`);
                           return { orders };
                         } catch (e) { /* ignore parse errors */ }
                       }
                     }
                     // For Uber Rides - extract ride history
                     if (providerType === 'uber_rides') {
-                      // Try various Uber ride formats
+                      // First, try to find rides array in the raw string (structured JSON)
+                      try {
+                        // Try to parse the entire raw string as JSON to find structured data
+                        const parsed = JSON.parse(rawStr);
+                        const rides = parsed.rides || parsed.ride_history || parsed.trips ||
+                          parsed.claimData?.parameters?.rides || 
+                          parsed.claimData?.parameters?.ride_history ||
+                          parsed.claimData?.parameters?.trips;
+                        
+                        if (Array.isArray(rides) && rides.length > 0) {
+                          console.log(`🚗 Extracted Uber Rides array with ${rides.length} rides from structured JSON`);
+                          return { rides };
+                        }
+                      } catch (e) {
+                        // If parsing fails, continue with regex fallback
+                      }
+                      
+                      // Fallback: Try to extract rides array using regex
+                      const ridesArrayMatch = rawStr.match(/"rides"\s*:\s*\[([^\]]+)\]/) ||
+                        rawStr.match(/"ride_history"\s*:\s*\[([^\]]+)\]/) ||
+                        rawStr.match(/"trips"\s*:\s*\[([^\]]+)\]/);
+                      
+                      if (ridesArrayMatch) {
+                        try {
+                          const ridesStr = `[${ridesArrayMatch[1]}]`;
+                          const rides = JSON.parse(ridesStr);
+                          if (Array.isArray(rides) && rides.length > 0) {
+                            console.log(`🚗 Extracted Uber Rides array via regex with ${rides.length} rides`);
+                            return { rides };
+                          }
+                        } catch (e) {
+                          // Continue to legacy regex extraction
+                        }
+                      }
+                      
+                      // Legacy fallback: Try various Uber ride formats using regex
                       const rideMatches = rawStr.match(/\{"(?:fare|total)":"[^"]+","(?:timestamp|date|pickup_time)":"[^"]+"\}/g) ||
-                        rawStr.match(/\{"trip_id":"[^"]+","fare":"[^"]+"\}/g);
+                        rawStr.match(/\{"trip_id":"[^"]+","fare":"[^"]+"\}/g) ||
+                        rawStr.match(/\{"fare":"[^"]+","date":"[^"]+","pickup":"[^"]+","dropoff":"[^"]+"\}/g);
                       if (rideMatches && rideMatches.length > 0) {
                         try {
                           const rides = rideMatches.map((m: string) => JSON.parse(m));
-                          console.log(`🚗 Extracted ${rides.length} Uber rides`);
+                          console.log(`🚗 Extracted ${rides.length} Uber rides (legacy format)`);
                           return { rides };
                         } catch (e) { /* ignore parse errors */ }
                       }
@@ -1098,6 +1200,14 @@ const DashboardPage = () => {
                         };
                         console.log(`🏃 Found Strava allTimeActivity in nested object with ${allTimeActivity.length} activities`);
                         return stravaData;
+                      }
+                    }
+                    // Check for Uber Rides
+                    if (providerType === 'uber_rides') {
+                      const rides = obj.rides || obj.ride_history || obj.trips;
+                      if (Array.isArray(rides) && rides.length > 0) {
+                        console.log(`🚗 Found Uber Rides in nested object with ${rides.length} rides`);
+                        return { rides };
                       }
                     }
 
@@ -1260,13 +1370,30 @@ const DashboardPage = () => {
                     console.log(`🏃 Found Strava allTimeActivity in claimData.parameters with ${extractedData.allTimeActivity?.length || 0} activities`);
                   }
                 }
+                // For Uber Rides, also check claimData.parameters for rides
+                if (provider.id === 'uber_rides' && proof?.claimData?.parameters) {
+                  const params = typeof proof.claimData.parameters === 'string'
+                    ? JSON.parse(proof.claimData.parameters)
+                    : proof.claimData.parameters;
+                  if (params.rides || params.ride_history || params.trips) {
+                    extractedData = {
+                      ...extractedData,
+                      rides: params.rides || params.ride_history || params.trips
+                    };
+                    console.log(`🚗 Found Uber Rides data in claimData.parameters with ${extractedData.rides?.length || 0} rides`);
+                  }
+                }
 
                 // Deep search for provider-specific data if not found
                 const needsDeepSearch =
                   (provider.id === 'zomato' && (!extractedData.orders || extractedData.orders.length === 0)) ||
                   (provider.id === 'github' && !extractedData.username && !extractedData.login && !extractedData.followers) ||
                   (provider.id === 'netflix' && (!extractedData.titles || extractedData.titles.length === 0)) ||
-                  (provider.id === 'strava' && (!extractedData.allTimeActivity && !extractedData.all_time_activity && !extractedData.running_total && !extractedData.total_activities));
+                  (provider.id === 'strava' && (!extractedData.allTimeActivity && !extractedData.all_time_activity && !extractedData.running_total && !extractedData.total_activities)) ||
+                  (provider.id === 'uber_rides' && (!extractedData.rides || extractedData.rides.length === 0)) ||
+                  (provider.id === 'ubereats' && (!extractedData.orders || extractedData.orders.length === 0)) ||
+                  (provider.id === 'blinkit' && (!extractedData.orders || extractedData.orders.length === 0)) ||
+                  (provider.id === 'zepto' && (!extractedData.orders || extractedData.orders.length === 0));
 
                 if (needsDeepSearch) {
                   // #region agent log
