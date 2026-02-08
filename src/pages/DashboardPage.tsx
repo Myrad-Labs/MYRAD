@@ -834,6 +834,20 @@ const DashboardPage = () => {
                 const findDataInObject = (obj: any, depth = 0, providerType?: string): any => {
                   if (depth > 15 || !obj) return null;
 
+                  // For Strava, first check if allTimeActivity exists directly in the object
+                  if (providerType === 'strava') {
+                    const allTimeActivity = obj.allTimeActivity || obj.all_time_activity;
+                    if (Array.isArray(allTimeActivity) && allTimeActivity.length > 0) {
+                      const stravaData: any = {
+                        allTimeActivity: allTimeActivity,
+                        athlete_name: obj.athlete_name || obj.name,
+                        athlete_location: obj.athlete_location || obj.location
+                      };
+                      console.log(`🏃 Found Strava allTimeActivity array directly in object with ${allTimeActivity.length} activities`);
+                      return stravaData;
+                    }
+                  }
+
                   // Handle _rawProofString from backend (contains full undecoded proof)
                   if (obj._rawProofString && typeof obj._rawProofString === 'string') {
                     const rawStr = obj._rawProofString;
@@ -907,12 +921,55 @@ const DashboardPage = () => {
                     }
                     // For Strava - extract fitness activity data
                     if (providerType === 'strava') {
-                      // Try to extract fitness stats
+                      // First, try to find allTimeActivity array in the raw string (structured JSON)
+                      try {
+                        // Try to parse the entire raw string as JSON to find structured data
+                        const parsed = JSON.parse(rawStr);
+                        const allTimeActivity = parsed.allTimeActivity || parsed.all_time_activity || 
+                          parsed.claimData?.parameters?.allTimeActivity || 
+                          parsed.claimData?.parameters?.all_time_activity;
+                        
+                        if (Array.isArray(allTimeActivity) && allTimeActivity.length > 0) {
+                          const stravaData: any = {
+                            allTimeActivity: allTimeActivity,
+                            athlete_name: parsed.athlete_name || parsed.name || parsed.claimData?.parameters?.athlete_name,
+                            athlete_location: parsed.athlete_location || parsed.location || parsed.claimData?.parameters?.athlete_location
+                          };
+                          console.log(`🏃 Extracted Strava allTimeActivity array with ${allTimeActivity.length} activities`);
+                          return stravaData;
+                        }
+                      } catch (e) {
+                        // If parsing fails, continue with regex fallback
+                      }
+                      
+                      // Fallback: Try to extract allTimeActivity array using regex
+                      const allTimeActivityMatch = rawStr.match(/"allTimeActivity"\s*:\s*\[([^\]]+)\]/) ||
+                        rawStr.match(/"all_time_activity"\s*:\s*\[([^\]]+)\]/);
+                      
+                      if (allTimeActivityMatch) {
+                        try {
+                          const activitiesStr = `[${allTimeActivityMatch[1]}]`;
+                          const activities = JSON.parse(activitiesStr);
+                          if (Array.isArray(activities) && activities.length > 0) {
+                            const stravaData: any = {
+                              allTimeActivity: activities,
+                              athlete_name: rawStr.match(/"athlete_name"\s*:\s*"([^"]+)"/)?.[1] || null,
+                              athlete_location: rawStr.match(/"athlete_location"\s*:\s*"([^"]+)"/)?.[1] || null
+                            };
+                            console.log(`🏃 Extracted Strava allTimeActivity array via regex with ${activities.length} activities`);
+                            return stravaData;
+                          }
+                        } catch (e) {
+                          // Continue to legacy regex extraction
+                        }
+                      }
+                      
+                      // Legacy fallback: Try to extract fitness stats using regex
                       const runningMatch = rawStr.match(/running[_\s]?total["\s:]+["']?([\d.]+)/i);
                       const cyclingMatch = rawStr.match(/(?:cycling|ride)[_\s]?total["\s:]+["']?([\d.]+)/i);
                       const walkingMatch = rawStr.match(/walking[_\s]?total["\s:]+["']?([\d.]+)/i);
                       const activitiesMatch = rawStr.match(/total[_\s]?activities["\s:]+["']?(\d+)/i);
-                      const locationMatch = rawStr.match(/(?:location|city|country)["\s:]+["']?([^"',}]+)/i);
+                      const locationMatch = rawStr.match(/(?:location|city|country|athlete_location)["\s:]+["']?([^"',}]+)/i);
                       const nameMatch = rawStr.match(/(?:name|username|athlete_name)["\s:]+["']?([^"',}]+)/i);
 
                       if (runningMatch || cyclingMatch || activitiesMatch) {
@@ -924,7 +981,7 @@ const DashboardPage = () => {
                           location: locationMatch?.[1] || null,
                           name: nameMatch?.[1] || null
                         };
-                        console.log(`🏃 Extracted Strava fitness data:`, stravaData);
+                        console.log(`🏃 Extracted Strava fitness data (legacy format):`, stravaData);
                         return stravaData;
                       }
                     }
@@ -1030,6 +1087,19 @@ const DashboardPage = () => {
                     // Check for nested titles
                     if (obj.titles && Array.isArray(obj.titles)) return { titles: obj.titles };
                     if (obj.watchHistory && Array.isArray(obj.watchHistory)) return { titles: obj.watchHistory };
+                    // Check for Strava allTimeActivity
+                    if (providerType === 'strava') {
+                      const allTimeActivity = obj.allTimeActivity || obj.all_time_activity;
+                      if (Array.isArray(allTimeActivity) && allTimeActivity.length > 0) {
+                        const stravaData: any = {
+                          allTimeActivity: allTimeActivity,
+                          athlete_name: obj.athlete_name || obj.name,
+                          athlete_location: obj.athlete_location || obj.location
+                        };
+                        console.log(`🏃 Found Strava allTimeActivity in nested object with ${allTimeActivity.length} activities`);
+                        return stravaData;
+                      }
+                    }
 
                     // Recurse into object keys - check ALL keys for data
                     const allKeys = Object.keys(obj);
@@ -1175,12 +1245,28 @@ const DashboardPage = () => {
                 if (proof?.publicData) {
                   extractedData = { ...extractedData, ...proof.publicData };
                 }
+                // For Strava, also check claimData.parameters for allTimeActivity
+                if (provider.id === 'strava' && proof?.claimData?.parameters) {
+                  const params = typeof proof.claimData.parameters === 'string'
+                    ? JSON.parse(proof.claimData.parameters)
+                    : proof.claimData.parameters;
+                  if (params.allTimeActivity || params.all_time_activity) {
+                    extractedData = {
+                      ...extractedData,
+                      allTimeActivity: params.allTimeActivity || params.all_time_activity,
+                      athlete_name: params.athlete_name || extractedData.athlete_name,
+                      athlete_location: params.athlete_location || extractedData.athlete_location
+                    };
+                    console.log(`🏃 Found Strava allTimeActivity in claimData.parameters with ${extractedData.allTimeActivity?.length || 0} activities`);
+                  }
+                }
 
                 // Deep search for provider-specific data if not found
                 const needsDeepSearch =
                   (provider.id === 'zomato' && (!extractedData.orders || extractedData.orders.length === 0)) ||
                   (provider.id === 'github' && !extractedData.username && !extractedData.login && !extractedData.followers) ||
-                  (provider.id === 'netflix' && (!extractedData.titles || extractedData.titles.length === 0));
+                  (provider.id === 'netflix' && (!extractedData.titles || extractedData.titles.length === 0)) ||
+                  (provider.id === 'strava' && (!extractedData.allTimeActivity && !extractedData.all_time_activity && !extractedData.running_total && !extractedData.total_activities));
 
                 if (needsDeepSearch) {
                   // #region agent log
@@ -1242,6 +1328,15 @@ const DashboardPage = () => {
                 // Points can be in result.pointsAwarded OR result.contribution.pointsAwarded
                 const pointsAwarded = result.contribution?.pointsAwarded || result.pointsAwarded || 0;
 
+                // Complete the progress bar first
+                setVerificationProgressComplete(true);
+
+                // Small delay to show progress completion, then hide indicator
+                setTimeout(() => {
+                  setVerificationProgress(false);
+                  setVerificationProgressComplete(false);
+                }, 300);
+
                 // Replace processing toast with success/error (non-persistent, will auto-dismiss)
                 if (result.success || pointsAwarded > 0) {
                   showToast('success', 'Success!', `You earned ${pointsAwarded} points!`);
@@ -1257,6 +1352,16 @@ const DashboardPage = () => {
                 console.error('Process polled proof error:', error);
                 setVerificationUrl(null);
                 setActiveProvider(null);
+                
+                // Complete progress bar on error
+                setVerificationProgressComplete(true);
+                
+                // Small delay then hide
+                setTimeout(() => {
+                  setVerificationProgress(false);
+                  setVerificationProgressComplete(false);
+                }, 300);
+                
                 showToast('error', 'Error', 'Failed to process verification data');
               }
             };
