@@ -1081,7 +1081,7 @@ router.post('/logs/error', async (req, res) => {
 // Get leaderboard (Database-only, no JSON fallback)
 router.get('/leaderboard', async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 100; // Default to 100 for full leaderboard
+        const limit = parseInt(req.query.limit) || 1000; // Default to 100 for full leaderboard
         const timeframe = req.query.timeframe || 'all_time'; // 'all_time' or 'weekly'
 
         // Direct database query - no JSON storage involved

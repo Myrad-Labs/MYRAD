@@ -28,7 +28,8 @@ const PROVIDERS = [
     dataType: 'zomato_order_history',
     icon: UtensilsCrossed,
     iconColor: '#ffffff',
-    iconBg: '#cb202d' // Zomato Red
+    iconBg: '#cb202d', // Zomato Red
+    logoUrl: 'https://play-lh.googleusercontent.com/Zqv3j3gWCWrxuHW1VkRKNWso3beRsrwPCj58kG_Ile6iGGSf1YfkPYhKExXKY7_L0lU'
   },
   {
     id: 'github',
@@ -41,7 +42,8 @@ const PROVIDERS = [
     dataType: 'github_profile',
     icon: Github,
     iconColor: '#ffffff',
-    iconBg: '#24292e'
+    iconBg: '#24292e',
+    logoUrl: 'https://play-lh.googleusercontent.com/PCpXdqvUWfCW1mXhH1Y_98yBpgsWxuTSTofy3NGMo9yBTATDyzVkqU580bfSln50bFU'
   },
   {
     id: 'netflix',
@@ -54,7 +56,8 @@ const PROVIDERS = [
     dataType: 'netflix_watch_history',
     icon: Clapperboard,
     iconColor: '#ffffff',
-    iconBg: '#e50914' // Netflix Red
+    iconBg: '#e50914', // Netflix Red
+    logoUrl: 'https://play-lh.googleusercontent.com/TBRwjS_qfJCSj1m7zZB93FnpJM5fSpMA_wUlFDLxWAb45T9RmwBvQd5cWR5viJJOhkI'
   },
   {
     id: 'ubereats',
@@ -67,7 +70,8 @@ const PROVIDERS = [
     dataType: 'ubereats_order_history',
     icon: UtensilsCrossed,
     iconColor: '#ffffff',
-    iconBg: '#06C167' // Uber Eats Green
+    iconBg: '#06C167', // Uber Eats Green
+    logoUrl: 'https://play-lh.googleusercontent.com/kDzXydb6ZT4LUj0RiU-GyptnVgCzzk9snN1FVxj2YfqFb4PpRdQRBKzdz4jzUOxAS9-d'
   },
   {
     id: 'strava',
@@ -80,7 +84,8 @@ const PROVIDERS = [
     dataType: 'strava_fitness',
     icon: PlayCircle, // Using PlayCircle as activity icon
     iconColor: '#ffffff',
-    iconBg: '#FC4C02' // Strava Orange
+    iconBg: '#FC4C02', // Strava Orange
+    logoUrl: 'https://play-lh.googleusercontent.com/j-ZV144PlVuTVsLuBzIKyEw9CbFnmWw9ku2NJ1ef0gZJh-iiIN1nrNPmAtvgAteyDqU'
   },
   {
     id: 'blinkit',
@@ -107,7 +112,8 @@ const PROVIDERS = [
     dataType: 'uber_ride_history',
     icon: PlayCircle, // Using as transportation icon
     iconColor: '#ffffff',
-    iconBg: '#000000' // Uber Black
+    iconBg: '#000000', // Uber Black
+    logoUrl: 'https://play-lh.googleusercontent.com/AQtSF5Sl18yp3mQ2tcbOrBLekb7cyP3kyg5BB1uUuc55zfcnbkCDLHFTBwZfYiu1aDI'
   },
   {
     id: 'zepto',
@@ -120,7 +126,8 @@ const PROVIDERS = [
     dataType: 'zepto_order_history',
     icon: UtensilsCrossed, // Using same icon as grocery delivery
     iconColor: '#ffffff',
-    iconBg: '#8B5CF6' // Zepto Purple
+    iconBg: '#8B5CF6', // Zepto Purple
+    logoUrl: 'https://play-lh.googleusercontent.com/jrtmMFv4qjtgMPQeaQzUFZ3EYBkHd_8OFYl6O1Ngt5Pey52RJAR4u8K4IoPILkJz76a7s5U3DNaY3r3xnl7t8X4'
   }
 ];
 
@@ -2219,9 +2226,17 @@ const DashboardPage = () => {
                     className={`provider-card ${activeProvider === provider.id ? "active" : ""}`}
                   >
                     <div className="provider-header">
-                      <div className="provider-icon-wrapper" style={{ background: provider.iconBg }}>
-                        <provider.icon size={20} color={provider.iconColor} />
-                      </div>
+                      {provider.logoUrl ? (
+                        <img 
+                          src={provider.logoUrl} 
+                          alt={provider.name} 
+                          className="provider-logo"
+                        />
+                      ) : (
+                        <div className="provider-icon-wrapper" style={{ background: provider.iconBg }}>
+                          <provider.icon size={20} color={provider.iconColor} />
+                        </div>
+                      )}
                       <h3 className="provider-name">{provider.name}</h3>
                     </div>
 
@@ -2477,6 +2492,12 @@ const styles = `
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  .provider-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
   }
 
   .provider-name { font-size: 16px; font-weight: 700; color: #111827; margin: 0; }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { Trophy, Medal, Award, Search, X } from 'lucide-react';
+import { Trophy, Medal, Award, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
 import Sidebar from '../components/Sidebar';
 
@@ -19,6 +19,8 @@ const LeaderboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const myWallet = (user?.wallet?.address || '').toLowerCase() || null;
@@ -26,7 +28,7 @@ const LeaderboardPage: React.FC = () => {
   const fetchLeaderboard = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch(`${API_URL}/api/leaderboard?limit=100&timeframe=all_time`);
+      const response = await fetch(`${API_URL}/api/leaderboard?limit=1000&timeframe=all_time`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch leaderboard');
@@ -71,9 +73,10 @@ const LeaderboardPage: React.FC = () => {
   const sortedList = leaderboard
     .slice()
     .sort((a, b) => b.totalPoints - a.totalPoints)
-    .map((u) => ({
+    .map((u, index) => ({
       ...u,
-      isYou: myWallet && u.walletAddress ? u.walletAddress.toLowerCase() === myWallet : false
+      isYou: myWallet && u.walletAddress ? u.walletAddress.toLowerCase() === myWallet : false,
+      actualRank: index + 1 // Store the real rank before filtering
     }))
     .filter((u) => {
       if (!searchQuery.trim()) return true;
@@ -84,6 +87,58 @@ const LeaderboardPage: React.FC = () => {
   // Find current user's rank
   const myRank = sortedList.findIndex((u) => u.isYou);
   const myData = myRank !== -1 ? sortedList[myRank] : null;
+
+  // Pagination calculations
+  const totalPages = Math.ceil(sortedList.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedList = sortedList.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 7;
+
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total is small
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      // Show pages around current page
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      // Always show last page
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
 
   const shortAddress = (addr: string | null) => {
     if (!addr) return 'N/A';
@@ -525,6 +580,86 @@ const LeaderboardPage: React.FC = () => {
               text-align: left;
             }
           }
+
+          .pagination-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 32px;
+            padding: 24px;
+            flex-wrap: wrap;
+          }
+
+          .pagination-btn {
+            min-width: 40px;
+            height: 40px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            color: #111827;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .pagination-btn:hover:not(:disabled) {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          }
+
+          .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+          }
+
+          .pagination-btn.active {
+            background: #111827;
+            color: #ffffff;
+            border-color: #111827;
+          }
+
+          .pagination-btn.active:hover {
+            background: #1f2937;
+            border-color: #1f2937;
+          }
+
+          .pagination-ellipsis {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-weight: 600;
+          }
+
+          .pagination-info {
+            margin-top: 16px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 13px;
+          }
+
+          @media (max-width: 768px) {
+            .pagination-container {
+              gap: 6px;
+              padding: 16px;
+            }
+
+            .pagination-btn {
+              min-width: 36px;
+              height: 36px;
+              font-size: 13px;
+            }
+          }
         `}</style>
 
         <div className="animate-enter" style={{ marginBottom: 32 }}>
@@ -636,8 +771,8 @@ const LeaderboardPage: React.FC = () => {
                 <div style={{ textAlign: 'right' }}>Points</div>
               </div>
 
-              {sortedList.map((row, idx) => {
-                const rank = idx + 1;
+              {paginatedList.map((row) => {
+                const rank = row.actualRank; // Use the actual rank from full leaderboard
                 const isTopThree = rank <= 3;
                 // Only show "Copied!" if address is not null and matches
                 const isCopied = row.walletAddress && copiedAddress === row.walletAddress;
@@ -678,6 +813,50 @@ const LeaderboardPage: React.FC = () => {
                 );
               })}
             </div>
+
+            {totalPages > 1 && (
+              <div className="pagination-container">
+                <button
+                  className="pagination-btn"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  title="Previous page"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+
+                {getPageNumbers().map((pageNum, idx) => (
+                  pageNum === '...' ? (
+                    <div key={`ellipsis-${idx}`} className="pagination-ellipsis">
+                      ...
+                    </div>
+                  ) : (
+                    <button
+                      key={pageNum}
+                      className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
+                      onClick={() => goToPage(pageNum as number)}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                ))}
+
+                <button
+                  className="pagination-btn"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  title="Next page"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="pagination-info">
+                Showing {startIndex + 1}-{Math.min(endIndex, sortedList.length)} of {sortedList.length} users
+              </div>
+            )}
 
             <p className="auto-refresh-indicator">
               Auto updates every minute • Last updated: {new Date().toLocaleTimeString()}
