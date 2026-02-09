@@ -487,12 +487,13 @@ async function saveContributionInternal(contribution) {
     if (dataType === 'github_profile') {
       const username = sellableData?.data?.username || contribution.data?.username;
       if (username) {
+        // Query the JSONB field since username is stored in sellable_data, not as a separate column
         const existingResult = await query(
           `SELECT id FROM github_contributions 
-           WHERE username = $1 
+           WHERE sellable_data::text LIKE $1
            AND (opt_out = FALSE OR opt_out IS NULL)
            FOR UPDATE`,
-          [username]
+          [`%"username":"${username}"%`]
         );
         
         if (existingResult.rows.length > 0) {
