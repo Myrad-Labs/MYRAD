@@ -139,6 +139,9 @@ const ContributorPage = () => {
                          transform: scale(0.8);
                          height: 400px !important;
                     }
+                    .hero-actions {
+                        justify-content: center !important;
+                    }
                 }
             `}</style>
 
@@ -167,7 +170,7 @@ const ContributorPage = () => {
                                 </p>
                             )}
                             {isVisible && (
-                                <div className="animate-fadeInUp delay-400" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                                <div className="animate-fadeInUp delay-400 hero-actions" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                                     <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 36px', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         Start earning
                                     </button>

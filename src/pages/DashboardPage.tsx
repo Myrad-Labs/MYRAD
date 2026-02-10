@@ -143,7 +143,7 @@ const DashboardPage = () => {
   const [verificationUrl, setVerificationUrl] = useState<string | null>(null);
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isHoveringOnboarding, setIsHoveringOnboarding] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isTabVisible, setIsTabVisible] = useState(true);
   const [verificationStartTime, setVerificationStartTime] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -426,15 +426,15 @@ const DashboardPage = () => {
     }
   }, [ready, authenticated, user?.id]);
 
-  // Handle video playback on hover
+  // Handle video playback
   useEffect(() => {
-    if (isHoveringOnboarding && videoRef.current) {
+    if (isExpanded && videoRef.current) {
       videoRef.current.play().catch(err => console.log('Video play error:', err));
-    } else if (!isHoveringOnboarding && videoRef.current) {
+    } else if (!isExpanded && videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
-  }, [isHoveringOnboarding]);
+  }, [isExpanded]);
 
   const dismissOnboarding = () => {
     setShowOnboarding(false);
@@ -509,7 +509,7 @@ const DashboardPage = () => {
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
-      setRefreshing(false);
+        setRefreshing(false);
       } else {
         setLoading(false);
       }
@@ -659,7 +659,7 @@ const DashboardPage = () => {
       let requestUrl: string;
       try {
         requestUrl = await reclaimProofRequest.getRequestUrl();
-      setVerificationUrl(requestUrl);
+        setVerificationUrl(requestUrl);
       } catch (urlError: any) {
         console.error('❌ Failed to get request URL:', urlError);
         // If it's a callback URL validation error and we're on localhost, try without callback URL
@@ -926,9 +926,9 @@ const DashboardPage = () => {
                       try {
                         const parsed = JSON.parse(rawStr);
                         const orders = parsed.orders || parsed.order_history ||
-                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.orders ||
                           parsed.claimData?.parameters?.order_history;
-                        
+
                         if (Array.isArray(orders) && orders.length > 0) {
                           console.log(`🍔 Extracted Uber Eats orders array with ${orders.length} orders from structured JSON`);
                           return { orders };
@@ -936,7 +936,7 @@ const DashboardPage = () => {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try various Uber Eats order formats using regex
                       const orderMatches = rawStr.match(/\{"items":"[^"]+","price":"[^"]+","timestamp":"[^"]+","restaurant":"[^"]+"\}/g) ||
                         rawStr.match(/\{"restaurant":"[^"]+","items":"[^"]+","total":"[^"]+","date":"[^"]+"\}/g) ||
@@ -955,10 +955,10 @@ const DashboardPage = () => {
                       try {
                         // Try to parse the entire raw string as JSON to find structured data
                         const parsed = JSON.parse(rawStr);
-                        const allTimeActivity = parsed.allTimeActivity || parsed.all_time_activity || 
-                          parsed.claimData?.parameters?.allTimeActivity || 
+                        const allTimeActivity = parsed.allTimeActivity || parsed.all_time_activity ||
+                          parsed.claimData?.parameters?.allTimeActivity ||
                           parsed.claimData?.parameters?.all_time_activity;
-                        
+
                         if (Array.isArray(allTimeActivity) && allTimeActivity.length > 0) {
                           const stravaData: any = {
                             allTimeActivity: allTimeActivity,
@@ -971,11 +971,11 @@ const DashboardPage = () => {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try to extract allTimeActivity array using regex
                       const allTimeActivityMatch = rawStr.match(/"allTimeActivity"\s*:\s*\[([^\]]+)\]/) ||
                         rawStr.match(/"all_time_activity"\s*:\s*\[([^\]]+)\]/);
-                      
+
                       if (allTimeActivityMatch) {
                         try {
                           const activitiesStr = `[${allTimeActivityMatch[1]}]`;
@@ -993,7 +993,7 @@ const DashboardPage = () => {
                           // Continue to legacy regex extraction
                         }
                       }
-                      
+
                       // Legacy fallback: Try to extract fitness stats using regex
                       const runningMatch = rawStr.match(/running[_\s]?total["\s:]+["']?([\d.]+)/i);
                       const cyclingMatch = rawStr.match(/(?:cycling|ride)[_\s]?total["\s:]+["']?([\d.]+)/i);
@@ -1021,9 +1021,9 @@ const DashboardPage = () => {
                       try {
                         const parsed = JSON.parse(rawStr);
                         const orders = parsed.orders || parsed.order_history ||
-                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.orders ||
                           parsed.claimData?.parameters?.order_history;
-                        
+
                         if (Array.isArray(orders) && orders.length > 0) {
                           console.log(`🛒 Extracted Blinkit orders array with ${orders.length} orders from structured JSON`);
                           return { orders };
@@ -1031,7 +1031,7 @@ const DashboardPage = () => {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try various Blinkit order formats using regex
                       const orderMatches = rawStr.match(/\{"items":"[^"]+","(?:price|total)":"[^"]+","(?:timestamp|date)":"[^"]+"\}/g) ||
                         rawStr.match(/\{"order_items":"[^"]+","order_total":"[^"]+","order_date":"[^"]+"\}/g);
@@ -1049,9 +1049,9 @@ const DashboardPage = () => {
                       try {
                         const parsed = JSON.parse(rawStr);
                         const orders = parsed.orders || parsed.order_history ||
-                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.orders ||
                           parsed.claimData?.parameters?.order_history;
-                        
+
                         if (Array.isArray(orders) && orders.length > 0) {
                           console.log(`🛍️ Extracted Zepto orders array with ${orders.length} orders from structured JSON`);
                           return { orders };
@@ -1059,7 +1059,7 @@ const DashboardPage = () => {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try various Zepto order formats using regex
                       const orderMatches = rawStr.match(/\{"items":"[^"]+","(?:price|total|amount)":"[^"]+","(?:timestamp|date)":"[^"]+"\}/g) ||
                         rawStr.match(/\{"product":"[^"]+","quantity":"[^"]+","price":"[^"]+"\}/g);
@@ -1078,10 +1078,10 @@ const DashboardPage = () => {
                         // Try to parse the entire raw string as JSON to find structured data
                         const parsed = JSON.parse(rawStr);
                         const rides = parsed.rides || parsed.ride_history || parsed.trips ||
-                          parsed.claimData?.parameters?.rides || 
+                          parsed.claimData?.parameters?.rides ||
                           parsed.claimData?.parameters?.ride_history ||
                           parsed.claimData?.parameters?.trips;
-                        
+
                         if (Array.isArray(rides) && rides.length > 0) {
                           console.log(`🚗 Extracted Uber Rides array with ${rides.length} rides from structured JSON`);
                           return { rides };
@@ -1089,12 +1089,12 @@ const DashboardPage = () => {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try to extract rides array using regex
                       const ridesArrayMatch = rawStr.match(/"rides"\s*:\s*\[([^\]]+)\]/) ||
                         rawStr.match(/"ride_history"\s*:\s*\[([^\]]+)\]/) ||
                         rawStr.match(/"trips"\s*:\s*\[([^\]]+)\]/);
-                      
+
                       if (ridesArrayMatch) {
                         try {
                           const ridesStr = `[${ridesArrayMatch[1]}]`;
@@ -1107,7 +1107,7 @@ const DashboardPage = () => {
                           // Continue to legacy regex extraction
                         }
                       }
-                      
+
                       // Legacy fallback: Try various Uber ride formats using regex
                       const rideMatches = rawStr.match(/\{"(?:fare|total)":"[^"]+","(?:timestamp|date|pickup_time)":"[^"]+"\}/g) ||
                         rawStr.match(/\{"trip_id":"[^"]+","fare":"[^"]+"\}/g) ||
@@ -1486,16 +1486,16 @@ const DashboardPage = () => {
                 console.error('Process polled proof error:', error);
                 setVerificationUrl(null);
                 setActiveProvider(null);
-                
+
                 // Complete progress bar on error
                 setVerificationProgressComplete(true);
-                
+
                 // Small delay then hide
                 setTimeout(() => {
                   setVerificationProgress(false);
                   setVerificationProgressComplete(false);
                 }, 300);
-                
+
                 showToast('error', 'Error', 'Failed to process verification data');
               }
             };
@@ -1784,8 +1784,8 @@ const DashboardPage = () => {
             // Only show error if tab is visible OR it's been more than 2 minutes
             if (!tabHidden || timeSinceStart > 120000) {
               showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-          setVerificationUrl(null);
-          setActiveProvider(null);
+              setVerificationUrl(null);
+              setActiveProvider(null);
               setContributing(null);
             }
             return;
@@ -2104,17 +2104,34 @@ const DashboardPage = () => {
         {/* Onboarding Card */}
         {showOnboarding && (
           <div
-            className="onboarding-card"
-            onMouseEnter={() => setIsHoveringOnboarding(true)}
-            onMouseLeave={() => setIsHoveringOnboarding(false)}
+            className={`onboarding-card ${isExpanded ? 'expanded' : ''}`}
+            onMouseEnter={() => {
+              if (window.matchMedia('(hover: hover)').matches) {
+                setIsExpanded(true);
+              }
+            }}
+            onMouseLeave={() => {
+              if (window.matchMedia('(hover: hover)').matches) {
+                setIsExpanded(false);
+              }
+            }}
+            onClick={() => {
+              // Toggle on click (works for mobile tap and desktop click)
+              // For desktop, hover handles open, so click could close it or do nothing
+              // For mobile, click is the only way
+              setIsExpanded(prev => !prev);
+            }}
           >
             <button
               className="onboarding-close"
-              onClick={dismissOnboarding}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click
+                dismissOnboarding();
+              }}
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-              </button>
+            </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -2135,13 +2152,13 @@ const DashboardPage = () => {
                     </ul>
 
                   </div>
-            </div>
+                </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-          </div>
-        </div>
+                </div>
+              </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -2153,7 +2170,7 @@ const DashboardPage = () => {
                   playsInline
                   preload="metadata"
                 />
-          </div>
+              </div>
             </div>
           </div>
         )}
@@ -2168,8 +2185,8 @@ const DashboardPage = () => {
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card" style={{ position: 'relative' }}>
-                  <span className="stat-label">Total Points</span>
-                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                <span className="stat-label">Total Points</span>
+                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -2201,11 +2218,11 @@ const DashboardPage = () => {
                     className={(loading || refreshing) ? 'spin' : ''}
                   />
                 </button>
-                </div>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                  <span className="stat-value">{contributions.length}</span>
-                </div>
+                <span className="stat-value">{contributions.length}</span>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -2227,9 +2244,9 @@ const DashboardPage = () => {
                   >
                     <div className="provider-header">
                       {provider.logoUrl ? (
-                        <img 
-                          src={provider.logoUrl} 
-                          alt={provider.name} 
+                        <img
+                          src={provider.logoUrl}
+                          alt={provider.name}
                           className="provider-logo"
                         />
                       ) : (
@@ -2277,16 +2294,16 @@ const DashboardPage = () => {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                        <p className="qr-title">Scan to verify</p>
-                        <div className="qr-container">
+                            <p className="qr-title">Scan to verify</p>
+                            <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                        </div>
-                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                          Open Link
-                        </a>
+                            </div>
+                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                              Open Link
+                            </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                        </button>
+                            </button>
                           </>
                         )}
                       </div>
@@ -2294,18 +2311,18 @@ const DashboardPage = () => {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                    <button
-                      onClick={() => handleContribute(provider)}
+                      <button
+                        onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                      className="btn-verify"
+                        className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                    >
-                      {contributing === provider.id ? (
-                        <><Loader2 size={16} className="spin" /> Verifying...</>
-                      ) : (
+                      >
+                        {contributing === provider.id ? (
+                          <><Loader2 size={16} className="spin" /> Verifying...</>
+                        ) : (
                           <>Verify</>
-                      )}
-                    </button>
+                        )}
+                      </button>
                     )}
                   </div>
                 ))}
@@ -2622,7 +2639,7 @@ const styles = `
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .onboarding-card:hover {
+  .onboarding-card:hover, .onboarding-card.expanded {
     transform: translateY(-2px);
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     border-color: #d1d5db;
@@ -2662,7 +2679,7 @@ const styles = `
     align-items: start;
   }
 
-  .onboarding-card:hover .onboarding-content {
+  .onboarding-card:hover .onboarding-content, .onboarding-card.expanded .onboarding-content {
     grid-template-columns: 1fr 500px;
     gap: 40px;
   }
@@ -2726,7 +2743,7 @@ const styles = `
     margin-bottom: 0;
   }
 
-  .onboarding-card:hover .onboarding-description {
+  .onboarding-card:hover .onboarding-description, .onboarding-card.expanded .onboarding-description {
     opacity: 1;
     max-height: 300px;
     margin-bottom: 16px;
@@ -2736,7 +2753,7 @@ const styles = `
     display: none;
   }
 
-  .onboarding-card:hover .onboarding-line-break {
+  .onboarding-card:hover .onboarding-line-break, .onboarding-card.expanded .onboarding-line-break {
     display: block;
   }
 
@@ -2758,7 +2775,7 @@ const styles = `
     justify-self: center;
   }
 
-  .onboarding-card:hover .onboarding-video-container {
+  .onboarding-card:hover .onboarding-video-container, .onboarding-card.expanded .onboarding-video-container {
     opacity: 1;
     transform: scale(1);
     max-height: 225px; /* 400px * 0.5625 for 16:9 */
@@ -2776,12 +2793,12 @@ const styles = `
   }
 
   @media (max-width: 1024px) {
-    .onboarding-card:hover .onboarding-content {
+    .onboarding-card:hover .onboarding-content, .onboarding-card.expanded .onboarding-content {
       grid-template-columns: 1fr 400px;
       gap: 32px;
     }
 
-    .onboarding-card:hover .onboarding-video-container {
+    .onboarding-card:hover .onboarding-video-container, .onboarding-card.expanded .onboarding-video-container {
       max-height: 225px;
       padding-bottom: 56.25%;
     }
@@ -2792,7 +2809,7 @@ const styles = `
       padding: 32px 24px;
     }
 
-    .onboarding-card:hover .onboarding-content {
+    .onboarding-card:hover .onboarding-content, .onboarding-card.expanded .onboarding-content {
       grid-template-columns: 1fr;
       gap: 24px;
     }
@@ -2815,7 +2832,7 @@ const styles = `
       height: 48px;
     }
 
-    .onboarding-card:hover .onboarding-video-container {
+    .onboarding-card:hover .onboarding-video-container, .onboarding-card.expanded .onboarding-video-container {
       max-height: 225px;
       padding-bottom: 56.25%;
       transform: scale(1);
@@ -2839,7 +2856,7 @@ const styles = `
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .onboarding-card:hover .onboarding-hover-hint {
+  .onboarding-card:hover .onboarding-hover-hint, .onboarding-card.expanded .onboarding-hover-hint {
     opacity: 0;
     max-height: 0;
     margin-top: 0;
@@ -2856,12 +2873,13 @@ const styles = `
     .providers-grid { grid-template-columns: repeat(3, 1fr); }
   }
   
-  @media (max-width: 768px) {
-    .dashboard {
-        padding-left: 0 !important;
-        padding-bottom: 80px;
-    }
-    .stats-grid { grid-template-columns: 1fr; }
+    @media (max-width: 768px) {
+      .dashboard {
+          padding-left: 0 !important;
+          padding-bottom: 80px;
+      }
+      .welcome-text h1 { font-size: 28px; }
+      .stats-grid { grid-template-columns: 1fr; }
     .providers-grid { grid-template-columns: repeat(2, 1fr); }
     .welcome-section { flex-direction: column; align-items: flex-start; gap: 16px; }
     .onboarding-content {
@@ -2869,7 +2887,7 @@ const styles = `
       gap: 20px;
       min-height: 40px;
     }
-    .onboarding-card:hover .onboarding-content {
+    .onboarding-card:hover .onboarding-content, .onboarding-card.expanded .onboarding-content {
       align-items: start;
     }
     .onboarding-video-container {
@@ -2878,7 +2896,7 @@ const styles = `
       max-height: 197px;
       margin-top: 20px;
     }
-    .onboarding-card:hover .onboarding-video-container {
+    .onboarding-card:hover .onboarding-video-container, .onboarding-card.expanded .onboarding-video-container {
       max-height: 197px;
     }
     .onboarding-card {
@@ -2886,7 +2904,7 @@ const styles = `
       min-height: 48px;
       margin-bottom: 20px;
     }
-    .onboarding-card:hover {
+    .onboarding-card:hover, .onboarding-card.expanded {
       padding: 20px;
       min-height: 180px;
     }
