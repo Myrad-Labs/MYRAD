@@ -167,6 +167,11 @@ const DashboardPage = () => {
     points: 0
   });
 
+  // Referral modal state
+const [showReferralModal, setShowReferralModal] = useState(false);
+const [referralCode, setReferralCode] = useState('');
+
+
   const showToast = (type: ToastType, title: string, message: string, persistent = false) => {
     // Clear any existing timeout
     if (toastTimeoutRef.current) {
@@ -466,17 +471,26 @@ const DashboardPage = () => {
       const walletAddr = user?.wallet?.address || null;
 
       // Verify/create user (send email and wallet address in body)
-      await fetch(`${API_URL}/api/auth/verify`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
-          walletAddress: walletAddr
-        })
-      });
+// Verify/create user (send email and wallet address in body)
+const verifyRes = await fetch(`${API_URL}/api/auth/verify`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    email: email,
+    walletAddress: walletAddr
+  })
+});
+
+const verifyData = await verifyRes.json();
+
+// 🔥 SHOW REFERRAL MODAL IF NEW USER
+if (verifyData.isNewUser) {
+  setShowReferralModal(true);
+}
+
 
       // Fetch all data in parallel with cache-busting for refresh
       const [profileRes, pointsRes, contribRes] = await Promise.all([
@@ -2088,6 +2102,43 @@ const DashboardPage = () => {
           </button>
         </div>
       )}
+{/* Referral Modal */}
+{showReferralModal && (
+  <div className="success-modal-overlay">
+    <div className="success-modal-container">
+      <h2 className="success-modal-title">Enter Referral Code</h2>
+      <p className="success-modal-provider">
+        If someone invited you, enter their 8-digit code.
+      </p>
+
+      <input
+        type="text"
+        maxLength={8}
+        value={referralCode}
+        onChange={(e) => setReferralCode(e.target.value)}
+        placeholder="Optional"
+        style={{
+          width: '100%',
+          padding: '14px',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          marginBottom: '24px',
+          fontSize: '14px'
+        }}
+      />
+
+      <button
+        className="success-modal-button"
+        onClick={() => {
+          console.log("Referral Code:", referralCode);
+          setShowReferralModal(false);
+        }}
+      >
+        Continue
+      </button>
+    </div>
+  </div>
+)}
 
       {/* Shared Dashboard Header */}
       <DashboardHeader onOptOutSuccess={() => fetchUserData(true)} />
