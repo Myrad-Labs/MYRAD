@@ -12,8 +12,8 @@ const PrivacyPolicyPage = () => {
         }}>
             <Header />
 
-            <main style={{ maxWidth: '720px', margin: '0 auto', padding: '48px 24px' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: 600, color: '#111', marginBottom: '4px' }}>
+            <main style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px' }}>
+                <h1 style={{ fontSize: '28px', fontWeight: 600, color: '#111', marginBottom: '24px' }}>
                     Privacy Policy
                 </h1>
                 <p style={{ color: '#666', marginBottom: '24px', fontSize: '14px' }}>
