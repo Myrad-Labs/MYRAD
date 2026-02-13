@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Trophy, HelpCircle } from 'lucide-react';
+import { Home, Trophy, HelpCircle, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -9,6 +9,7 @@ const Sidebar = () => {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: Home },
     { label: 'Leaderboard', path: '/leaderboard', icon: Trophy },
+    { label: 'Referral', path: '/referral', icon: Users },
     { label: 'How to use', path: '/how-to-use', icon: HelpCircle },
   ];
 

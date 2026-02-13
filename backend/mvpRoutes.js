@@ -197,28 +197,33 @@ router.post('/user/username', verifyPrivyToken, async (req, res) => {
 // Verify Privy token and get/create user
 router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
     try {
-        // Get email and wallet address from request body (more reliable than token)
         const email = req.body.email || req.user.email || null;
         const walletAddress = req.body.walletAddress || null;
+        const referralCode = req.body.referralCode || null; // 🔥 NEW
 
-        // Log for debugging duplicate account creation
         console.log(`🔍 Auth verify: privyId=${req.user.privyId}, email=${email || 'null'}, wallet=${walletAddress ? walletAddress.slice(0, 10) + '...' : 'null'}`);
 
         let user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+        let isNewUser = false;
 
         if (!user) {
-            // Create new user with email and wallet address
-            // The createUser function now handles race conditions with ON CONFLICT
             console.log(`✅ Creating new user with privyId: ${req.user.privyId}`);
             try {
-                user = await jsonStorage.createUser(req.user.privyId, email, walletAddress);
+                const result = await jsonStorage.createUser(
+                    req.user.privyId,
+                    email,
+                    walletAddress
+                );
+
+                user = result.user;
+                isNewUser = result.isNewUser;
+
             } catch (createError) {
-                // If creation fails due to race condition, try fetching again
                 if (createError.code === '23505' || createError.message.includes('unique constraint')) {
                     console.log(`⚠️ Race condition during user creation, fetching existing user...`);
                     user = await jsonStorage.getUserByPrivyId(req.user.privyId);
                     if (!user) {
-                        throw createError; // Re-throw if still not found
+                        throw createError;
                     }
                 } else {
                     throw createError;
@@ -226,8 +231,50 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
             }
         }
 
-        // Always update email/wallet if provided (even if user already exists)
-        // This ensures data is saved even if it was null on initial creation
+        // ===============================
+        // 🔥 REFERRAL LOGIC (SAFE ADD)
+        // ===============================
+if (isNewUser && referralCode) {
+    try {
+        console.log("🟡 Referral Attempt:", referralCode);
+        console.log("🟡 New user ID:", user?.id);
+
+        const { query } = await import('./database/db.js');
+
+        const refCheck = await query(
+            'SELECT id, referral_count FROM referrals WHERE referral_code = $1',
+            [referralCode]
+        );
+
+        console.log("🟡 Referral rows found:", refCheck.rows.length);
+
+        if (refCheck.rows.length > 0) {
+
+            const updateUser = await query(
+                'UPDATE users SET referred_by = $1 WHERE id = $2 RETURNING referred_by',
+                [referralCode, user.id]
+            );
+
+            console.log("🟢 referred_by updated:", updateUser.rows[0]);
+
+            const updateRef = await query(
+                'UPDATE referrals SET referral_count = referral_count + 1 WHERE referral_code = $1 RETURNING referral_count',
+                [referralCode]
+            );
+
+            console.log("🟢 referral_count new value:", updateRef.rows[0]);
+
+        } else {
+            console.log("❌ Referral code NOT found in DB");
+        }
+
+    } catch (err) {
+        console.error("🚨 Referral system error:", err);
+    }
+}
+
+        // ===============================
+
         let needsRefetch = false;
         const updates = {};
 
@@ -236,22 +283,26 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
             needsRefetch = true;
             console.log(`📧 Updating email for user ${user.id}: ${user.email || 'null'} -> ${email}`);
         }
+
         if (walletAddress && walletAddress !== user.walletAddress) {
             await jsonStorage.updateUserWallet(user.id, walletAddress);
             needsRefetch = true;
             console.log(`💳 Updating wallet for user ${user.id}: ${user.walletAddress ? user.walletAddress.slice(0, 10) + '...' : 'null'} -> ${walletAddress.slice(0, 10)}...`);
         }
+
         if (Object.keys(updates).length > 0) {
             await jsonStorage.updateUserProfile(user.id, updates);
         }
-        // Refetch user to get latest data after updates
+
         if (needsRefetch) {
             user = await jsonStorage.getUserById(user.id);
         }
+
         await jsonStorage.updateUserActivity(user.id);
 
         res.json({
             success: true,
+            isNewUser,
             user: {
                 id: user.id,
                 email: user.email,
@@ -263,11 +314,14 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
                 lastActiveAt: user.lastActiveAt
             }
         });
+
     } catch (error) {
         console.error('Auth verify error:', error);
         res.status(500).json({ error: 'Authentication failed' });
     }
 });
+
+
 
 // Get user profile
 router.get('/user/profile', verifyPrivyToken, async (req, res) => {

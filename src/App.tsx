@@ -3,6 +3,7 @@ import LandingPage from './pages/LandingPage';
 import ContributorPage from './pages/ContributorPage';
 import DashboardPage from './pages/DashboardPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import ReferralPage from './pages/ReferralPage';
 import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
@@ -18,6 +19,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/contribute" element={<ContributorPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/referral" element={<ReferralPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/how-to-use" element={<HowToUsePage />} />
         <Route path="/about" element={<AboutPage />} />

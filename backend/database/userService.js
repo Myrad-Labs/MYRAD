@@ -77,31 +77,26 @@ export async function createUser(privyId, email, walletAddress = null) {
     throw new Error('privyId is required to create user');
   }
 
-  // Generate unique userId: timestamp + random component to prevent collisions
-  // Format: timestamp_randomHex (e.g., "1704067200000_a3f2b1")
   const generateUniqueId = () => {
     const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8); // 6 char random string
+    const random = Math.random().toString(36).substring(2, 8);
     return `${timestamp}_${random}`;
   };
 
-  // Use transaction to ensure atomicity
   await query('BEGIN');
 
   try {
-    // First, check if user exists (within transaction to prevent race conditions)
+    // 🔥 Check if user already exists
     const existing = await getUserByPrivyId(privyId);
     if (existing) {
       await query('ROLLBACK');
-      console.log(`ℹ️ User with privyId ${privyId} already exists, returning existing user`);
-      return existing;
+      console.log(`ℹ️ User with privyId ${privyId} already exists`);
+      return { user: existing, isNewUser: false };
     }
 
     const userId = generateUniqueId();
     const now = new Date();
 
-    // Use ON CONFLICT to handle race conditions at database level
-    // If privy_id already exists (due to race condition), return existing user
     const result = await query(
       `INSERT INTO users (
         id, privy_id, email, wallet_address, username, streak,
@@ -114,13 +109,13 @@ export async function createUser(privyId, email, walletAddress = null) {
       RETURNING *`,
       [
         userId,
-        String(privyId), // Ensure privyId is a string
-        email || null, // Explicitly set to null if not provided
-        walletAddress || null, // Explicitly set to null if not provided
-        null, // username
-        0, // streak
-        null, // last_contribution_date
-        0, // total_points (will be updated when points are awarded)
+        String(privyId),
+        email || null,
+        walletAddress || null,
+        null,
+        0,
+        null,
+        0,
         'Bronze',
         now,
         now
@@ -130,7 +125,7 @@ export async function createUser(privyId, email, walletAddress = null) {
     const insertedUser = result.rows[0];
     const finalUserId = insertedUser.id;
 
-    // Check if this was an insert or update (by checking if points_history exists)
+    // 🔥 Check if first access bonus already exists
     const pointsCheck = await query(
       'SELECT COUNT(*) as count FROM points_history WHERE user_id = $1 AND reason = $2',
       [finalUserId, 'first_access_bonus']
@@ -138,17 +133,15 @@ export async function createUser(privyId, email, walletAddress = null) {
 
     const hasInitialPoints = parseInt(pointsCheck.rows[0].count, 10) > 0;
 
-    // Only award points if this was a new user (not an update due to conflict)
-    // Add points within the same transaction
     if (!hasInitialPoints) {
       try {
         const pointsId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
         await query(
           'INSERT INTO points_history (id, user_id, points, reason, created_at) VALUES ($1, $2, $3, $4, NOW())',
           [pointsId, finalUserId, 10, 'first_access_bonus']
         );
 
-        // Recalculate and update user's total points within transaction
         const totalResult = await query(
           'SELECT COALESCE(SUM(points), 0) as total FROM points_history WHERE user_id = $1',
           [finalUserId]
@@ -162,7 +155,6 @@ export async function createUser(privyId, email, walletAddress = null) {
           [totalPoints, league, finalUserId]
         );
       } catch (pointsError) {
-        // If points already exist, that's okay (race condition handled)
         console.log(`ℹ️ Points may already exist for user ${finalUserId}, continuing...`);
       }
     }
@@ -170,24 +162,30 @@ export async function createUser(privyId, email, walletAddress = null) {
     await query('COMMIT');
 
     const user = await getUserById(finalUserId);
-    console.log(`✅ User created/retrieved: id=${user.id}, privyId=${privyId}, email=${email || 'null'}, wallet=${walletAddress ? walletAddress.slice(0, 10) + '...' : 'null'}`);
-    return user;
+
+    console.log(`✅ New user created: id=${user.id}`);
+    return { user, isNewUser: true };
+
   } catch (error) {
     await query('ROLLBACK');
-    
-    // If it's a unique constraint violation, try to get the existing user
-    if (error.code === '23505' || error.message.includes('unique constraint') || error.message.includes('duplicate key')) {
+
+    if (
+      error.code === '23505' ||
+      error.message.includes('unique constraint') ||
+      error.message.includes('duplicate key')
+    ) {
       console.log(`⚠️ Race condition detected for privyId ${privyId}, fetching existing user...`);
       const existing = await getUserByPrivyId(privyId);
       if (existing) {
-        return existing;
+        return { user: existing, isNewUser: false };
       }
     }
-    
+
     console.error('Error creating user:', error);
     throw error;
   }
 }
+
 
 /**
  * Update user wallet address
