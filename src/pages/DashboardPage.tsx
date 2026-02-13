@@ -509,7 +509,7 @@ const DashboardPage = () => {
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
-        setRefreshing(false);
+      setRefreshing(false);
       } else {
         setLoading(false);
       }
@@ -659,7 +659,7 @@ const DashboardPage = () => {
       let requestUrl: string;
       try {
         requestUrl = await reclaimProofRequest.getRequestUrl();
-        setVerificationUrl(requestUrl);
+      setVerificationUrl(requestUrl);
       } catch (urlError: any) {
         console.error('❌ Failed to get request URL:', urlError);
         // If it's a callback URL validation error and we're on localhost, try without callback URL
@@ -1784,8 +1784,8 @@ const DashboardPage = () => {
             // Only show error if tab is visible OR it's been more than 2 minutes
             if (!tabHidden || timeSinceStart > 120000) {
               showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-              setVerificationUrl(null);
-              setActiveProvider(null);
+          setVerificationUrl(null);
+          setActiveProvider(null);
               setContributing(null);
             }
             return;
@@ -2033,6 +2033,18 @@ const DashboardPage = () => {
       {/* Sidebar Navigation */}
       <Sidebar />
 
+      {/* Bounty Banner */}
+      <a
+        href="https://app.firstdollar.money/company/myrad/bounty/myrad-user-experience-bounty"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bounty-banner"
+      >
+        <span className="bounty-banner-text">
+        🏆 Myrad User Experience Bounty is now live on EarnFirstDollar. Check it out now →
+        </span>
+      </a>
+
       {/* Verification Progress Indicator */}
       {verificationProgress && (
         <div className="verification-progress-overlay">
@@ -2131,7 +2143,7 @@ const DashboardPage = () => {
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-            </button>
+              </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -2152,13 +2164,13 @@ const DashboardPage = () => {
                     </ul>
 
                   </div>
-                </div>
+            </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-                </div>
-              </div>
+          </div>
+        </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -2170,7 +2182,7 @@ const DashboardPage = () => {
                   playsInline
                   preload="metadata"
                 />
-              </div>
+          </div>
             </div>
           </div>
         )}
@@ -2185,8 +2197,8 @@ const DashboardPage = () => {
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card" style={{ position: 'relative' }}>
-                <span className="stat-label">Total Points</span>
-                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                  <span className="stat-label">Total Points</span>
+                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -2218,11 +2230,11 @@ const DashboardPage = () => {
                     className={(loading || refreshing) ? 'spin' : ''}
                   />
                 </button>
-              </div>
+                </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                <span className="stat-value">{contributions.length}</span>
-              </div>
+                  <span className="stat-value">{contributions.length}</span>
+                </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -2252,7 +2264,7 @@ const DashboardPage = () => {
                       ) : (
                         <div className="provider-icon-wrapper" style={{ background: provider.iconBg }}>
                           <provider.icon size={20} color={provider.iconColor} />
-                        </div>
+                      </div>
                       )}
                       <h3 className="provider-name">{provider.name}</h3>
                     </div>
@@ -2294,16 +2306,16 @@ const DashboardPage = () => {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                            <p className="qr-title">Scan to verify</p>
-                            <div className="qr-container">
+                        <p className="qr-title">Scan to verify</p>
+                        <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                            </div>
-                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                              Open Link
-                            </a>
+                        </div>
+                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                          Open Link
+                        </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                            </button>
+                        </button>
                           </>
                         )}
                       </div>
@@ -2311,18 +2323,18 @@ const DashboardPage = () => {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                      <button
-                        onClick={() => handleContribute(provider)}
+                    <button
+                      onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                        className="btn-verify"
+                      className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                      >
-                        {contributing === provider.id ? (
-                          <><Loader2 size={16} className="spin" /> Verifying...</>
-                        ) : (
+                    >
+                      {contributing === provider.id ? (
+                        <><Loader2 size={16} className="spin" /> Verifying...</>
+                      ) : (
                           <>Verify</>
-                        )}
-                      </button>
+                      )}
+                    </button>
                     )}
                   </div>
                 ))}
@@ -2410,6 +2422,44 @@ const styles = `
     font-family: 'Satoshi', sans-serif;
     padding-left: 70px;
     transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Bounty Banner */
+  .bounty-banner {
+    display: block;
+    width: 100%;
+    background-image: url('/earnfirstdollar.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: repeat;
+    background-color: #1e40af; /* Fallback blue color */
+    color: #ffffff;
+    text-decoration: none;
+    padding: 12px 24px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    position: relative;
+    z-index: 10;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .bounty-banner:hover {
+    opacity: 0.95;
+    transform: translateY(0);
+  }
+
+  .bounty-banner-text {
+    display: inline-block;
+    letter-spacing: 0.2px;
+  }
+
+  @media (max-width: 768px) {
+    .bounty-banner {
+      padding: 10px 16px;
+      font-size: 13px;
+    }
   }
 
   /* Animations */
@@ -2547,7 +2597,7 @@ const styles = `
     border-style: dashed; 
     background: #f9fafb; 
     align-items: center;
-    justify-content: center; 
+    justify-content: center;
     opacity: 0.8; 
     min-height: 200px;
   }
