@@ -509,12 +509,12 @@ const DashboardPage = () => {
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
-      setRefreshing(false);
+        setRefreshing(false);
       } else {
         setLoading(false);
       }
     }
-  }, [user?.id, user?.email?.address, API_URL]);
+  }, [user?.id, user?.email?.address, user?.wallet?.address, API_URL]);
 
   // Fetch on mount
   useEffect(() => {
@@ -523,6 +523,34 @@ const DashboardPage = () => {
       fetchUserData();
     }
   }, [authenticated, user?.id, fetchUserData]);
+
+  // Sync wallet address to backend when it becomes available AFTER initial load.
+  // Privy creates embedded wallets asynchronously after login,
+  // so user?.wallet?.address may not be available on initial auth/verify call.
+  // Skip on first render — fetchUserData already handles the initial sync.
+  const hasRunInitialFetch = useRef(false);
+  useEffect(() => {
+    if (!hasRunInitialFetch.current) {
+      // Mark that the first render has passed; fetchUserData handles initial sync
+      hasRunInitialFetch.current = true;
+      return;
+    }
+    const walletAddr = user?.wallet?.address;
+    if (!walletAddr || !authenticated || !user?.id) return;
+
+    const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+    fetch(`${API_URL}/api/auth/verify`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: user?.email?.address || null,
+        walletAddress: walletAddr
+      })
+    }).catch(err => console.error('Wallet sync error:', err));
+  }, [user?.wallet?.address]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Monitor tab visibility changes to handle background verification
@@ -659,7 +687,7 @@ const DashboardPage = () => {
       let requestUrl: string;
       try {
         requestUrl = await reclaimProofRequest.getRequestUrl();
-      setVerificationUrl(requestUrl);
+        setVerificationUrl(requestUrl);
       } catch (urlError: any) {
         console.error('❌ Failed to get request URL:', urlError);
         // If it's a callback URL validation error and we're on localhost, try without callback URL
@@ -1784,8 +1812,8 @@ const DashboardPage = () => {
             // Only show error if tab is visible OR it's been more than 2 minutes
             if (!tabHidden || timeSinceStart > 120000) {
               showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-          setVerificationUrl(null);
-          setActiveProvider(null);
+              setVerificationUrl(null);
+              setActiveProvider(null);
               setContributing(null);
             }
             return;
@@ -2041,7 +2069,7 @@ const DashboardPage = () => {
         className="bounty-banner"
       >
         <span className="bounty-banner-text">
-        🏆 Myrad User Experience Bounty is now live on EarnFirstDollar. Check it out now →
+          🏆 Myrad User Experience Bounty is now live on EarnFirstDollar. Check it out now →
         </span>
       </a>
 
@@ -2143,7 +2171,7 @@ const DashboardPage = () => {
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-              </button>
+            </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -2164,13 +2192,13 @@ const DashboardPage = () => {
                     </ul>
 
                   </div>
-            </div>
+                </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-          </div>
-        </div>
+                </div>
+              </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -2182,7 +2210,7 @@ const DashboardPage = () => {
                   playsInline
                   preload="metadata"
                 />
-          </div>
+              </div>
             </div>
           </div>
         )}
@@ -2197,8 +2225,8 @@ const DashboardPage = () => {
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card" style={{ position: 'relative' }}>
-                  <span className="stat-label">Total Points</span>
-                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                <span className="stat-label">Total Points</span>
+                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -2230,11 +2258,11 @@ const DashboardPage = () => {
                     className={(loading || refreshing) ? 'spin' : ''}
                   />
                 </button>
-                </div>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                  <span className="stat-value">{contributions.length}</span>
-                </div>
+                <span className="stat-value">{contributions.length}</span>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -2264,7 +2292,7 @@ const DashboardPage = () => {
                       ) : (
                         <div className="provider-icon-wrapper" style={{ background: provider.iconBg }}>
                           <provider.icon size={20} color={provider.iconColor} />
-                      </div>
+                        </div>
                       )}
                       <h3 className="provider-name">{provider.name}</h3>
                     </div>
@@ -2306,16 +2334,16 @@ const DashboardPage = () => {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                        <p className="qr-title">Scan to verify</p>
-                        <div className="qr-container">
+                            <p className="qr-title">Scan to verify</p>
+                            <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                        </div>
-                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                          Open Link
-                        </a>
+                            </div>
+                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                              Open Link
+                            </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                        </button>
+                            </button>
                           </>
                         )}
                       </div>
@@ -2323,18 +2351,18 @@ const DashboardPage = () => {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                    <button
-                      onClick={() => handleContribute(provider)}
+                      <button
+                        onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                      className="btn-verify"
+                        className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                    >
-                      {contributing === provider.id ? (
-                        <><Loader2 size={16} className="spin" /> Verifying...</>
-                      ) : (
+                      >
+                        {contributing === provider.id ? (
+                          <><Loader2 size={16} className="spin" /> Verifying...</>
+                        ) : (
                           <>Verify</>
-                      )}
-                    </button>
+                        )}
+                      </button>
                     )}
                   </div>
                 ))}
