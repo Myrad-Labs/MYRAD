@@ -171,7 +171,7 @@ const ContributorPage = () => {
                             )}
                             {isVisible && (
                                 <div className="animate-fadeInUp delay-400 hero-actions" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                                    <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 36px', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 36px', borderRadius: '50px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         Start earning
                                     </button>
                                 </div>
@@ -311,7 +311,7 @@ const ContributorPage = () => {
                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
                         <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '16px', letterSpacing: '-0.02em', color: '#111827' }}>Ready to monetize your data?</h2>
                         <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '32px' }}></p>
-                        <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 40px', borderRadius: '12px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                        <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 40px', borderRadius: '50px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
                             Start earning
                         </button>
                     </div>

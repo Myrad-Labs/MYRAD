@@ -128,8 +128,18 @@ const LandingPage = () => {
                     z-index: -1;
                 }
 
+                /* Hero Content Shift */
+                .hero-content-shift {
+                    padding-top: 2vw;
+                    padding-left: 60px;
+                }
+
                 /* Mobile Optimizations */
                 @media (max-width: 768px) {
+                    .hero-content-shift {
+                        padding-left: 0 !important;
+                        padding-top: 0 !important;
+                    }
                     .hero-grid {
                         grid-template-columns: 1fr !important;
                         gap: 40px !important;
@@ -222,7 +232,7 @@ const LandingPage = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: showIntro ? 0 : 1, y: showIntro ? 20 : 0 }}
                                 transition={{ delay: 0.2, duration: 0.8 }}
-                                style={{ paddingTop: '2vw' }}
+                                className="hero-content-shift"
                             >
                                 <h2 style={{
                                     fontSize: '40px',
