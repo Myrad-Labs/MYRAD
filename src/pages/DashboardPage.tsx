@@ -170,6 +170,7 @@ const DashboardPage = () => {
   // Referral modal state
 const [showReferralModal, setShowReferralModal] = useState(false);
 const [referralCode, setReferralCode] = useState('');
+const [submittingReferral, setSubmittingReferral] = useState(false);
 
 
   const showToast = (type: ToastType, title: string, message: string, persistent = false) => {
@@ -450,6 +451,54 @@ const [referralCode, setReferralCode] = useState('');
 
   // Get wallet address from Privy user
   const walletAddress = user?.wallet?.address || null;
+
+const handleReferralSubmit = async () => {
+  if (!referralCode.trim()) {
+    showToast('error', 'Invalid Code', 'Please enter a referral code');
+    return;
+  }
+
+  if (referralCode.length !== 8) {
+    showToast('error', 'Invalid Code', 'Referral code must be 8 characters');
+    return;
+  }
+
+  setSubmittingReferral(true);
+
+  try {
+    const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+    const res = await fetch(`${API_URL}/api/referral`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        wallet_address: walletAddress,
+        referral_code: referralCode,
+      }),
+    });
+
+    const data = await res.json();
+    console.log('Referral response:', data);
+
+    if (res.ok) {
+      showToast('success', 'Referral Successful!', 'Referral code applied successfully');
+      setReferralCode('');
+      setShowReferralModal(false);
+      // Optionally refresh user data to show updated points
+      setTimeout(() => fetchUserData(true), 1000);
+    } else {
+      // Handle different error messages from backend
+      const errorMsg = data.message || 'Failed to apply referral code';
+      showToast('error', 'Referral Failed', errorMsg);
+    }
+  } catch (err) {
+    console.error('Referral submission error:', err);
+    showToast('error', 'Error', 'An error occurred while processing your referral');
+  } finally {
+    setSubmittingReferral(false);
+  }
+};
 
 
   // Fetch user data
@@ -2108,33 +2157,82 @@ if (verifyData.isNewUser) {
     <div className="success-modal-container">
       <h2 className="success-modal-title">Enter Referral Code</h2>
       <p className="success-modal-provider">
-        If someone invited you, enter their 8-digit code.
+        If someone invited you, enter their 8-digit code to get bonus points!
       </p>
 
       <input
         type="text"
         maxLength={8}
         value={referralCode}
-        onChange={(e) => setReferralCode(e.target.value)}
-        placeholder="Optional"
+        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+        placeholder="Enter code (8 characters)"
+        disabled={submittingReferral}
         style={{
           width: '100%',
           padding: '14px',
           borderRadius: '12px',
-          border: '1px solid #e5e7eb',
+          border: referralCode.length === 8 ? '2px solid #10b981' : '1px solid #e5e7eb',
           marginBottom: '24px',
-          fontSize: '14px'
+          fontSize: '14px',
+          fontWeight: '500',
+          letterSpacing: '0.1em',
+          opacity: submittingReferral ? 0.6 : 1,
+          cursor: submittingReferral ? 'not-allowed' : 'text',
+          transition: 'all 0.3s ease'
         }}
       />
 
+      {referralCode.length > 0 && referralCode.length < 8 && (
+        <p style={{ fontSize: '12px', color: '#ef4444', marginBottom: '12px', textAlign: 'center' }}>
+          Code must be 8 characters
+        </p>
+      )}
+
       <button
         className="success-modal-button"
-        onClick={() => {
-          console.log("Referral Code:", referralCode);
-          setShowReferralModal(false);
+        onClick={handleReferralSubmit}
+        disabled={submittingReferral || referralCode.length !== 8}
+        style={{
+          opacity: submittingReferral || referralCode.length !== 8 ? 0.6 : 1,
+          cursor: submittingReferral || referralCode.length !== 8 ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px'
         }}
       >
-        Continue
+        {submittingReferral ? (
+          <>
+            <Loader2 size={16} className="spin" />
+            Processing...
+          </>
+        ) : (
+          'Apply Code'
+        )}
+      </button>
+
+      <button
+        onClick={() => {
+          setShowReferralModal(false);
+          setReferralCode('');
+        }}
+        disabled={submittingReferral}
+        style={{
+          width: '100%',
+          padding: '12px',
+          marginTop: '12px',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          backgroundColor: '#f9fafb',
+          color: '#6b7280',
+          cursor: submittingReferral ? 'not-allowed' : 'pointer',
+          fontSize: '14px',
+          fontWeight: '500',
+          opacity: submittingReferral ? 0.5 : 1,
+          transition: 'all 0.3s ease'
+        }}
+      >
+        Skip for Now
       </button>
     </div>
   </div>

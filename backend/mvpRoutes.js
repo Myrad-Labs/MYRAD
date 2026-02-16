@@ -8,6 +8,7 @@ import * as rewardService from './rewardService.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { query } from "./database/db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -350,6 +351,118 @@ router.get('/user/profile', verifyPrivyToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch profile' });
     }
 });
+
+router.post("/referral", async (req, res) => {
+  const { wallet_address, referral_code } = req.body;
+
+  console.log("Incoming wallet:", wallet_address);
+  console.log("Entered referral code:", referral_code);
+
+  try {
+    // 1️⃣ Validate referral length
+    if (!referral_code || referral_code.length !== 8) {
+      console.log("Invalid referral length");
+      return res.status(400).json({ message: "Invalid referral code" });
+    }
+
+    // 2️⃣ Check referral exists in referrals table
+    const referralResult = await query(
+      `
+      SELECT wallet_address
+      FROM referrals
+      WHERE referral_code = $1
+      `,
+      [referral_code]
+    );
+
+    console.log("Referral DB result:", referralResult.rows);
+
+    if (referralResult.rows.length === 0) {
+      console.log("Referral not found in DB");
+      return res.status(400).json({ message: "Referral code not found" });
+    }
+
+    const referrerWallet = referralResult.rows[0].wallet_address;
+    console.log("Referrer wallet:", referrerWallet);
+
+    // 3️⃣ Prevent self referral
+    if (referrerWallet === wallet_address) {
+      console.log("User tried self referral");
+      return res.status(400).json({ message: "Cannot refer yourself" });
+    }
+
+    // 4️⃣ Update user (only if first time)
+    const updateUser = await query(
+      `
+      UPDATE users
+      SET referred_by = $1
+      WHERE wallet_address = $2
+      AND referred_by IS NULL
+      RETURNING *
+      `,
+      [referrerWallet, wallet_address]
+    );
+
+    console.log("User update result:", updateUser.rows);
+
+    if (updateUser.rows.length === 0) {
+      console.log("User already has referral or not found");
+      return res.status(400).json({ message: "Referral already used or user not found" });
+    }
+
+    // 5️⃣ Increase referral_count in referrals table
+    await query(
+      `
+      UPDATE referrals
+      SET referral_count = referral_count + 1
+      WHERE wallet_address = $1
+      `,
+      [referrerWallet]
+    );
+
+    console.log("Referral count incremented");
+
+    res.json({ message: "Referral saved successfully" });
+
+  } catch (err) {
+    console.error("Server error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/referral-stats/:wallet", async (req, res) => {
+  const wallet = req.params.wallet;
+
+  try {
+    // Total referrals
+    const totalResult = await query(
+      `SELECT COUNT(*) AS total
+       FROM users
+       WHERE referred_by = $1`,
+      [wallet]
+    );
+
+    // Successful referrals
+    const successResult = await query(
+      `SELECT COUNT(*) AS successful
+       FROM users
+       WHERE referred_by = $1
+       AND total_points > 10`,
+      [wallet]
+    );
+
+    res.json({
+      total: totalResult.rows[0].total,
+      successful: successResult.rows[0].successful
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 // Get user points balance and history
 router.get('/user/points', verifyPrivyToken, async (req, res) => {
@@ -1859,6 +1972,79 @@ router.get('/system/status', async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to get system status' });
+    }
+});
+
+// Get referral data for a user by wallet address
+router.get('/referral-data', async (req, res) => {
+    try {
+        const { wallet_address } = req.query;
+
+        if (!wallet_address) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Wallet address is required' 
+            });
+        }
+
+        // Check if user has enough points (100 minimum)
+        const userResult = await query(
+            'SELECT total_points FROM users WHERE LOWER(wallet_address) = LOWER($1)',
+            [wallet_address]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.json({ 
+                success: false,
+                locked: true,
+                message: 'Reach 100 points to unlock ref'
+            });
+        }
+
+        const totalPoints = userResult.rows[0].total_points || 0;
+
+        if (totalPoints < 100) {
+            return res.json({ 
+                success: false,
+                locked: true,
+                message: 'Reach 100 points to unlock ref',
+                currentPoints: totalPoints
+            });
+        }
+
+        // User has enough points, fetch referral data
+      // User has enough points, fetch referral data
+const referralResult = await query(
+    'SELECT referral_code, referral_count, successful_ref FROM referrals WHERE LOWER(wallet_address) = LOWER($1)',
+    [wallet_address]
+);
+
+if (referralResult.rows.length === 0) {
+    return res.json({ 
+        success: false,
+        locked: true,
+        message: 'Reach 100 points to unlock ref'
+    });
+}
+
+const { referral_code, referral_count, successful_ref } = referralResult.rows[0];
+
+res.json({
+    success: true,
+    locked: false,
+    referral_code,
+    referral_count: referral_count ?? 0,
+    successful_ref: successful_ref ?? 0   // ✅ ADD THIS
+});
+
+
+    } catch (error) {
+        console.error('Error fetching referral data:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to fetch referral data',
+            message: error.message 
+        });
     }
 });
 
