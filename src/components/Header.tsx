@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 
 const Header = () => {
     const navigate = useNavigate();
     const { login, authenticated, ready } = usePrivy();
-    const [scrollY, setScrollY] = useState(0);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // Redirect to dashboard when user authenticates
@@ -15,12 +14,6 @@ const Header = () => {
             navigate('/dashboard');
         }
     }, [authenticated, ready, navigate]);
-
-    useEffect(() => {
-        const handleScroll = () => setScrollY(window.scrollY);
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
     const handleGetStarted = () => {
         if (authenticated) {
@@ -81,17 +74,18 @@ const Header = () => {
                 left: 0,
                 right: 0,
                 zIndex: 1000,
-                background: (scrollY > 50 || mobileMenuOpen) ? 'rgba(255, 255, 255, 0.95)' : 'transparent',
-                backdropFilter: (scrollY > 50 || mobileMenuOpen) ? 'blur(20px)' : 'none',
-                borderBottom: (scrollY > 50 || mobileMenuOpen) ? '1px solid rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.4s ease',
-                width: '100%'
+                background: 'rgba(250, 250, 250, 0.95)',
+                backdropFilter: 'blur(10px)',
+                borderBottom: '1px solid #e5e7eb',
+                height: '60px',
+                display: 'flex',
+                alignItems: 'center'
             }}>
                 <div
                     style={{
-                        maxWidth: '1280px',
-                        margin: '0 auto',
-                        padding: '20px 24px',
+                        width: '100%',
+                        maxWidth: '100%',
+                        padding: '0 40px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -143,7 +137,7 @@ const Header = () => {
                             className="btn-primary contribute-btn"
                             style={{
                                 padding: '14px 28px',
-                                borderRadius: '10px',
+                                borderRadius: '50px',
                                 fontSize: '14px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -152,7 +146,6 @@ const Header = () => {
                             }}
                         >
                             {authenticated ? 'Go to Dashboard' : 'Get Started'}
-                            <ArrowRight size={16} />
                         </button>
 
                         <button
@@ -174,7 +167,6 @@ const Header = () => {
                         </button>
                     </div>
                 </div>
-
 
                 {/* Mobile Menu */}
                 {mobileMenuOpen && (
@@ -202,7 +194,7 @@ const Header = () => {
                         ))}
                     </div>
                 )}
-            </header >
+            </header>
         </>
     );
 };

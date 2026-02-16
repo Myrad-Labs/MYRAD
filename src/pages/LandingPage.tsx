@@ -1,17 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Database, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import Waves from '../components/DynamicBackground';
 
 const LandingPage = () => {
     const navigate = useNavigate();
-    const [isVisible, setIsVisible] = useState(false);
+    const [showIntro, setShowIntro] = useState(true);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const { scrollYProgress } = useScroll({
+        target: scrollRef,
+        offset: ["start start", "end start"]
+    });
 
+    const videoScale = useTransform(scrollYProgress, [0, 0.3], [1.1, 1]); // Zoom out effect
+    const videoWidth = useTransform(scrollYProgress, [0, 0.3], ["100%", "90%"]); // Shrink width effect
+    const videoY = useTransform(scrollYProgress, [0, 0.3], [0, 50]); // Smaller parallax movement
 
     useEffect(() => {
-        setTimeout(() => setIsVisible(true), 100);
+        // Intro animation timer
+        const timer = setTimeout(() => {
+            setShowIntro(false);
+        }, 800); // 0.8 seconds for the intro text
+        return () => clearTimeout(timer);
     }, []);
 
     const handleContributorClick = () => {
@@ -19,7 +30,7 @@ const LandingPage = () => {
     };
 
     return (
-        <div style={{
+        <div ref={scrollRef} style={{
             minHeight: '100vh',
             color: '#111827',
             fontFamily: '"Satoshi", sans-serif',
@@ -39,19 +50,11 @@ const LandingPage = () => {
                 .delay-200 { animation-delay: 0.2s; }
                 .delay-300 { animation-delay: 0.3s; }
                 
-                /* Premium Card Styles */
-                .feature-card { 
-                    background: #ffffff; 
-                    border: 1px solid #f3f4f6; 
-                    border-top: 4px solid transparent;
-                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-                    position: relative;
-                }
-                .feature-card:hover { 
-                    transform: translateY(-4px); 
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
-                    border-color: #e5e7eb;
-                    border-top-color: #111827;
+                /* World.org Grid Responsive */
+                @media (max-width: 768px) {
+                    .world-grid {
+                        grid-template-columns: 1fr !important;
+                    }
                 }
 
                 /* Button Styles */
@@ -114,15 +117,26 @@ const LandingPage = () => {
                     color: #374151;
                 }
 
+                /* Grid Background */
+                .bg-grid {
+                    background-size: 60px 60px;
+                    background-image:
+                        linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
+                    position: absolute;
+                    inset: 0;
+                    z-index: -1;
+                }
+
                 /* Mobile Optimizations */
                 @media (max-width: 768px) {
-                    .hero-title {
-                        font-size: 40px !important;
-                        margin-bottom: 20px !important;
+                    .hero-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 40px !important;
                     }
-                    .hero-subtitle {
-                        font-size: 16px !important;
-                        margin-bottom: 32px !important;
+                    .hero-huge-text {
+                        font-size: 24vw !important; /* Huge on mobile too, but stacked */
+                        margin-bottom: 20px !important;
                     }
                     .hero-buttons {
                         flex-direction: column;
@@ -132,128 +146,319 @@ const LandingPage = () => {
                         width: 100%;
                         justify-content: center;
                     }
-                    .section-padding {
-                        padding: 80px 24px !important;
-                    }
-                    .who-grid {
-                        grid-template-columns: 1fr !important;
-                        gap: 40px !important;
-                    }
-                    .who-title {
-                        font-size: 36px !important;
-                    }
-                    .usecase-row {
-                        flex-direction: column;
-                        align-items: flex-start;
-                        gap: 8px;
-                    }
-                    .feature-grid {
-                         gap: 24px !important;
-                    }
                 }
             `}</style>
 
-            {/* Dynamic Waves Background */}
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
-                <Waves
-                    lineColor="rgba(0,0,0,0.06)"
-                    backgroundColor="#ffffff"
-                    waveSpeedX={0.01}
-                    waveSpeedY={0.005}
-                    waveAmpX={30}
-                    waveAmpY={15}
-                    friction={0.95}
-                    tension={0.01}
-                    maxCursorMove={100}
-                    xGap={10}
-                    yGap={30}
-                />
-            </div>
+            <div className="bg-grid"></div>
+
+            {/* Intro Overlay */}
+            <AnimatePresence>
+                {showIntro && (
+                    <motion.div
+                        key="intro-overlay"
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.8 }}
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: '#fff',
+                            zIndex: 100,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        <motion.h1
+                            layoutId="hero-text-main"
+                            style={{
+                                fontSize: '12vw',
+                                fontWeight: 900,
+                                color: '#000',
+                                letterSpacing: '-0.04em',
+                                margin: 0,
+                                lineHeight: 1
+                            }}
+                        >
+                            Myrad
+                        </motion.h1>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <div className="content-wrapper">
                 <Header />
 
-                {/* Hero Section */}
-                <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '160px 24px 100px', position: 'relative' }}>
-                    <div style={{ maxWidth: '1000px', textAlign: 'center', position: 'relative', zIndex: 1, width: '100%' }}>
-                        {isVisible && (
-                            <h1 className="animate-fadeInUp delay-100 hero-title" style={{
-                                fontSize: '60px',
-                                fontWeight: 600,
-                                lineHeight: 1.1,
-                                marginBottom: '28px',
-                                letterSpacing: '-0.02em',
-                                color: '#374151',
-                            }}>
-                                Human Data<br />
-                                Without Surveillance
-                            </h1>
-                        )}
-                        {isVisible && (
-                            <p className="animate-fadeInUp delay-200 hero-subtitle" style={{
-                                fontSize: '18px',
-                                color: '#4b5563',
-                                lineHeight: 1.6,
-                                maxWidth: '720px',
-                                margin: '0 auto 48px',
-                                fontWeight: 400
-                            }}>
-                                Cryptographically verified human data, without collecting personal information.                        </p>
-                        )}
-                        {isVisible && (
-                            <div className="animate-fadeInUp delay-300 hero-buttons" style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-                                <button
-                                    onClick={handleContributorClick}
-                                    className="btn-primary"
-                                    style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                {/* Hero Section - Flim Style */}
+                <section style={{ minHeight: '80vh', padding: '140px 24px 60px', position: 'relative' }}>
+                    <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
+
+                        <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '80px', alignItems: 'start' }}>
+                            {/* Left: Huge Brand Text */}
+                            <div className="animate-fadeInUp delay-100">
+                                <motion.h1
+                                    layoutId="hero-text-main"
+                                    className="hero-huge-text"
+                                    style={{
+                                        fontSize: '14vw',
+                                        lineHeight: 0.8,
+                                        fontWeight: 900,
+                                        letterSpacing: '-0.04em',
+                                        color: '#000000',
+                                        margin: 0,
+                                        textTransform: 'none'
+                                    }}
+                                    transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
                                 >
-                                    Become a contributor
-                                </button>
-                                <button
-                                    onClick={() => window.open('https://calendly.com/carghya10/30min', '_blank')}
-                                    className="btn-secondary"
-                                    style={{ padding: '16px 32px', borderRadius: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                >
-                                    Talk to us <ArrowRight size={16} />
-                                </button>
+                                    Myrad
+                                </motion.h1>
                             </div>
-                        )}
+
+                            {/* Right: Content */}
+                            {/* Only show content after intro is done or fading out to avoid layout shifts? 
+                                Actually, fading it in is cleaner. 
+                            */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: showIntro ? 0 : 1, y: showIntro ? 20 : 0 }}
+                                transition={{ delay: 0.2, duration: 0.8 }}
+                                style={{ paddingTop: '2vw' }}
+                            >
+                                <h2 style={{
+                                    fontSize: '40px',
+                                    fontWeight: 500,
+                                    lineHeight: 1.1,
+                                    marginBottom: '32px',
+                                    color: '#111827',
+                                    letterSpacing: '-0.03em',
+                                    maxWidth: '500px'
+                                }}>
+                                    Largest Source of<br />
+                                    <span style={{ color: '#000000', fontWeight: 700 }}>Verifiable Human Data.</span>
+                                </h2>
+
+                                <p style={{
+                                    fontSize: '20px',
+                                    color: '#4b5563',
+                                    lineHeight: 1.6,
+                                    marginBottom: '48px',
+                                    maxWidth: '480px'
+                                }}>
+                                    Cryptographically verified human data, without collecting personal information.
+                                </p>
+
+                                <div className="hero-buttons" style={{ display: 'flex', gap: '16px' }}>
+                                    <button
+                                        onClick={handleContributorClick}
+                                        className="btn-primary"
+                                        style={{
+                                            padding: '16px 32px',
+                                            borderRadius: '100px',
+                                            fontSize: '16px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            background: '#1f2937',
+                                            border: '1px solid #1f2937'
+                                        }}
+                                    >
+                                        Become a contributor
+                                    </button>
+                                    <button
+                                        onClick={() => window.open('https://calendly.com/carghya10/30min', '_blank')}
+                                        className="btn-secondary"
+                                        style={{ padding: '16px 32px', borderRadius: '100px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    >
+                                        Talk to us
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+
                     </div>
 
-                    {/* Minimal Branding at bottom */}
-                    <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, textAlign: 'center', opacity: 0.9 }}>
-                        <span style={{ fontSize: '12px', color: '#9ca3af', letterSpacing: '0.1em', fontWeight: 600 }}>BACKED BY HUMANS</span>
+                    {/* Hero Video Section - Bottom Layer */}
+                    <div style={{
+                        marginTop: '100px',
+                        position: 'relative',
+                        width: '100%',
+                        zIndex: 2,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        marginBottom: '100px' // Add space for scroll
+                    }}>
+                        <motion.div style={{
+                            borderRadius: '24px',
+                            overflow: 'hidden',
+                            boxShadow: '0 40px 80px -20px rgba(0,0,0,0.15)',
+                            border: '1px solid rgba(0,0,0,0.05)',
+                            background: '#000', // Fallback color
+                            maxWidth: '1400px',
+                            width: videoWidth, // Animate width
+                            scale: videoScale, // Animate scale
+                            y: videoY,         // Parallax effect
+                        }}>
+                            <video
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                style={{
+                                    width: '100%',
+                                    height: 'auto',
+                                    display: 'block',
+                                    borderRadius: '24px' // Ensure video itself is rounded
+                                }}
+                            >
+                                <source src="/myrad.mp4" type="video/mp4" />
+                                Your browser does not support the video tag.
+                            </video>
+                        </motion.div>
                     </div>
                 </section>
 
-                {/* Value Props */}
-                <section className="section-padding" style={{ padding: '120px 24px', background: '#fafafa', borderTop: '1px solid #f3f4f6' }}>
-                    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                        <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-                            {[
-                                {
-                                    icon: Shield,
-                                    title: "Verified at the Source",
-                                    desc: "Behavior is verified directly from user approved sources using cryptographic proofs, not scraping or estimation."
-                                },
-                                {
-                                    icon: Lock,
-                                    title: "No Personal Data",
-                                    desc: "Myrad never collects raw histories, identifiers, or private content. Only aggregated, non-identifying signals."
-                                },
-                                {
-                                    icon: Database,
-                                    title: "Built for Real Decisions",
-                                    desc: "Data is delivered as cohort level signals designed for AI training, evaluation, and analytics."
-                                }
-                            ].map((card, i) => (
-                                <div key={i} className="feature-card" style={{ padding: '48px 40px', borderRadius: '16px' }}>
+                {/* Value Props - World.org Style Minimalist */}
+                <section style={{ padding: '160px 24px', background: '#ffffff' }}>
+                    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
-                                    <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px', color: '#374151' }}>{card.title}</h3>
-                                    <p style={{ color: '#6b7280', lineHeight: 1.7, fontSize: '15px' }}>{card.desc}</p>
+                        {/* Section 1: Huge Typography Statement */}
+                        <div style={{ marginBottom: '160px' }}>
+                            <div className="world-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) 3fr', gap: '40px' }}>
+                                <div style={{
+                                    fontSize: '14px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    color: '#9ca3af',
+                                    fontWeight: 500,
+                                    paddingTop: '12px',
+                                    borderTop: '1px solid #e5e7eb'
+                                }}>
+                                    Our Mission
                                 </div>
-                            ))}
+                                <div>
+                                    <h2 style={{
+                                        fontSize: 'clamp(36px, 5vw, 72px)',
+                                        fontWeight: 500,
+                                        letterSpacing: '-0.04em',
+                                        color: '#111827',
+                                        lineHeight: 1.08,
+                                        margin: 0
+                                    }}>
+                                        Verifiable human data,<br />
+                                        privacy and trust<br />
+                                        for every human.
+                                    </h2>
+                                </div>
+                            </div>
                         </div>
+
+                        {/* Section 2: What it means */}
+                        <div style={{ marginBottom: '160px' }}>
+                            <div className="world-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) 3fr', gap: '40px' }}>
+                                <div style={{
+                                    fontSize: '14px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    color: '#9ca3af',
+                                    fontWeight: 500,
+                                    paddingTop: '12px',
+                                    borderTop: '1px solid #e5e7eb'
+                                }}>
+                                    What it means for you
+                                </div>
+                                <div>
+                                    <h2 style={{
+                                        fontSize: 'clamp(32px, 4vw, 56px)',
+                                        fontWeight: 500,
+                                        letterSpacing: '-0.03em',
+                                        color: '#374151',
+                                        lineHeight: 1.15,
+                                        margin: 0,
+                                        maxWidth: '800px'
+                                    }}>
+                                        A new standard for<br />
+                                        human data online.
+                                    </h2>
+                                    <p style={{
+                                        fontSize: '18px',
+                                        color: '#6b7280',
+                                        lineHeight: 1.7,
+                                        marginTop: '32px',
+                                        maxWidth: '600px'
+                                    }}>
+                                        Myrad verifies behavior directly from user-approved sources using cryptographic proofs - no scraping, no estimation, just truth.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 3: Clean Cards Grid */}
+                        <div className="world-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) 3fr', gap: '40px' }}>
+                            <div style={{
+                                fontSize: '14px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                color: '#9ca3af',
+                                fontWeight: 500,
+                                paddingTop: '12px',
+                                borderTop: '1px solid #e5e7eb'
+                            }}>
+                                Capabilities
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1px', background: '#e5e7eb' }}>
+                                {[
+                                    {
+                                        title: "Cryptographic Proofs",
+                                        desc: "Every data point is backed by a cryptographic proof generated locally on the user's device."
+                                    },
+                                    {
+                                        title: "Zero-Knowledge Privacy",
+                                        desc: "We validate specific behaviors without ever seeing or storing the raw underlying data."
+                                    },
+                                    {
+                                        title: "High-Signal Datasets",
+                                        desc: "Clean, verified signals ready for training advanced AI models and powering deep analytics."
+                                    },
+                                    {
+                                        title: "User-Owned Data",
+                                        desc: "Users maintain full control and ownership of their behavioral data at all times."
+                                    }
+                                ].map((card, i) => (
+                                    <div
+                                        key={i}
+                                        style={{
+                                            padding: '48px 40px',
+                                            background: '#fff',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'flex-end',
+                                            minHeight: '300px'
+                                        }}
+                                    >
+                                        <h3 style={{
+                                            fontSize: '28px',
+                                            fontWeight: 500,
+                                            marginBottom: '16px',
+                                            color: '#111827',
+                                            letterSpacing: '-0.02em',
+                                            lineHeight: 1.2
+                                        }}>
+                                            {card.title}
+                                        </h3>
+                                        <p style={{
+                                            color: '#6b7280',
+                                            lineHeight: 1.6,
+                                            fontSize: '16px',
+                                            margin: 0
+                                        }}>
+                                            {card.desc}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                     </div>
                 </section>
 
@@ -286,8 +491,8 @@ const LandingPage = () => {
                 </section>
 
                 <Footer />
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 
