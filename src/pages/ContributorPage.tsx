@@ -120,47 +120,112 @@ const ContributorPage = () => {
 
                 /* Mobile Optimizations */
                 @media (max-width: 900px) {
-                    .how-to-grid { grid-template-columns: 1fr !important; }
+                    .how-to-grid { 
+                        grid-template-columns: 1fr !important; 
+                        gap: 40px !important;
+                    }
                 }
                 @media (max-width: 768px) {
+                    /* Hero Section */
+                    .contributor-hero {
+                        min-height: auto !important;
+                        padding: 100px 16px 40px !important;
+                    }
                     .hero-grid {
                         grid-template-columns: 1fr !important;
-                        gap: 40px !important;
-                        text-align: center;
-                    }
-                    .hero-grid > div:first-child {
-                        text-align: center;
+                        gap: 10px !important;
+                        text-align: left;
                     }
                     .hero-grid h1 {
-                        font-size: 48px !important;
+                        font-size: 40px !important;
                     }
                     .hero-grid p {
-                        margin-left: auto;
-                        margin-right: auto;
-                    }
-                    .hero-grid button {
-                        justify-content: center;
-                        margin: 0 auto;
-                        width: 100%;
-                    }
-                    .hero-grid > div:nth-child(2) {
-                         /* Handle the visual part on mobile */
-                         transform: scale(0.8);
-                         height: 400px !important;
+                        font-size: 16px !important;
+                        max-width: 100% !important;
                     }
                     .hero-actions {
-                        justify-content: center !important;
+                        justify-content: flex-start !important;
                     }
-                    .hero-section {
-                        padding: 100px 16px 60px !important;
-                        min-height: auto !important;
+
+                    /* Glass Card Visual */
+                    .hero-visual {
+                        height: auto !important;
+                        min-height: 320px;
+                        margin-top: 10px;
                     }
+                    .hero-visual .decorative-circle {
+                        display: none !important;
+                    }
+                    .glass-card {
+                        width: 280px !important;
+                        padding: 24px !important;
+                        border-radius: 24px !important;
+                        box-shadow: 0 15px 30px -8px rgba(0, 0, 0, 0.15) !important;
+                    }
+                    .glass-card-inner {
+                        padding: 16px !important;
+                    }
+                    .glass-card-earnings {
+                        font-size: 22px !important;
+                    }
+                    .floating-badge {
+                        display: none !important;
+                    }
+
+                    /* Features & Video */
                     .how-to-grid {
                         grid-template-columns: 1fr !important;
                         gap: 40px !important;
                     }
                     .section-padding {
+                        padding: 60px 16px !important;
+                    }
+                    .features-heading {
+                        font-size: 26px !important;
+                    }
+                    
+                    /* CTA */
+                    .cta-section {
                         padding: 80px 16px !important;
+                    }
+                    .cta-heading {
+                        font-size: 30px !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .contributor-hero {
+                        padding: 90px 16px 30px !important;
+                    }
+                    .hero-grid h1 {
+                        font-size: 32px !important;
+                        line-height: 1.1 !important;
+                    }
+                    .hero-grid p {
+                        font-size: 15px !important;
+                        margin-bottom: 28px !important;
+                    }
+                    .hero-visual {
+                        min-height: 260px;
+                    }
+                    .glass-card {
+                        width: 240px !important;
+                        padding: 20px !important;
+                    }
+                    .glass-card-earnings {
+                        font-size: 20px !important;
+                    }
+                    .cta-heading {
+                        font-size: 24px !important;
+                    }
+                    .cta-section {
+                        padding: 60px 16px !important;
+                    }
+                    .features-heading {
+                        font-size: 22px !important;
+                        margin-bottom: 24px !important;
+                    }
+                    .feature-row {
+                        padding: 16px 0 !important;
                     }
                 }
             `}</style>
@@ -170,7 +235,7 @@ const ContributorPage = () => {
                 <Header />
 
                 {/* Hero Section */}
-                <section style={{ minHeight: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', position: 'relative' }}>
+                <section className="contributor-hero" style={{ minHeight: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', position: 'relative' }}>
                     <div className="hero-grid" style={{ maxWidth: '1200px', width: '100%', display: 'grid', gridTemplateColumns: 'minmax(300px, 1.2fr) minmax(300px, 0.8fr)', gap: '60px', alignItems: 'center' }}>
 
                         {/* Left: Text Content */}
@@ -197,15 +262,16 @@ const ContributorPage = () => {
                         </div>
 
                         {/* Right: Abstract Visual */}
-                        <div style={{ position: 'relative', height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="hero-visual" style={{ position: 'relative', height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {/* Decorative Circles - Made darker for contrast */}
-                            <div style={{ position: 'absolute', width: '450px', height: '450px', background: 'linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%)', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.6, top: '5%', right: '0%' }} />
-                            <div style={{ position: 'absolute', width: '300px', height: '300px', background: 'linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%)', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4, bottom: '-10%', left: '10%' }} />
+                            <div className="decorative-circle" style={{ position: 'absolute', width: '450px', height: '450px', background: 'linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%)', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.6, top: '5%', right: '0%' }} />
+                            <div className="decorative-circle" style={{ position: 'absolute', width: '300px', height: '300px', background: 'linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%)', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4, bottom: '-10%', left: '10%' }} />
 
                             {/* Glass Card */}
-                            <div style={{
+                            <div className="glass-card" style={{
                                 position: 'relative',
                                 width: '380px',
+                                maxWidth: '90vw',
                                 padding: '40px',
                                 background: 'linear-gradient(145deg, #ffffff 0%, #f9fafb 100%)',
                                 border: '1px solid #d1d5db',
@@ -223,13 +289,13 @@ const ContributorPage = () => {
                                 <div style={{ height: '8px', width: '60%', background: '#e5e7eb', borderRadius: '4px', marginBottom: '16px' }} />
                                 <div style={{ height: '8px', width: '40%', background: '#f3f4f6', borderRadius: '4px', marginBottom: '40px' }} />
 
-                                <div style={{ position: 'relative', padding: '24px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+                                <div className="glass-card-inner" style={{ position: 'relative', padding: '24px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                         {/* USDC Logo */}
                                         <img src="/usdc.png" alt="USDC" style={{ width: '24px', height: '24px' }} />
                                         <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>Total Earnings</div>
                                     </div>
-                                    <div style={{ fontSize: '28px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>1,240.50 USDC</div>
+                                    <div className="glass-card-earnings" style={{ fontSize: '28px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>1,240.50 USDC</div>
 
                                     {/* Trend Line Decoration */}
                                     <svg width="100%" height="40" viewBox="0 0 100 40" style={{ marginTop: '10px', opacity: 0.8 }}>
@@ -246,7 +312,7 @@ const ContributorPage = () => {
                             </div>
 
                             {/* Floating Badge */}
-                            <div className="animate-fadeInUp delay-300" style={{
+                            <div className="animate-fadeInUp delay-300 floating-badge" style={{
                                 position: 'absolute',
                                 bottom: '80px',
                                 left: '-20px',
@@ -281,7 +347,7 @@ const ContributorPage = () => {
                         }}>
                             {/* Left: Features Clean List */}
                             <div>
-                                <h2 style={{ fontSize: '32px', fontWeight: 600, marginBottom: '40px', letterSpacing: '-0.02em', color: '#111827' }}>
+                                <h2 className="features-heading" style={{ fontSize: '32px', fontWeight: 600, marginBottom: '40px', letterSpacing: '-0.02em', color: '#111827' }}>
                                     Privacy-first contribution <br /> in simple steps.
                                 </h2>
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -326,9 +392,9 @@ const ContributorPage = () => {
                 </section>
 
                 {/* CTA Section */}
-                <section style={{ padding: '140px 24px', textAlign: 'center', background: '#fafafa' }}>
+                <section className="cta-section" style={{ padding: '140px 24px', textAlign: 'center', background: '#fafafa' }}>
                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                        <h2 style={{ fontSize: '42px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>Ready to monetize?</h2>
+                        <h2 className="cta-heading" style={{ fontSize: '42px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>Ready to monetize?</h2>
                         <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '18px 48px', borderRadius: '100px', fontSize: '16px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
                             Start earning now
                         </button>
