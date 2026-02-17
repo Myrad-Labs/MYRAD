@@ -145,10 +145,10 @@ const LandingPage = () => {
                     }
                     .hero-grid {
                         grid-template-columns: 1fr !important;
-                        gap: 40px !important;
+                        gap: 24px !important;
                     }
                     .hero-huge-text {
-                        font-size: 24vw !important; /* Huge on mobile too, but stacked */
+                        font-size: 24vw !important;
                         margin-bottom: 20px !important;
                     }
                     .hero-buttons {
@@ -161,6 +161,73 @@ const LandingPage = () => {
                     }
                     .hero-divider {
                         display: none;
+                    }
+
+                    /* Hero section padding */
+                    .hero-section {
+                        padding: 100px 16px 40px !important;
+                        min-height: auto !important;
+                    }
+                    .hero-logo-container {
+                        padding-left: 0 !important;
+                    }
+
+                    /* Value props section */
+                    .value-props-section {
+                        padding: 80px 16px !important;
+                    }
+                    .value-props-section .section-gap {
+                        margin-bottom: 80px !important;
+                    }
+
+                    /* Capabilities cards grid - stack to 1 column */
+                    .capabilities-grid {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .capability-card {
+                        min-height: 200px !important;
+                        padding: 32px 24px !important;
+                    }
+                    .capability-card h3 {
+                        font-size: 22px !important;
+                    }
+
+                    /* "Who builds with Myrad" section */
+                    .who-section {
+                        padding: 80px 16px !important;
+                    }
+                    .who-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 40px !important;
+                    }
+                    .who-title {
+                        font-size: 32px !important;
+                    }
+
+                    /* Use case rows - stack vertically */
+                    .usecase-row {
+                        flex-direction: column;
+                        align-items: flex-start !important;
+                        gap: 8px !important;
+                        padding: 16px !important;
+                    }
+                    .usecase-title {
+                        min-width: unset !important;
+                        font-size: 16px !important;
+                    }
+                    .usecase-desc {
+                        font-size: 14px !important;
+                    }
+
+                    /* Video section */
+                    .hero-video-container {
+                        margin-bottom: 40px !important;
+                    }
+                    .hero-video-wrapper {
+                        border-radius: 16px !important;
+                    }
+                    .hero-video-wrapper video {
+                        border-radius: 16px !important;
                     }
                 }
 
@@ -203,7 +270,7 @@ const LandingPage = () => {
                 <Header />
 
                 {/* Hero Section - Flim Style */}
-                <section style={{ minHeight: '80vh', padding: '140px 24px 60px', position: 'relative', overflow: 'hidden' }}>
+                <section className="hero-section" style={{ minHeight: '80vh', padding: '140px 24px 60px', position: 'relative', overflow: 'hidden' }}>
 
                     {/* Grid Background - inside hero only */}
                     <div className="bg-grid"></div>
@@ -213,7 +280,7 @@ const LandingPage = () => {
 
                         <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr auto 1fr', gap: '60px', alignItems: 'start' }}>
                             {/* Left: Huge Brand Text */}
-                            <div className="animate-fadeInUp delay-100" style={{ paddingLeft: '40px' }}>
+                            <div className="animate-fadeInUp delay-100 hero-logo-container" style={{ paddingLeft: '40px' }}>
                                 <motion.div
                                     layoutId="hero-text-main"
                                     transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
@@ -315,7 +382,7 @@ const LandingPage = () => {
                     </div>
 
                     {/* Hero Video Section - Bottom Layer */}
-                    <div style={{
+                    <div className="hero-video-container" style={{
                         marginTop: '10px',
                         position: 'relative',
                         width: '100%',
@@ -324,7 +391,7 @@ const LandingPage = () => {
                         justifyContent: 'center',
                         marginBottom: '100px' // Add space for scroll
                     }}>
-                        <motion.div style={{
+                        <motion.div className="hero-video-wrapper" style={{
                             borderRadius: '24px',
                             overflow: 'hidden',
                             boxShadow: '0 40px 80px -20px rgba(0,0,0,0.15)',
@@ -355,11 +422,11 @@ const LandingPage = () => {
                 </section>
 
                 {/* Value Props - World.org Style Minimalist */}
-                <section style={{ padding: '160px 24px', background: '#ffffff' }}>
+                <section className="value-props-section" style={{ padding: '160px 24px', background: '#ffffff' }}>
                     <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
                         {/* Section 1: Huge Typography Statement */}
-                        <div style={{ marginBottom: '160px' }}>
+                        <div className="section-gap" style={{ marginBottom: '160px' }}>
                             <div className="world-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) 3fr', gap: '40px' }}>
                                 <div style={{
                                     fontSize: '14px',
@@ -390,7 +457,7 @@ const LandingPage = () => {
                         </div>
 
                         {/* Section 2: What it means */}
-                        <div style={{ marginBottom: '160px' }}>
+                        <div className="section-gap" style={{ marginBottom: '160px' }}>
                             <div className="world-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) 3fr', gap: '40px' }}>
                                 <div style={{
                                     fontSize: '14px',
@@ -443,7 +510,7 @@ const LandingPage = () => {
                                 Capabilities
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1px', background: '#e5e7eb' }}>
+                            <div className="capabilities-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1px', background: '#e5e7eb' }}>
                                 {[
                                     {
                                         title: "Cryptographic Proofs",
@@ -463,6 +530,7 @@ const LandingPage = () => {
                                     }
                                 ].map((card, i) => (
                                     <motion.div
+                                        className="capability-card"
                                         key={i}
                                         whileHover={{
                                             y: -8,
@@ -507,7 +575,7 @@ const LandingPage = () => {
                 </section>
 
                 {/* Who uses MYRAD */}
-                <section className="section-padding" style={{ padding: '140px 24px', background: '#fff' }}>
+                <section className="section-padding who-section" style={{ padding: '140px 24px', background: '#fff' }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                         <div className="who-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
                             <div>
