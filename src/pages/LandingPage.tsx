@@ -156,7 +156,11 @@ const LandingPage = () => {
                         width: 100%;
                         justify-content: center;
                     }
+                    .hero-divider {
+                        display: none;
+                    }
                 }
+
             `}</style>
 
             <div className="bg-grid"></div>
@@ -200,12 +204,38 @@ const LandingPage = () => {
                 <Header />
 
                 {/* Hero Section - Flim Style */}
-                <section style={{ minHeight: '80vh', padding: '140px 24px 60px', position: 'relative' }}>
-                    <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
+                <section style={{ minHeight: '80vh', padding: '140px 24px 60px', position: 'relative', overflow: 'hidden' }}>
 
-                        <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '80px', alignItems: 'start' }}>
+                    {/* Left Decorative Line */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '40px',
+                        width: '1px',
+                        height: '100%',
+                        background: 'linear-gradient(to bottom, transparent, #e5e7eb 10%, #e5e7eb 90%, transparent)',
+                        zIndex: 0,
+                        pointerEvents: 'none'
+                    }}></div>
+
+                    {/* Right Decorative Line */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: '40px',
+                        width: '1px',
+                        height: '100%',
+                        background: 'linear-gradient(to bottom, transparent, #e5e7eb 10%, #e5e7eb 90%, transparent)',
+                        zIndex: 0,
+                        pointerEvents: 'none'
+                    }}></div>
+
+
+                    <div style={{ maxWidth: '1600px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+
+                        <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr auto 1fr', gap: '60px', alignItems: 'start' }}>
                             {/* Left: Huge Brand Text */}
-                            <div className="animate-fadeInUp delay-100">
+                            <div className="animate-fadeInUp delay-100" style={{ paddingLeft: '40px' }}>
                                 <motion.h1
                                     layoutId="hero-text-main"
                                     className="hero-huge-text"
@@ -224,6 +254,14 @@ const LandingPage = () => {
                                 </motion.h1>
                             </div>
 
+                            {/* Divider Line */}
+                            <div className="hero-divider" style={{
+                                width: '1px',
+                                height: '280px',
+                                background: '#e5e7eb',
+                                marginTop: '20px'
+                            }}></div>
+
                             {/* Right: Content */}
                             {/* Only show content after intro is done or fading out to avoid layout shifts? 
                                 Actually, fading it in is cleaner. 
@@ -238,7 +276,7 @@ const LandingPage = () => {
                                     fontSize: '40px',
                                     fontWeight: 500,
                                     lineHeight: 1.1,
-                                    marginBottom: '32px',
+                                    marginBottom: '16px',
                                     color: '#111827',
                                     letterSpacing: '-0.03em',
                                     maxWidth: '500px'
@@ -251,7 +289,7 @@ const LandingPage = () => {
                                     fontSize: '20px',
                                     color: '#4b5563',
                                     lineHeight: 1.6,
-                                    marginBottom: '48px',
+                                    marginBottom: '28px',
                                     maxWidth: '480px'
                                 }}>
                                     Cryptographically verified human data, without collecting personal information
@@ -285,11 +323,23 @@ const LandingPage = () => {
                             </motion.div>
                         </div>
 
+                        {/* Decorative Horizontal Lines */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '20px',
+                            marginTop: '40px'
+                        }}>
+                            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
+                            <div style={{ fontSize: '12px', color: '#9ca3af', letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Scroll to explore</div>
+                            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
+                        </div>
+
                     </div>
 
                     {/* Hero Video Section - Bottom Layer */}
                     <div style={{
-                        marginTop: '100px',
+                        marginTop: '10px',
                         position: 'relative',
                         width: '100%',
                         zIndex: 2,
