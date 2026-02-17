@@ -25,6 +25,23 @@ const LandingPage = () => {
         return () => clearTimeout(timer);
     }, []);
 
+    // Search bar animation
+    const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
+    const searchPlaceholders = [
+        "How much is my data worth?",
+        "Earn from your Spotify listening history",
+        "Monetize your Uber Eats orders",
+        "Privacy-preserving data sharing",
+        "Get paid for your Netflix viewing habits"
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setSearchPlaceholderIndex((prev) => (prev + 1) % searchPlaceholders.length);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
     const handleContributorClick = () => {
         navigate('/contribute');
     };
@@ -295,6 +312,66 @@ const LandingPage = () => {
                                             display: 'block'
                                         }}
                                     />
+                                </motion.div>
+
+                                {/* Animated Search Bar */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.8, duration: 0.8 }}
+                                    style={{
+                                        marginTop: '-30px',
+                                        maxWidth: '360px',
+                                        marginLeft: '180px'
+                                    }}
+                                >
+                                    <div style={{
+                                        background: 'rgba(255, 255, 255, 0.8)',
+                                        backdropFilter: 'blur(12px)',
+                                        border: '1px solid rgba(0,0,0,0.08)',
+                                        borderRadius: '100px',
+                                        padding: '12px 20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02)',
+                                        cursor: 'default',
+                                        position: 'relative',
+                                        overflow: 'hidden'
+                                    }}>
+                                        {/* Search Icon */}
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+                                            <circle cx="11" cy="11" r="8"></circle>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                        </svg>
+
+                                        {/* Cycling Text */}
+                                        <div style={{ position: 'relative', height: '22px', flex: 1, overflow: 'hidden' }}>
+                                            <AnimatePresence mode="popLayout">
+                                                <motion.span
+                                                    key={searchPlaceholderIndex}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -20 }}
+                                                    transition={{
+                                                        y: { type: "spring", stiffness: 100, damping: 20 },
+                                                        opacity: { duration: 0.2 }
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        left: 0,
+                                                        top: 0,
+                                                        fontSize: '15px',
+                                                        color: '#4b5563',
+                                                        fontWeight: 500,
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    {searchPlaceholders[searchPlaceholderIndex]}
+                                                </motion.span>
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
                                 </motion.div>
                             </div>
 
