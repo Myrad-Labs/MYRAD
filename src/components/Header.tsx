@@ -98,35 +98,47 @@ const Header = () => {
                     {/* Center: nav */}
                     <nav
                         className="desktop-nav"
-                        style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '4px' }}
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', position: 'relative' }}
                     >
-                        {[
-                            { label: 'Home', href: '/' },
-                            { label: 'Contribute', href: '/contribute' },
-                            { label: 'Docs', href: 'https://docs.myradhq.xyz' },
-                            { label: 'About', href: '/about' },
-                        ].map((link, i) => {
-                            const isActive = location.pathname === link.href;
-
-                            if (link.href.startsWith('#') || link.href.startsWith('http')) {
-                                return (
-                                    <a key={i} href={link.href} className="nav-link" target={link.href.startsWith('http') ? "_blank" : "_self"} rel={link.href.startsWith('http') ? "noopener noreferrer" : ""} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        {link.label}
-                                    </a>
-                                );
-                            }
+                        {/* Active Page Link - Left Aligned */}
+                        {(() => {
+                            const allLinks = [
+                                { label: 'Home', href: '/' },
+                                { label: 'Contribute', href: '/contribute' },
+                                { label: 'About', href: '/about' },
+                            ];
+                            const activeLink = allLinks.find(l => l.href === location.pathname) || allLinks[0];
+                            const centerLinks = [
+                                ...allLinks.filter(l => l.href !== activeLink.href),
+                                { label: 'Docs', href: 'https://docs.myradhq.xyz' },
+                            ];
 
                             return (
-                                <Link key={i} to={link.href} className="nav-link" onClick={() => window.scrollTo(0, 0)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    {isActive && (
+                                <>
+                                    <Link to={activeLink.href} className="nav-link" onClick={() => window.scrollTo(0, 0)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <svg width="6" height="8" viewBox="0 0 6 8" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '2px' }}>
                                             <path d="M6 4L0 0V8L6 4Z" fill="#0fab5aff" />
                                         </svg>
-                                    )}
-                                    {link.label}
-                                </Link>
+                                        {activeLink.label}
+                                    </Link>
+
+                                    {/* Other Links - Centered */}
+                                    <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                        {centerLinks.map((link, i) =>
+                                            link.href.startsWith('http') ? (
+                                                <a key={i} href={link.href} className="nav-link" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {link.label}
+                                                </a>
+                                            ) : (
+                                                <Link key={i} to={link.href} className="nav-link" onClick={() => window.scrollTo(0, 0)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {link.label}
+                                                </Link>
+                                            )
+                                        )}
+                                    </div>
+                                </>
                             );
-                        })}
+                        })()}
                     </nav>
 
                     {/* Right: button + mobile toggle */}
@@ -135,9 +147,9 @@ const Header = () => {
                             onClick={handleGetStarted}
                             className="btn-primary contribute-btn"
                             style={{
-                                padding: '14px 28px',
+                                padding: '10px 22px',
                                 borderRadius: '50px',
-                                fontSize: '14px',
+                                fontSize: '13px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',

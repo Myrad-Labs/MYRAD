@@ -185,19 +185,16 @@ const LandingPage = () => {
                             justifyContent: 'center'
                         }}
                     >
-                        <motion.h1
+                        <motion.img
                             layoutId="hero-text-main"
+                            src="myrad-removebg-preview.png"
+                            alt="MYRAD"
                             style={{
-                                fontSize: '12vw',
-                                fontWeight: 900,
-                                color: '#000',
-                                letterSpacing: '-0.04em',
-                                margin: 0,
-                                lineHeight: 1
+                                width: '30vw',
+                                objectFit: 'contain',
+                                filter: 'brightness(0)'
                             }}
-                        >
-                            Myrad
-                        </motion.h1>
+                        />
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -465,15 +462,22 @@ const LandingPage = () => {
                                         desc: "Users maintain full control and ownership of their behavioral data at all times."
                                     }
                                 ].map((card, i) => (
-                                    <div
+                                    <motion.div
                                         key={i}
+                                        whileHover={{
+                                            y: -8,
+                                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                                            zIndex: 10
+                                        }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                         style={{
                                             padding: '48px 40px',
                                             background: '#fff',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             justifyContent: 'flex-end',
-                                            minHeight: '300px'
+                                            minHeight: '300px',
+                                            position: 'relative' // needed for z-index
                                         }}
                                     >
                                         <h3 style={{
@@ -494,7 +498,7 @@ const LandingPage = () => {
                                         }}>
                                             {card.desc}
                                         </p>
-                                    </div>
+                                    </motion.div>
                                 ))}
                             </div>
                         </div>
