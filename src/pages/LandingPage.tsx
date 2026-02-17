@@ -117,15 +117,18 @@ const LandingPage = () => {
                     color: #374151;
                 }
 
-                /* Grid Background */
                 .bg-grid {
                     background-size: 60px 60px;
                     background-image:
-                        linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
-                        linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
+                        linear-gradient(to right, rgba(0,0,0,0.25) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(0,0,0,0.25) 1px, transparent 1px);
                     position: absolute;
                     inset: 0;
-                    z-index: -1;
+                    z-index: 0;
+                    pointer-events: none;
+                    background-position: center top;
+                    mask-image: linear-gradient(to right, rgba(0,0,0,0.5) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.5) 100%);
+                    -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0.5) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.5) 100%);
                 }
 
                 /* Hero Content Shift */
@@ -163,7 +166,6 @@ const LandingPage = () => {
 
             `}</style>
 
-            <div className="bg-grid"></div>
 
             {/* Intro Overlay */}
             <AnimatePresence>
@@ -206,29 +208,8 @@ const LandingPage = () => {
                 {/* Hero Section - Flim Style */}
                 <section style={{ minHeight: '80vh', padding: '140px 24px 60px', position: 'relative', overflow: 'hidden' }}>
 
-                    {/* Left Decorative Line */}
-                    <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: '40px',
-                        width: '1px',
-                        height: '100%',
-                        background: 'linear-gradient(to bottom, transparent, #e5e7eb 10%, #e5e7eb 90%, transparent)',
-                        zIndex: 0,
-                        pointerEvents: 'none'
-                    }}></div>
-
-                    {/* Right Decorative Line */}
-                    <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        right: '40px',
-                        width: '1px',
-                        height: '100%',
-                        background: 'linear-gradient(to bottom, transparent, #e5e7eb 10%, #e5e7eb 90%, transparent)',
-                        zIndex: 0,
-                        pointerEvents: 'none'
-                    }}></div>
+                    {/* Grid Background - inside hero only */}
+                    <div className="bg-grid"></div>
 
 
                     <div style={{ maxWidth: '1600px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
