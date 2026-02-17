@@ -410,25 +410,34 @@ router.post("/referral", async (req, res) => {
       return res.status(400).json({ message: "Referral already used or user not found" });
     }
 
-    // 5️⃣ Increase referral_count in referrals table
-    await query(
-      `
-      UPDATE referrals
-      SET referral_count = referral_count + 1
-      WHERE wallet_address = $1
-      `,
-      [referrerWallet]
-    );
+// 5️⃣ Increase referral_count in referrals table
+await query(
+  `
+  UPDATE referrals
+  SET referral_count = referral_count + 1
+  WHERE wallet_address = $1
+  `,
+  [referrerWallet]
+);
 
-    console.log("Referral count incremented");
+console.log("Referral count incremented");
 
-    res.json({ message: "Referral saved successfully" });
+// 🔥 Give 20 referral bonus
+const userId = updateUser.rows[0].id;
+await jsonStorage.addPoints(userId, 20, 'referral_bonus');
 
+console.log("20 referral points awarded");
+
+res.json({ message: "Referral saved successfully + 20 points awarded" });
+
+
+   
   } catch (err) {
     console.error("Server error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 router.get("/referral-stats/:wallet", async (req, res) => {
   const wallet = req.params.wallet;
@@ -2029,12 +2038,71 @@ if (referralResult.rows.length === 0) {
 
 const { referral_code, referral_count, successful_ref } = referralResult.rows[0];
 
+// Try to find the corresponding user id for this wallet so we can return activity
+const userIdResult = await query(
+    'SELECT id FROM users WHERE LOWER(wallet_address) = LOWER($1)',
+    [wallet_address]
+);
+
+let referral_activity = [];
+let points_history = [];
+
+if (userIdResult.rows.length > 0) {
+    const referrerUserId = userIdResult.rows[0].id;
+
+    // Fetch recent referral-related point entries for this referrer
+    try {
+        const referralActivityResult = await query(
+            `SELECT id, user_id, points, reason, created_at
+             FROM points_history
+             WHERE user_id = $1 AND reason ILIKE 'referral%'
+             ORDER BY created_at DESC
+             LIMIT 20`,
+            [referrerUserId]
+        );
+
+        referral_activity = referralActivityResult.rows.map(r => ({
+            id: r.id,
+            user_id: r.user_id,
+            points: r.points,
+            reason: r.reason,
+            created_at: r.created_at
+        }));
+    } catch (e) {
+        console.warn('Could not fetch referral activity:', e.message);
+    }
+
+    // Fetch recent points history for this account
+    try {
+        const pointsHistoryResult = await query(
+            `SELECT id, points, reason, created_at
+             FROM points_history
+             WHERE user_id = $1
+             ORDER BY created_at DESC
+             LIMIT 50`,
+            [referrerUserId]
+        );
+
+        points_history = pointsHistoryResult.rows.map(r => ({
+            id: r.id,
+            points: r.points,
+            reason: r.reason,
+            created_at: r.created_at
+        }));
+    } catch (e) {
+        console.warn('Could not fetch points history:', e.message);
+    }
+}
+
 res.json({
     success: true,
     locked: false,
     referral_code,
     referral_count: referral_count ?? 0,
-    successful_ref: successful_ref ?? 0   // ✅ ADD THIS
+    successful_ref: successful_ref ?? 0,
+    currentPoints: totalPoints,
+    referral_activity,
+    points_history
 });
 
 

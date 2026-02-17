@@ -11,7 +11,8 @@ interface ReferralData {
   referral_code?: string;
   referral_count?: number;
   currentPoints?: number;
-  successful_ref?: number;   
+  successful_ref?: number;
+  referral_activity?: Array<{ id: string; user_id?: string; points: number; reason: string; created_at: string }>;
 
 }
 
@@ -274,42 +275,98 @@ const ReferralPage: React.FC = () => {
             )}
           </div>
         ) : referralData?.success ? (
-          <div className="stats-container animate-enter">
-            <div className="stat-card">
-              <div className="stat-label">Your Referral Code</div>
-              <div className="referral-code-wrapper">
-                <div className="referral-code">{referralData.referral_code}</div>
-                <button
-                  className={`copy-code-btn ${copiedItem === 'code' ? 'copied' : ''}`}
-                  onClick={() => copyToClipboard(referralData.referral_code || '', 'code')}
-                  title="Copy referral code"
-                >
-                  {copiedItem === 'code' ? (
-                    <>
-                      <Check size={16} />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={16} />
-                      Copy
-                    </>
-                  )}
-                </button>
+          <>
+            <div className="stats-container animate-enter">
+              <div className="stat-card">
+                <div className="stat-label">Your Referral Code</div>
+                <div className="referral-code-wrapper">
+                  <div className="referral-code">{referralData.referral_code}</div>
+                  <button
+                    className={`copy-code-btn ${copiedItem === 'code' ? 'copied' : ''}`}
+                    onClick={() => copyToClipboard(referralData.referral_code || '', 'code')}
+                    title="Copy referral code"
+                  >
+                    {copiedItem === 'code' ? (
+                      <>
+                        <Check size={16} />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={16} />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="stat-card">
-              <div className="stat-label">People Referred</div>
-              <div className="stat-value">{referralData.referral_count || 0}</div>
-            </div>
+              <div className="stat-card">
+                <div className="stat-label">People Referred</div>
+                <div className="stat-value">{referralData.referral_count || 0}</div>
+              </div>
 
-            <div className="stat-card">
-              <div className="stat-label">Successful Referrals</div>
-              <div className="stat-value">{referralData.successful_ref ?? 0}</div>
-            </div>
+              <div className="stat-card">
+                <div className="stat-label">Successful Referrals</div>
+                <div className="stat-value">{referralData.successful_ref ?? 0}</div>
+              </div>
 
-          </div>
+              {/* Referral activity and recent points history will be shown below */}
+
+            </div>
+            {/* Successful Ref Bonus section */}
+            {referralData?.referral_activity && referralData.referral_activity.length > 0 && (
+              <div style={{ marginTop: 20 }} className="animate-enter">
+                <h3 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 700, color: '#111827' }}>Recent Referral Activity</h3>
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {referralData.referral_activity.map(item => (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: 16,
+                        borderRadius: 12,
+                        background: '#f8fafc',
+                        border: '1px solid #e6eef6',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div>
+                        <div style={{ color: '#111827', fontWeight: 600, fontSize: 14 }}>
+                          {item.reason
+                            .replace(/_/g, ' ')
+                            .replace(/\b\w/g, char => char.toUpperCase())
+                          }
+                        </div>
+
+                        <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 500, marginTop: 4 }}>
+                          {new Date(item.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                          })},{" "}
+                          {new Date(item.created_at).toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 🔥 Points earned */}
+                      <div style={{
+                        fontWeight: 700,
+                        color: '#16a34a',
+                        fontSize: 14
+                      }}>
+                        +{item.points} pts
+                      </div>
+                    </div>
+                  ))}
+
+                </div>
+              </div>
+            )}
+          </>
         ) : null}
       </div>
     </div>

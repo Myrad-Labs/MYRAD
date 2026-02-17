@@ -565,7 +565,37 @@ if (verifyData.isNewUser) {
 
       setProfile(profileData.profile);
       setPoints(pointsData.points);
-      setContributions(contribData.contributions || []);
+
+      // Merge contributions and referral/points history into a single recent-activity list
+      try {
+        const pointsHistory = (pointsData?.points?.history) || [];
+
+        // Map referral/points entries into activity-like objects
+        const referralActivities = pointsHistory
+          .filter((ph: any) => ph && ph.reason === 'referral_bonus')
+          .map((ph: any) => ({
+            id: ph.id ? `points_${ph.id}` : `points_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+            createdAt: ph.createdAt || ph.created_at || new Date().toISOString(),
+            dataType: 'referral',
+            providerName: 'Referral',
+            pointsAwarded: ph.points,
+            reason: ph.reason
+          }));
+
+        const contributionActivities = (contribData.contributions || []).map((c: any) => ({ ...c, activityType: 'contribution' }));
+
+        // Merge and sort by createdAt desc
+        const merged = [...contributionActivities, ...referralActivities].sort((a: any, b: any) => {
+          const ta = new Date(a.createdAt).getTime();
+          const tb = new Date(b.createdAt).getTime();
+          return tb - ta;
+        });
+
+        setContributions(merged);
+      } catch (mergeErr) {
+        console.error('Error merging referral history into contributions:', mergeErr);
+        setContributions(contribData.contributions || []);
+      }
 
     } catch (error) {
       console.error('Error verifying user:', error);
@@ -2500,10 +2530,11 @@ if (verifyData.isNewUser) {
                       }
                     }
                     const provider = getProviderInfo(dataType || 'general');
+                    const title = contrib.providerName || provider.name || (dataType || 'Activity');
                     return (
                       <div key={contrib.id} className="activity-item">
                         <div className="activity-info">
-                          <span className="activity-title">{provider.name} Verification</span>
+                          <span className="activity-title">{title} Verification</span>
                           <span className="activity-time">{new Date(contrib.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
