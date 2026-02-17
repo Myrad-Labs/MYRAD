@@ -120,8 +120,8 @@ const LandingPage = () => {
                 .bg-grid {
                     background-size: 60px 60px;
                     background-image:
-                        linear-gradient(to right, rgba(0,0,0,0.25) 1px, transparent 1px),
-                        linear-gradient(to bottom, rgba(0,0,0,0.25) 1px, transparent 1px);
+                        linear-gradient(to right, rgba(0,0,0,0.3) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(0,0,0,0.3) 1px, transparent 1px);
                     position: absolute;
                     inset: 0;
                     z-index: 0;
@@ -221,7 +221,7 @@ const LandingPage = () => {
                                     layoutId="hero-text-main"
                                     className="hero-huge-text"
                                     style={{
-                                        fontSize: '14vw',
+                                        fontSize: '13vw',
                                         lineHeight: 0.8,
                                         fontWeight: 900,
                                         letterSpacing: '-0.04em',
