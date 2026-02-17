@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
+import SmoothScroll from './components/SmoothScroll';
 import ContributorPage from './pages/ContributorPage';
 import DashboardPage from './pages/DashboardPage';
 import LeaderboardPage from './pages/LeaderboardPage';
@@ -14,19 +15,21 @@ import NotFoundPage from './pages/NotFoundPage';
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/contribute" element={<ContributorPage />} />
-        <Route path="/leaderboard" element={<LeaderboardPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/how-to-use" element={<HowToUsePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/whitepaper" element={<WhitepaperPage />} />
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
-        <Route path="/terms" element={<TermsOfServicePage />} />
-        <Route path="/team" element={<TeamsPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      <SmoothScroll>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/contribute" element={<ContributorPage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/how-to-use" element={<HowToUsePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/whitepaper" element={<WhitepaperPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/team" element={<TeamsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </SmoothScroll>
     </Router>
   );
 }

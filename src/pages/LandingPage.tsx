@@ -244,7 +244,7 @@ const LandingPage = () => {
                                     maxWidth: '500px'
                                 }}>
                                     Largest Source of<br />
-                                    <span style={{ color: '#000000', fontWeight: 700 }}>Verifiable Human Data.</span>
+                                    <span style={{ color: '#000000', fontWeight: 700 }}>Verifiable Human Data</span>
                                 </h2>
 
                                 <p style={{
@@ -254,7 +254,7 @@ const LandingPage = () => {
                                     marginBottom: '48px',
                                     maxWidth: '480px'
                                 }}>
-                                    Cryptographically verified human data, without collecting personal information.
+                                    Cryptographically verified human data, without collecting personal information
                                 </p>
 
                                 <div className="hero-buttons" style={{ display: 'flex', gap: '16px' }}>
