@@ -243,13 +243,13 @@ const ContributorPage = () => {
                             {isVisible && (
                                 <h1 className="animate-fadeInUp delay-200" style={{ fontSize: '72px', fontWeight: 600, lineHeight: 1.05, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>
                                     Earn from your <br />
-                                    <span style={{ background: 'linear-gradient(135deg, #111827 0%, #4b5563 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>digital activities.</span>
+                                    <span style={{ background: 'linear-gradient(135deg, #111827 0%, #4b5563 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>day to day apps</span>
                                 </h1>
                             )}
                             {isVisible && (
                                 <p className="animate-fadeInUp delay-300" style={{ fontSize: '19px', color: '#4b5563', lineHeight: 1.6, maxWidth: '540px', marginBottom: '40px', fontWeight: 400 }}>
-                                    Your data creates value every day.<br></br>
-                                    Myrad lets you earn from it without giving up your privacy.
+                                    Your data creates value every day<br></br>
+                                    Myrad lets you earn from it without giving up your privacy
                                 </p>
                             )}
                             {isVisible && (
