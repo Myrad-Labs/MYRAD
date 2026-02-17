@@ -217,22 +217,21 @@ const LandingPage = () => {
                         <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr auto 1fr', gap: '60px', alignItems: 'start' }}>
                             {/* Left: Huge Brand Text */}
                             <div className="animate-fadeInUp delay-100" style={{ paddingLeft: '40px' }}>
-                                <motion.h1
+                                <motion.div
                                     layoutId="hero-text-main"
-                                    className="hero-huge-text"
-                                    style={{
-                                        fontSize: '13vw',
-                                        lineHeight: 0.8,
-                                        fontWeight: 900,
-                                        letterSpacing: '-0.04em',
-                                        color: '#000000',
-                                        margin: 0,
-                                        textTransform: 'none'
-                                    }}
                                     transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
                                 >
-                                    Myrad
-                                </motion.h1>
+                                    <img
+                                        src="/myrad-removebg-preview.png"
+                                        alt="Myrad Logo"
+                                        style={{
+                                            width: '100%',
+                                            maxWidth: '600px',
+                                            height: 'auto',
+                                            display: 'block'
+                                        }}
+                                    />
+                                </motion.div>
                             </div>
 
                             {/* Divider Line */}

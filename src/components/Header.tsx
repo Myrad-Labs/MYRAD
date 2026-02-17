@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 
 const Header = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login, authenticated, ready } = usePrivy();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -93,41 +94,39 @@ const Header = () => {
                     }}
                 >
                     {/* Left: logo */}
-                    <div style={{ flex: 1 }}>
-                        <Link to="/" style={{ textDecoration: 'none' }}>
-                            <img
-                                src="myrad-removebg-preview.png"
-                                alt="MYRAD logo"
-                                loading="lazy"
-                                style={{
-                                    height: '40px',
-                                    objectFit: 'contain'
-                                }}
-                            />
-                        </Link>
-                    </div>
 
                     {/* Center: nav */}
                     <nav
                         className="desktop-nav"
-                        style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
+                        style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '4px' }}
                     >
                         {[
                             { label: 'Home', href: '/' },
                             { label: 'Contribute', href: '/contribute' },
                             { label: 'Docs', href: 'https://docs.myradhq.xyz' },
                             { label: 'About', href: '/about' },
-                        ].map((link, i) =>
-                            link.href.startsWith('#') || link.href.startsWith('http') ? (
-                                <a key={i} href={link.href} className="nav-link" target={link.href.startsWith('http') ? "_blank" : "_self"} rel={link.href.startsWith('http') ? "noopener noreferrer" : ""}>
-                                    {link.label}
-                                </a>
-                            ) : (
-                                <Link key={i} to={link.href} className="nav-link" onClick={() => window.scrollTo(0, 0)}>
+                        ].map((link, i) => {
+                            const isActive = location.pathname === link.href;
+
+                            if (link.href.startsWith('#') || link.href.startsWith('http')) {
+                                return (
+                                    <a key={i} href={link.href} className="nav-link" target={link.href.startsWith('http') ? "_blank" : "_self"} rel={link.href.startsWith('http') ? "noopener noreferrer" : ""} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        {link.label}
+                                    </a>
+                                );
+                            }
+
+                            return (
+                                <Link key={i} to={link.href} className="nav-link" onClick={() => window.scrollTo(0, 0)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {isActive && (
+                                        <svg width="6" height="8" viewBox="0 0 6 8" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '2px' }}>
+                                            <path d="M6 4L0 0V8L6 4Z" fill="#0fab5aff" />
+                                        </svg>
+                                    )}
                                     {link.label}
                                 </Link>
-                            )
-                        )}
+                            );
+                        })}
                     </nav>
 
                     {/* Right: button + mobile toggle */}
