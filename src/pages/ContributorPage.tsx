@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
+import { motion } from 'framer-motion';
 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -83,8 +84,9 @@ const ContributorPage = () => {
 
             <style>{`
                 * { box-sizing: border-box; margin: 0; padding: 0; }
-                * { box-sizing: border-box; margin: 0; padding: 0; }
                 .content-wrapper { position: relative; z-index: 10; }
+                
+                /* Animations */
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes float { 0% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(0px); } 50% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(-20px); } 100% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(0px); } }
                 .animate-fadeInUp { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
@@ -93,23 +95,30 @@ const ContributorPage = () => {
                 .delay-200 { animation-delay: 0.2s; }
                 .delay-300 { animation-delay: 0.3s; }
                 .delay-400 { animation-delay: 0.4s; }
-                .btn-primary { background: #374151; border: 1px solid #374151; color: #fff; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-                .btn-primary:hover { background: #1f2937; transform: translateY(-1px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
-                .feature-card { 
-                    background: #ffffff; 
-                    border: 1px solid #f3f4f6; 
-                    border-top: 4px solid transparent;
-                    border-radius: 16px; 
-                    padding: 32px; 
-                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-                    position: relative;
+
+                .btn-primary { 
+                    background: #374151; 
+                    border: 1px solid #374151; 
+                    color: #fff; 
+                    font-weight: 500; 
+                    cursor: pointer; 
+                    transition: all 0.2s; 
                 }
-                .feature-card:hover { 
-                    transform: translateY(-4px); 
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
-                    border-color: #e5e7eb;
-                    border-top-color: #111827;
+                .btn-primary:hover { 
+                    background: #1f2937; 
+                    transform: translateY(-1px); 
+                    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); 
                 }
+
+                .feature-row {
+                    padding: 24px 0;
+                    border-bottom: 1px solid #f3f4f6;
+                }
+                .feature-row:last-child {
+                    border-bottom: none;
+                }
+
+                /* Mobile Optimizations */
                 @media (max-width: 900px) {
                     .how-to-grid { grid-template-columns: 1fr !important; }
                 }
@@ -142,11 +151,20 @@ const ContributorPage = () => {
                     .hero-actions {
                         justify-content: center !important;
                     }
+                    .hero-section {
+                        padding: 100px 16px 60px !important;
+                        min-height: auto !important;
+                    }
+                    .how-to-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 40px !important;
+                    }
+                    .section-padding {
+                        padding: 80px 16px !important;
+                    }
                 }
             `}</style>
 
-
-            {/* Removed Waves Background based on user feedback */}
 
             <div className="content-wrapper">
                 <Header />
@@ -251,45 +269,46 @@ const ContributorPage = () => {
                     </div>
                 </section>
 
-                {/* Features Section */}
-                <section style={{ padding: '100px 24px', borderTop: '1px solid #f3f4f6' }}>
-                    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-                            <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '12px', letterSpacing: '-0.02em', color: '#111827' }}>How to contribute</h2>
-                            <p style={{ color: '#6b7280', fontSize: '16px' }}>Privacy first data contribution in simple steps</p>
-                        </div>
+                {/* Video & Features Section */}
+                <section className="section-padding" style={{ padding: '100px 24px', background: '#ffffff', borderTop: '1px solid #f3f4f6' }}>
+                    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
-
-                        {/* Two-column layout: Features left, Video right */}
                         <div className="how-to-grid" style={{
                             display: 'grid',
-                            gridTemplateColumns: '0.8fr 1.5fr',
-                            gap: '48px',
+                            gridTemplateColumns: 'minmax(300px, 0.8fr) minmax(400px, 1.2fr)',
+                            gap: '80px',
                             alignItems: 'center'
                         }}>
-                            {/* Left: Feature Cards (vertical stack) */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                {features.map((feature, i) => (
-                                    <div key={i} className="feature-card" style={{
-                                        background: '#fff',
-                                        border: '1px solid #f3f4f6',
-                                        borderRadius: '16px',
-                                        padding: '24px',
-                                        transition: 'all 0.3s ease'
-                                    }}>
-                                        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#111827' }}>{feature.title}</h3>
-                                        <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{feature.description}</p>
-                                    </div>
-                                ))}
+                            {/* Left: Features Clean List */}
+                            <div>
+                                <h2 style={{ fontSize: '32px', fontWeight: 600, marginBottom: '40px', letterSpacing: '-0.02em', color: '#111827' }}>
+                                    Privacy-first contribution <br /> in simple steps.
+                                </h2>
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    {features.map((feature, i) => (
+                                        <div key={i} className="feature-row">
+                                            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#111827' }}>{feature.title}</h3>
+                                            <p style={{ color: '#6b7280', fontSize: '16px', lineHeight: 1.6, margin: 0 }}>{feature.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Right: Video */}
-                            <div ref={videoContainerRef} style={{
-                                borderRadius: '24px',
-                                overflow: 'hidden',
-                                boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.15)',
-                                border: '1px solid rgba(0,0,0,0.05)'
-                            }}>
+                            <motion.div
+                                ref={videoContainerRef}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.8 }}
+                                style={{
+                                    borderRadius: '24px',
+                                    overflow: 'hidden',
+                                    boxShadow: '0 40px 80px -20px rgba(0, 0, 0, 0.15)',
+                                    border: '1px solid rgba(0,0,0,0.05)',
+                                    background: '#000'
+                                }}
+                            >
                                 <video
                                     ref={videoRef}
                                     src="tutorial.mp4"
@@ -301,21 +320,21 @@ const ContributorPage = () => {
                                         display: 'block'
                                     }}
                                 />
-                            </div>
+                            </motion.div>
                         </div>
                     </div>
                 </section>
 
                 {/* CTA Section */}
-                <section style={{ padding: '100px 24px', borderTop: '1px solid #f3f4f6', textAlign: 'center' }}>
+                <section style={{ padding: '140px 24px', textAlign: 'center', background: '#fafafa' }}>
                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                        <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '16px', letterSpacing: '-0.02em', color: '#111827' }}>Ready to monetize your data?</h2>
-                        <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '32px' }}></p>
-                        <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 40px', borderRadius: '50px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-                            Start earning
+                        <h2 style={{ fontSize: '42px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>Ready to monetize?</h2>
+                        <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '18px 48px', borderRadius: '100px', fontSize: '16px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                            Start earning now
                         </button>
                     </div>
                 </section>
+
                 <Footer />
             </div>
         </div>
