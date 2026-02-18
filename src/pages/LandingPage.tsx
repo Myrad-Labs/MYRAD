@@ -430,8 +430,8 @@ const LandingPage = () => {
                                     marginBottom: '28px',
                                     maxWidth: '480px'
                                 }}>
-                                    Cryptographically verified human data, without collecting personal information
-                                </p>
+
+                                    Compliant alternative to scraping, tracking, and surveys, without collecting personal information                                </p>
 
                                 <div className="hero-buttons" style={{ display: 'flex', gap: '16px' }}>
                                     <button
@@ -542,9 +542,9 @@ const LandingPage = () => {
                                         lineHeight: 1.08,
                                         margin: 0
                                     }}>
-                                        Verifiable human data,<br />
-                                        privacy and trust<br />
-                                        for every human.
+                                        A new standard for<br />
+                                        trustworthy, verified<br />
+                                        human data
                                     </h2>
                                 </div>
                             </div>
@@ -574,8 +574,9 @@ const LandingPage = () => {
                                         margin: 0,
                                         maxWidth: '800px'
                                     }}>
-                                        A new standard for<br />
-                                        human data online.
+                                        Replacing scraped,<br />
+                                        biased data with<br />
+                                        verified insights
                                     </h2>
                                     <p style={{
                                         fontSize: '18px',
@@ -584,8 +585,8 @@ const LandingPage = () => {
                                         marginTop: '32px',
                                         maxWidth: '600px'
                                     }}>
-                                        Myrad verifies behavior directly from user-approved sources using cryptographic proofs - no scraping, no estimation, just truth.
-                                    </p>
+                                        Myrad verifies behavior from user-approved sources using cryptographic proofs,
+                                        helping you understand and target your audience better.                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -619,8 +620,8 @@ const LandingPage = () => {
                                         desc: "Clean, verified signals ready for training advanced AI models and powering deep analytics."
                                     },
                                     {
-                                        title: "User-Owned Data",
-                                        desc: "Users maintain full control and ownership of their behavioral data at all times."
+                                        title: "Understand Your Users",
+                                        desc: "Make faster, smarter decisions to grow sales and acquire customers"
                                     }
                                 ].map((card, i) => (
                                     <motion.div
@@ -674,7 +675,7 @@ const LandingPage = () => {
                         <div className="who-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
                             <div>
                                 <h2 className="who-title" style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#374151', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                                    Who builds <br /> with Myrad
+                                    Who Uses <br /> Myrad
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: 1.7, maxWidth: '440px' }}>
                                     Built for teams creating the next generation of AI, analytics, and consumer insights.                                </p>

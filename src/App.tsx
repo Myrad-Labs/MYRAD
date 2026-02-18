@@ -11,10 +11,12 @@ import TermsOfServicePage from './pages/TermsOfServicePage';
 import WhitepaperPage from './pages/Whitepaper';
 import TeamsPage from './pages/TeamsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <SmoothScroll>
         <Routes>
           <Route path="/" element={<LandingPage />} />

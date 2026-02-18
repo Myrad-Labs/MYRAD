@@ -394,7 +394,7 @@ const ContributorPage = () => {
                 {/* CTA Section */}
                 <section className="cta-section" style={{ padding: '140px 24px', textAlign: 'center', background: '#fafafa' }}>
                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                        <h2 className="cta-heading" style={{ fontSize: '42px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>Ready to monetize?</h2>
+                        <h2 className="cta-heading" style={{ fontSize: '42px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>Ready to monetize your data?</h2>
                         <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '18px 48px', borderRadius: '100px', fontSize: '16px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
                             Start earning now
                         </button>
