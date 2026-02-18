@@ -189,12 +189,28 @@ const LandingPage = () => {
                         padding-left: 0 !important;
                     }
 
+                    /* Hero content text */
+                    .hero-content-shift h2 {
+                        font-size: 28px !important;
+                        max-width: 100% !important;
+                    }
+                    .hero-content-shift p {
+                        font-size: 16px !important;
+                        max-width: 100% !important;
+                    }
+
                     /* Value props section */
                     .value-props-section {
                         padding: 80px 16px !important;
                     }
                     .value-props-section .section-gap {
                         margin-bottom: 80px !important;
+                    }
+
+                    /* World grid - stack sidebar label above content */
+                    .world-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 16px !important;
                     }
 
                     /* Capabilities cards grid - stack to 1 column */
@@ -209,7 +225,7 @@ const LandingPage = () => {
                         font-size: 22px !important;
                     }
 
-                    /* "Who builds with Myrad" section */
+                    /* "Who uses Myrad" section */
                     .who-section {
                         padding: 80px 16px !important;
                     }
@@ -255,6 +271,37 @@ const LandingPage = () => {
                     }
                 }
                 @media (max-width: 480px) {
+                    .hero-section {
+                        padding: 80px 12px 30px !important;
+                    }
+                    .hero-huge-text {
+                        font-size: 28vw !important;
+                    }
+                    .hero-content-shift h2 {
+                        font-size: 24px !important;
+                    }
+                    .hero-content-shift p {
+                        font-size: 15px !important;
+                    }
+                    .value-props-section {
+                        padding: 60px 12px !important;
+                    }
+                    .value-props-section .section-gap {
+                        margin-bottom: 60px !important;
+                    }
+                    .capability-card {
+                        min-height: 160px !important;
+                        padding: 24px 20px !important;
+                    }
+                    .capability-card h3 {
+                        font-size: 20px !important;
+                    }
+                    .who-section {
+                        padding: 60px 12px !important;
+                    }
+                    .who-title {
+                        font-size: 28px !important;
+                    }
                     .animated-search-bar {
                         max-width: 100% !important;
                     }
