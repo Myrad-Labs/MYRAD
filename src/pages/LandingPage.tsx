@@ -246,6 +246,22 @@ const LandingPage = () => {
                     .hero-video-wrapper video {
                         border-radius: 16px !important;
                     }
+
+                    /* Animated Search Bar */
+                    .animated-search-bar {
+                        margin-left: 0 !important;
+                        margin-top: 16px !important;
+                        max-width: 85% !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .animated-search-bar {
+                        max-width: 100% !important;
+                    }
+                    .animated-search-bar .search-inner {
+                        padding: 10px 16px !important;
+                        font-size: 13px !important;
+                    }
                 }
 
             `}</style>
@@ -316,6 +332,7 @@ const LandingPage = () => {
 
                                 {/* Animated Search Bar */}
                                 <motion.div
+                                    className="animated-search-bar"
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.8, duration: 0.8 }}
@@ -325,7 +342,7 @@ const LandingPage = () => {
                                         marginLeft: '180px'
                                     }}
                                 >
-                                    <div style={{
+                                    <div className="search-inner" style={{
                                         background: 'rgba(255, 255, 255, 0.8)',
                                         backdropFilter: 'blur(12px)',
                                         border: '1px solid rgba(0,0,0,0.08)',
