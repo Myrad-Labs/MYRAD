@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { Copy, Check, Lock } from 'lucide-react';
+import { Copy, Check, Lock, Award, Star } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
 import Sidebar from '../components/Sidebar';
 
@@ -67,6 +67,44 @@ const ReferralPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to copy:', err);
     }
+  };
+
+  // Tier definitions and helper
+  const TIERS = [
+    { key: 'iron', name: 'Iron', min: 0, max: 1 },
+    { key: 'bronze', name: 'Bronze', min: 2, max: 10 },
+    { key: 'silver', name: 'Silver', min: 11, max: 50 },
+    { key: 'gold', name: 'Gold', min: 51, max: 100 },
+    { key: 'platinum', name: 'Platinum', min: 101, max: 300 }
+  ];
+
+  const computeTier = (count: number) => {
+    let current = TIERS[0];
+    for (const t of TIERS) {
+      if (count >= t.min && count <= t.max) {
+        current = t;
+        break;
+      }
+      if (count > TIERS[TIERS.length - 1].max) {
+        current = TIERS[TIERS.length - 1];
+      }
+    }
+
+    const nextTier = TIERS.find(t => t.min > count) || null;
+
+    let remaining = 0;
+    let progressPercent = 0;
+
+    if (nextTier) {
+      remaining = Math.max(0, nextTier.min - count);
+      const range = Math.max(1, nextTier.min - current.min);
+      progressPercent = Math.min(100, ((count - current.min) / range) * 100);
+    } else {
+      remaining = 0;
+      progressPercent = 100;
+    }
+
+    return { current, nextTier, remaining, progressPercent };
   };
 
   return (
@@ -170,6 +208,63 @@ const ReferralPage: React.FC = () => {
             padding: 24px 28px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.3s ease;
+          }
+
+          /* Tier / achievements */
+          .tier-container {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid #e6eef6;
+            margin-top: 18px;
+          }
+
+          .tier-steps {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+          }
+
+          .tier-step {
+            flex: 1 1 0;
+            text-align: center;
+            font-weight: 700;
+            font-size: 12px;
+            color: #374151;
+          }
+
+          .tier-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px auto;
+            font-size: 13px;
+            color: #fff;
+          }
+
+          .tier-iron { background: #6b7280; }
+          .tier-bronze { background: #b45309; }
+          .tier-silver { background: #9ca3af; }
+          .tier-gold { background: #d97706; }
+          .tier-platinum { background: #0ea5a4; }
+
+          .progress-track {
+            height: 10px;
+            background: #eef2ff;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 12px;
+          }
+
+          .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #06b6d4);
+            transition: width 0.5s ease;
           }
 
           .stat-card:hover {
@@ -276,6 +371,53 @@ const ReferralPage: React.FC = () => {
           </div>
         ) : referralData?.success ? (
           <>
+            {/* Tier / Achievements UI - moved to top */}
+            <div className="animate-enter" style={{ marginBottom: 32 }}>
+              {(() => {
+                const successful = referralData?.successful_ref ?? 0;
+                const tier = computeTier(successful);
+
+                return (
+                  <div className="tier-container">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div className={`tier-badge tier-${tier.current.key}`}>
+                          {tier.current.key === 'platinum' ? <Award size={18} /> : <Star size={18} />}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{tier.current.name} Tier</div>
+                          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Successful referrals: {successful}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        {tier.nextTier ? (
+                          <div style={{ fontWeight: 800, color: '#111827' }}>{tier.remaining} more to {tier.nextTier.name}</div>
+                        ) : (
+                          <div style={{ fontWeight: 800, color: '#111827' }}>Max tier</div>
+                        )}
+                        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{tier.nextTier ? `Range: ${tier.current.min}-${tier.current.max}` : 'Top tier achieved'}</div>
+                      </div>
+                    </div>
+
+                    <div className="progress-track" aria-hidden>
+                      <div className="progress-fill" style={{ width: `${tier.progressPercent}%` }} />
+                    </div>
+
+                    <div className="tier-steps" aria-hidden>
+                      {TIERS.map(t => (
+                        <div key={t.key} className="tier-step">
+                          <div className={`tier-badge tier-${t.key}`} style={{ width: 36, height: 36 }}>
+                            {t.key === tier.current.key ? <Check size={14} /> : <Star size={12} />}
+                          </div>
+                          <div style={{ fontSize: 11, marginTop: 6 }}>{t.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
             <div className="stats-container animate-enter">
               <div className="stat-card">
                 <div className="stat-label">Your Referral Code</div>
@@ -311,7 +453,7 @@ const ReferralPage: React.FC = () => {
                 <div className="stat-value">{referralData.successful_ref ?? 0}</div>
               </div>
 
-              {/* Referral activity and recent points history will be shown below */}
+
 
             </div>
             {/* Successful Ref Bonus section */}
