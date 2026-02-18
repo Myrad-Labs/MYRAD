@@ -28,11 +28,11 @@ const LandingPage = () => {
     // Search bar animation
     const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
     const searchPlaceholders = [
-        "How much is my data worth?",
-        "Earn from your Spotify listening history",
-        "Monetize your Uber Eats orders",
-        "Privacy-preserving data sharing",
-        "Get paid for your Netflix viewing habits"
+        "Most ordered items in South Delhi?",
+        "When are most cabs taken in Whitefield?",
+        "People working out in Kolkata mornings?",
+        "EP1 drop off rate on thriller movies?",
+
     ];
 
     useEffect(() => {
@@ -585,8 +585,8 @@ const LandingPage = () => {
                                         marginTop: '32px',
                                         maxWidth: '600px'
                                     }}>
-                                        Myrad verifies behavior from user-approved sources using cryptographic proofs,
-                                        helping you understand and target your audience better.                                    </p>
+                                        Myrad verifies human behavior from user-approved sources using cryptographic proofs,
+                                        helping you understand and target your<br></br> audience better.                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -674,11 +674,11 @@ const LandingPage = () => {
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                         <div className="who-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }}>
                             <div>
-                                <h2 className="who-title" style={{ fontSize: '48px', fontWeight: 600, marginBottom: '24px', color: '#374151', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                                    Who Uses <br /> Myrad
+                                <h2 className="who-title" style={{ fontSize: '48px', fontWeight: 600, marginBottom: '12px', color: '#374151', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                                    Who uses Myrad
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#6b7280', lineHeight: 1.7, maxWidth: '440px' }}>
-                                    Built for teams creating the next generation of AI, analytics, and consumer insights.                                </p>
+                                    Built for teams creating the next generation of<br></br> AI and B2C businesses                                </p>
                             </div>
                             <div style={{ display: 'grid', gap: '8px' }}>
                                 {[
