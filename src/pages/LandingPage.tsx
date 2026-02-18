@@ -360,7 +360,7 @@ const LandingPage = () => {
                                                     style={{
                                                         position: 'absolute',
                                                         left: 0,
-                                                        top: 0,
+                                                        top: -1,
                                                         fontSize: '15px',
                                                         color: '#4b5563',
                                                         fontWeight: 500,
