@@ -29,8 +29,7 @@ const LandingPage = () => {
     const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
     const searchPlaceholders = [
         "Most ordered items in South Delhi?",
-        "When are most cabs taken in Whitefield?",
-        "People working out in Kolkata mornings?",
+        "When are most cabs taken in Tokyo?",
         "EP1 drop off rate on thriller movies?",
 
     ];
