@@ -8,9 +8,7 @@
 }
 
 /* Smooth scrolling for premium feel */
-html {
-  scroll-behavior: smooth;
-}
+/* Smooth scrolling for premium feel - handled by Lenis */
 
 body {
   font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

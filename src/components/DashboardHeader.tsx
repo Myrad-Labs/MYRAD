@@ -91,6 +91,41 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
           z-index: 50;
           font-family: 'Satoshi', sans-serif;
         }
+        
+        @media (max-width: 768px) {
+          .dashboard-header {
+            margin-left: 0 !important;
+            padding: 12px 16px !important;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          
+          .header-right {
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          
+          .wallet-badge {
+            font-size: 11px !important;
+            padding: 6px 10px !important;
+          }
+          
+          .btn-logout, .btn-export, .btn-opt-out {
+            font-size: 11px !important;
+            padding: 6px 12px !important;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .dashboard-header {
+            padding: 10px 12px !important;
+          }
+          
+          .header-right {
+            width: 100%;
+            justify-content: space-between;
+          }
+        }
 
         .dash-logo { 
           height: 32px; 

@@ -13,7 +13,22 @@ const AboutPage = () => {
         }}>
             <Header />
 
-            <main style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px 48px', textAlign: 'left' }}>
+            <style>{`
+                @media (max-width: 768px) {
+                    .about-main {
+                        padding: 100px 20px 48px !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .about-main {
+                        padding: 90px 16px 40px !important;
+                    }
+                    .about-main h1 {
+                        font-size: 24px !important;
+                    }
+                }
+            `}</style>
+            <main className="about-main" style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px 48px', textAlign: 'left' }}>
                 <h1 style={{ fontSize: '28px', fontWeight: 600, color: '#111', marginBottom: '24px' }}>
                     About Myrad
                 </h1>

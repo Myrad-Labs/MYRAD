@@ -14,9 +14,13 @@ const Footer = () => {
         >
             <style>{`
                 @media (max-width: 900px) {
+                    footer {
+                        padding: 60px 24px 32px !important;
+                    }
                     .footer-grid {
                         grid-template-columns: 1fr !important;
                         gap: 40px !important;
+                        margin-bottom: 60px !important;
                     }
                     .footer-brand {
                         align-items: center !important;
@@ -31,6 +35,16 @@ const Footer = () => {
                     .footer-links a {
                          display: block;
                          padding: 4px 0;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    footer {
+                        padding: 40px 16px 24px !important;
+                    }
+                    .footer-grid {
+                        gap: 32px !important;
+                        margin-bottom: 40px !important;
                     }
                 }
             `}</style>

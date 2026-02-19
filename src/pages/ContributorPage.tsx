@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
+import { motion } from 'framer-motion';
 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -83,8 +84,9 @@ const ContributorPage = () => {
 
             <style>{`
                 * { box-sizing: border-box; margin: 0; padding: 0; }
-                * { box-sizing: border-box; margin: 0; padding: 0; }
                 .content-wrapper { position: relative; z-index: 10; }
+                
+                /* Animations */
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes float { 0% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(0px); } 50% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(-20px); } 100% { transform: perspective(1000px) rotateY(-5deg) rotateX(5deg) translateY(0px); } }
                 .animate-fadeInUp { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
@@ -93,66 +95,160 @@ const ContributorPage = () => {
                 .delay-200 { animation-delay: 0.2s; }
                 .delay-300 { animation-delay: 0.3s; }
                 .delay-400 { animation-delay: 0.4s; }
-                .btn-primary { background: #374151; border: 1px solid #374151; color: #fff; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-                .btn-primary:hover { background: #1f2937; transform: translateY(-1px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
-                .feature-card { 
-                    background: #ffffff; 
-                    border: 1px solid #f3f4f6; 
-                    border-top: 4px solid transparent;
-                    border-radius: 16px; 
-                    padding: 32px; 
-                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-                    position: relative;
+
+                .btn-primary { 
+                    background: #374151; 
+                    border: 1px solid #374151; 
+                    color: #fff; 
+                    font-weight: 500; 
+                    cursor: pointer; 
+                    transition: all 0.2s; 
                 }
-                .feature-card:hover { 
-                    transform: translateY(-4px); 
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
+                .btn-primary:hover { 
+                    background: #1f2937; 
+                    transform: translateY(-1px); 
+                    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); 
+                }
+
+                .feature-row {
+                    padding: 24px;
+                    border: 1px solid #f3f4f6;
+                    border-radius: 12px;
+                    background: #ffffff;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    cursor: pointer;
+                }
+                .feature-row:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
                     border-color: #e5e7eb;
-                    border-top-color: #111827;
+                    background: #fafafa;
                 }
+                .feature-row:last-child {
+                    border-bottom: 1px solid #f3f4f6;
+                }
+
+                /* Mobile Optimizations */
                 @media (max-width: 900px) {
-                    .how-to-grid { grid-template-columns: 1fr !important; }
+                    .how-to-grid { 
+                        grid-template-columns: 1fr !important; 
+                        gap: 40px !important;
+                    }
+                    .how-to-grid h2 {
+                        font-size: 28px !important;
+                    }
                 }
                 @media (max-width: 768px) {
+                    /* Hero Section */
+                    .contributor-hero {
+                        min-height: auto !important;
+                        padding: 100px 16px 40px !important;
+                    }
                     .hero-grid {
                         grid-template-columns: 1fr !important;
-                        gap: 40px !important;
-                        text-align: center;
-                    }
-                    .hero-grid > div:first-child {
-                        text-align: center;
+                        gap: 10px !important;
+                        text-align: left;
                     }
                     .hero-grid h1 {
-                        font-size: 48px !important;
+                        font-size: 40px !important;
                     }
                     .hero-grid p {
-                        margin-left: auto;
-                        margin-right: auto;
-                    }
-                    .hero-grid button {
-                        justify-content: center;
-                        margin: 0 auto;
-                        width: 100%;
-                    }
-                    .hero-grid > div:nth-child(2) {
-                         /* Handle the visual part on mobile */
-                         transform: scale(0.8);
-                         height: 400px !important;
+                        font-size: 16px !important;
+                        max-width: 100% !important;
                     }
                     .hero-actions {
-                        justify-content: center !important;
+                        justify-content: flex-start !important;
+                    }
+
+                    /* Glass Card Visual */
+                    .hero-visual {
+                        height: auto !important;
+                        min-height: 320px;
+                        margin-top: 10px;
+                    }
+                    .hero-visual .decorative-circle {
+                        display: none !important;
+                    }
+                    .glass-card {
+                        width: 280px !important;
+                        padding: 24px !important;
+                        border-radius: 24px !important;
+                        box-shadow: 0 15px 30px -8px rgba(0, 0, 0, 0.15) !important;
+                    }
+                    .glass-card-inner {
+                        padding: 16px !important;
+                    }
+                    .glass-card-earnings {
+                        font-size: 22px !important;
+                    }
+                    .floating-badge {
+                        display: none !important;
+                    }
+
+                    /* Features & Video */
+                    .how-to-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 40px !important;
+                    }
+                    .section-padding {
+                        padding: 60px 16px !important;
+                    }
+                    .features-heading {
+                        font-size: 26px !important;
+                    }
+                    
+                    /* CTA */
+                    .cta-section {
+                        padding: 80px 16px !important;
+                    }
+                    .cta-heading {
+                        font-size: 30px !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .contributor-hero {
+                        padding: 90px 16px 30px !important;
+                    }
+                    .hero-grid h1 {
+                        font-size: 32px !important;
+                        line-height: 1.1 !important;
+                    }
+                    .hero-grid p {
+                        font-size: 15px !important;
+                        margin-bottom: 28px !important;
+                    }
+                    .hero-visual {
+                        min-height: 260px;
+                    }
+                    .glass-card {
+                        width: 240px !important;
+                        padding: 20px !important;
+                    }
+                    .glass-card-earnings {
+                        font-size: 20px !important;
+                    }
+                    .cta-heading {
+                        font-size: 24px !important;
+                    }
+                    .cta-section {
+                        padding: 60px 16px !important;
+                    }
+                    .features-heading {
+                        font-size: 22px !important;
+                        margin-bottom: 24px !important;
+                    }
+                    .feature-row {
+                        padding: 16px 0 !important;
                     }
                 }
             `}</style>
 
 
-            {/* Removed Waves Background based on user feedback */}
-
             <div className="content-wrapper">
                 <Header />
 
                 {/* Hero Section */}
-                <section style={{ minHeight: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', position: 'relative' }}>
+                <section className="contributor-hero" style={{ minHeight: '90vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', position: 'relative' }}>
                     <div className="hero-grid" style={{ maxWidth: '1200px', width: '100%', display: 'grid', gridTemplateColumns: 'minmax(300px, 1.2fr) minmax(300px, 0.8fr)', gap: '60px', alignItems: 'center' }}>
 
                         {/* Left: Text Content */}
@@ -160,18 +256,18 @@ const ContributorPage = () => {
                             {isVisible && (
                                 <h1 className="animate-fadeInUp delay-200" style={{ fontSize: '72px', fontWeight: 600, lineHeight: 1.05, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>
                                     Earn from your <br />
-                                    <span style={{ background: 'linear-gradient(135deg, #111827 0%, #4b5563 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>digital activities.</span>
+                                    <span style={{ background: 'linear-gradient(135deg, #111827 0%, #4b5563 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>day to day apps</span>
                                 </h1>
                             )}
                             {isVisible && (
                                 <p className="animate-fadeInUp delay-300" style={{ fontSize: '19px', color: '#4b5563', lineHeight: 1.6, maxWidth: '540px', marginBottom: '40px', fontWeight: 400 }}>
-                                    Your data creates value every day.<br></br>
-                                    Myrad lets you earn from it without giving up your privacy.
+                                    Your data creates value every day<br></br>
+                                    Myrad lets you earn from it without giving up your privacy
                                 </p>
                             )}
                             {isVisible && (
                                 <div className="animate-fadeInUp delay-400 hero-actions" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                                    <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 36px', borderRadius: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 36px', borderRadius: '50px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         Start earning
                                     </button>
                                 </div>
@@ -179,15 +275,16 @@ const ContributorPage = () => {
                         </div>
 
                         {/* Right: Abstract Visual */}
-                        <div style={{ position: 'relative', height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="hero-visual" style={{ position: 'relative', height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {/* Decorative Circles - Made darker for contrast */}
-                            <div style={{ position: 'absolute', width: '450px', height: '450px', background: 'linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%)', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.6, top: '5%', right: '0%' }} />
-                            <div style={{ position: 'absolute', width: '300px', height: '300px', background: 'linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%)', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4, bottom: '-10%', left: '10%' }} />
+                            <div className="decorative-circle" style={{ position: 'absolute', width: '450px', height: '450px', background: 'linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%)', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.6, top: '5%', right: '0%' }} />
+                            <div className="decorative-circle" style={{ position: 'absolute', width: '300px', height: '300px', background: 'linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%)', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4, bottom: '-10%', left: '10%' }} />
 
                             {/* Glass Card */}
-                            <div style={{
+                            <div className="glass-card" style={{
                                 position: 'relative',
                                 width: '380px',
+                                maxWidth: '90vw',
                                 padding: '40px',
                                 background: 'linear-gradient(145deg, #ffffff 0%, #f9fafb 100%)',
                                 border: '1px solid #d1d5db',
@@ -205,13 +302,13 @@ const ContributorPage = () => {
                                 <div style={{ height: '8px', width: '60%', background: '#e5e7eb', borderRadius: '4px', marginBottom: '16px' }} />
                                 <div style={{ height: '8px', width: '40%', background: '#f3f4f6', borderRadius: '4px', marginBottom: '40px' }} />
 
-                                <div style={{ position: 'relative', padding: '24px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+                                <div className="glass-card-inner" style={{ position: 'relative', padding: '24px', background: '#fff', borderRadius: '20px', border: '1px solid #f3f4f6', overflow: 'hidden' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                         {/* USDC Logo */}
                                         <img src="/usdc.png" alt="USDC" style={{ width: '24px', height: '24px' }} />
                                         <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>Total Earnings</div>
                                     </div>
-                                    <div style={{ fontSize: '28px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>1,240.50 USDC</div>
+                                    <div className="glass-card-earnings" style={{ fontSize: '28px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>1,240.50 USDC</div>
 
                                     {/* Trend Line Decoration */}
                                     <svg width="100%" height="40" viewBox="0 0 100 40" style={{ marginTop: '10px', opacity: 0.8 }}>
@@ -228,7 +325,7 @@ const ContributorPage = () => {
                             </div>
 
                             {/* Floating Badge */}
-                            <div className="animate-fadeInUp delay-300" style={{
+                            <div className="animate-fadeInUp delay-300 floating-badge" style={{
                                 position: 'absolute',
                                 bottom: '80px',
                                 left: '-20px',
@@ -251,45 +348,53 @@ const ContributorPage = () => {
                     </div>
                 </section>
 
-                {/* Features Section */}
-                <section style={{ padding: '100px 24px', borderTop: '1px solid #f3f4f6' }}>
-                    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-                            <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '12px', letterSpacing: '-0.02em', color: '#111827' }}>How to contribute</h2>
-                            <p style={{ color: '#6b7280', fontSize: '16px' }}>Privacy first data contribution in simple steps</p>
-                        </div>
+                {/* Video & Features Section */}
+                <section className="section-padding" style={{ padding: '100px 24px', background: '#ffffff', borderTop: '1px solid #f3f4f6' }}>
+                    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                        {/* Centered Heading */}
+                        <h2 style={{ 
+                            fontSize: '42px', 
+                            fontWeight: 600, 
+                            marginBottom: '80px', 
+                            letterSpacing: '-0.02em', 
+                            color: '#111827',
+                            textAlign: 'center'
+                        }}>
+                            How to contribute
+                        </h2>
 
-
-                        {/* Two-column layout: Features left, Video right */}
                         <div className="how-to-grid" style={{
                             display: 'grid',
-                            gridTemplateColumns: '0.8fr 1.5fr',
-                            gap: '48px',
-                            alignItems: 'center'
+                            gridTemplateColumns: 'minmax(300px, 0.8fr) minmax(400px, 1.2fr)',
+                            gap: '80px',
+                            alignItems: 'start'
                         }}>
-                            {/* Left: Feature Cards (vertical stack) */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            {/* Left: Features Clean List */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 {features.map((feature, i) => (
-                                    <div key={i} className="feature-card" style={{
-                                        background: '#fff',
-                                        border: '1px solid #f3f4f6',
-                                        borderRadius: '16px',
-                                        padding: '24px',
-                                        transition: 'all 0.3s ease'
-                                    }}>
+                                    <div key={i} className="feature-row">
                                         <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#111827' }}>{feature.title}</h3>
-                                        <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{feature.description}</p>
+                                        <p style={{ color: '#6b7280', fontSize: '16px', lineHeight: 1.6, margin: 0 }}>{feature.description}</p>
                                     </div>
                                 ))}
                             </div>
 
                             {/* Right: Video */}
-                            <div ref={videoContainerRef} style={{
-                                borderRadius: '24px',
-                                overflow: 'hidden',
-                                boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.15)',
-                                border: '1px solid rgba(0,0,0,0.05)'
-                            }}>
+                            <motion.div
+                                ref={videoContainerRef}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.8 }}
+                                style={{
+                                    borderRadius: '24px',
+                                    overflow: 'hidden',
+                                    boxShadow: '0 40px 80px -20px rgba(0, 0, 0, 0.15)',
+                                    border: '1px solid rgba(0,0,0,0.05)',
+                                    background: '#000',
+                                    marginTop: '0'
+                                }}
+                            >
                                 <video
                                     ref={videoRef}
                                     src="tutorial.mp4"
@@ -301,21 +406,21 @@ const ContributorPage = () => {
                                         display: 'block'
                                     }}
                                 />
-                            </div>
+                            </motion.div>
                         </div>
                     </div>
                 </section>
 
                 {/* CTA Section */}
-                <section style={{ padding: '100px 24px', borderTop: '1px solid #f3f4f6', textAlign: 'center' }}>
+                <section className="cta-section" style={{ padding: '140px 24px', textAlign: 'center', background: '#fafafa' }}>
                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                        <h2 style={{ fontSize: '36px', fontWeight: 600, marginBottom: '16px', letterSpacing: '-0.02em', color: '#111827' }}>Ready to monetize your data?</h2>
-                        <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '32px' }}></p>
-                        <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '16px 40px', borderRadius: '12px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-                            Start earning
+                        <h2 className="cta-heading" style={{ fontSize: '42px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.03em', color: '#111827' }}>Ready to monetize your data?</h2>
+                        <button onClick={handleGetStarted} className="btn-primary" style={{ padding: '18px 48px', borderRadius: '100px', fontSize: '16px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                            Start earning now
                         </button>
                     </div>
                 </section>
+
                 <Footer />
             </div>
         </div>

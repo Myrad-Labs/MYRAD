@@ -2956,10 +2956,32 @@ const styles = `
           padding-left: 0 !important;
           padding-bottom: 80px;
       }
+      .dashboard-main {
+          padding: 20px 16px !important;
+      }
       .welcome-text h1 { font-size: 28px; }
       .stats-grid { grid-template-columns: 1fr; }
     .providers-grid { grid-template-columns: repeat(2, 1fr); }
     .welcome-section { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .stat-card {
+        padding: 20px !important;
+    }
+    .stat-value {
+        font-size: 28px !important;
+    }
+    .provider-card {
+        padding: 20px !important;
+    }
+    .toast {
+        top: 16px !important;
+        right: 16px !important;
+        left: 16px !important;
+        max-width: none !important;
+    }
+    .verification-progress-container {
+        padding: 32px 24px !important;
+        width: 95% !important;
+    }
     .onboarding-content {
       grid-template-columns: 1fr;
       gap: 20px;
@@ -2990,6 +3012,32 @@ const styles = `
   
   @media (max-width: 480px) {
     .providers-grid { grid-template-columns: 1fr; }
+    .dashboard-main {
+        padding: 16px 12px !important;
+    }
+    .welcome-text h1 { font-size: 24px !important; }
+    .welcome-text p { font-size: 14px !important; }
+    .stat-card {
+        padding: 16px !important;
+    }
+    .stat-value {
+        font-size: 24px !important;
+    }
+    .stat-label {
+        font-size: 12px !important;
+    }
+    .provider-card {
+        padding: 16px !important;
+    }
+    .section-header h2 {
+        font-size: 20px !important;
+    }
+    .section-header p {
+        font-size: 13px !important;
+    }
+    .verification-progress-container {
+        padding: 24px 20px !important;
+    }
   }
 
   /* Keep Toast Styles as is, they are fine */
