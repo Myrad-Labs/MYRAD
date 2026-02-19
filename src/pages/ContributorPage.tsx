@@ -111,11 +111,21 @@ const ContributorPage = () => {
                 }
 
                 .feature-row {
-                    padding: 24px 0;
-                    border-bottom: 1px solid #f3f4f6;
+                    padding: 24px;
+                    border: 1px solid #f3f4f6;
+                    border-radius: 12px;
+                    background: #ffffff;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    cursor: pointer;
+                }
+                .feature-row:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+                    border-color: #e5e7eb;
+                    background: #fafafa;
                 }
                 .feature-row:last-child {
-                    border-bottom: none;
+                    border-bottom: 1px solid #f3f4f6;
                 }
 
                 /* Mobile Optimizations */
@@ -123,6 +133,9 @@ const ContributorPage = () => {
                     .how-to-grid { 
                         grid-template-columns: 1fr !important; 
                         gap: 40px !important;
+                    }
+                    .how-to-grid h2 {
+                        font-size: 28px !important;
                     }
                 }
                 @media (max-width: 768px) {
@@ -338,26 +351,32 @@ const ContributorPage = () => {
                 {/* Video & Features Section */}
                 <section className="section-padding" style={{ padding: '100px 24px', background: '#ffffff', borderTop: '1px solid #f3f4f6' }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                        {/* Centered Heading */}
+                        <h2 style={{ 
+                            fontSize: '42px', 
+                            fontWeight: 600, 
+                            marginBottom: '80px', 
+                            letterSpacing: '-0.02em', 
+                            color: '#111827',
+                            textAlign: 'center'
+                        }}>
+                            How to contribute
+                        </h2>
 
                         <div className="how-to-grid" style={{
                             display: 'grid',
                             gridTemplateColumns: 'minmax(300px, 0.8fr) minmax(400px, 1.2fr)',
                             gap: '80px',
-                            alignItems: 'center'
+                            alignItems: 'start'
                         }}>
                             {/* Left: Features Clean List */}
-                            <div>
-                                <h2 className="features-heading" style={{ fontSize: '32px', fontWeight: 600, marginBottom: '40px', letterSpacing: '-0.02em', color: '#111827' }}>
-                                    Privacy-first contribution <br /> in simple steps.
-                                </h2>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    {features.map((feature, i) => (
-                                        <div key={i} className="feature-row">
-                                            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#111827' }}>{feature.title}</h3>
-                                            <p style={{ color: '#6b7280', fontSize: '16px', lineHeight: 1.6, margin: 0 }}>{feature.description}</p>
-                                        </div>
-                                    ))}
-                                </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {features.map((feature, i) => (
+                                    <div key={i} className="feature-row">
+                                        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#111827' }}>{feature.title}</h3>
+                                        <p style={{ color: '#6b7280', fontSize: '16px', lineHeight: 1.6, margin: 0 }}>{feature.description}</p>
+                                    </div>
+                                ))}
                             </div>
 
                             {/* Right: Video */}
@@ -372,7 +391,8 @@ const ContributorPage = () => {
                                     overflow: 'hidden',
                                     boxShadow: '0 40px 80px -20px rgba(0, 0, 0, 0.15)',
                                     border: '1px solid rgba(0,0,0,0.05)',
-                                    background: '#000'
+                                    background: '#000',
+                                    marginTop: '0'
                                 }}
                             >
                                 <video

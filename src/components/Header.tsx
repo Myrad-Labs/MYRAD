@@ -63,10 +63,19 @@ const Header = () => {
                     .desktop-nav { display: none !important; }
                     .mobile-menu-btn { display: flex !important; }
                     .contribute-btn { display: none !important; }
+                    header > div {
+                        padding: 0 16px !important;
+                    }
                 }
                 
                 @media (min-width: 769px) {
                     .mobile-menu-btn { display: none !important; }
+                }
+                
+                @media (max-width: 480px) {
+                    header > div {
+                        padding: 0 12px !important;
+                    }
                 }
             `}</style>
             <header style={{

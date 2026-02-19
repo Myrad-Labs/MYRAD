@@ -729,10 +729,10 @@ const LandingPage = () => {
                             </div>
                             <div style={{ display: 'grid', gap: '8px' }}>
                                 {[
-                                    { title: "AI & ML Teams", desc: "For training and evaluating foundational models" },
-                                    { title: "Research Institutions", desc: "For unbiased, verifying human activity data" },
-                                    { title: "Analytics Teams", desc: "For reliable, high-signal preference datasets" },
-                                    { title: "Product Teams", desc: "For validating behavioral retention patterns" }
+                                    { title: "AI & Data Teams", desc: "For training models and grounding systems in real human behavior" },
+                                    { title: "Product & Growth Teams", desc: "For understanding usage patterns and improving retention" },
+                                    { title: "Consumer & B2C Businesses", desc: "For identifying demand, preferences, and customer segments" },
+                                    { title: "Strategy & Market Teams", desc: "For real-world insights to guide expansion and positioning" }
                                 ].map((item, i) => (
                                     <div key={i} className="usecase-row">
                                         <div className="usecase-title">{item.title}</div>

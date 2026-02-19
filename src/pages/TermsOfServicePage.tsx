@@ -12,7 +12,22 @@ const TermsOfServicePage = () => {
         }}>
             <Header />
 
-            <main style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px' }}>
+            <style>{`
+                @media (max-width: 768px) {
+                    .terms-main {
+                        padding: 100px 20px 48px !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .terms-main {
+                        padding: 90px 16px 40px !important;
+                    }
+                    .terms-main h1 {
+                        font-size: 24px !important;
+                    }
+                }
+            `}</style>
+            <main className="terms-main" style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 24px' }}>
                 <h1 style={{ fontSize: '28px', fontWeight: 600, color: '#111', marginBottom: '24px' }}>
                     Terms and Conditions
                 </h1>
