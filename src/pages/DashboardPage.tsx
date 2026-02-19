@@ -1202,6 +1202,24 @@ const DashboardPage = () => {
                     // Check for paramValues (common in Reclaim proofs)
                     if (obj.paramValues) {
                       const pv = typeof obj.paramValues === 'string' ? JSON.parse(obj.paramValues) : obj.paramValues;
+                      // Zepto-specific: grandTotalAmount, itemQuantityCount, productsNamesAndCounts
+                      if (providerType === 'zepto' && (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined || pv.productsNamesAndCounts !== undefined)) {
+                        console.log(`🛒 Found Zepto paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                        return {
+                          grandTotalAmount: pv.grandTotalAmount,
+                          itemQuantityCount: pv.itemQuantityCount,
+                          productsNamesAndCounts: pv.productsNamesAndCounts
+                        };
+                      }
+                      // Blinkit-specific: similar structure
+                      if (providerType === 'blinkit' && (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined || pv.productsNamesAndCounts !== undefined)) {
+                        console.log(`🛒 Found Blinkit paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                        return {
+                          grandTotalAmount: pv.grandTotalAmount,
+                          itemQuantityCount: pv.itemQuantityCount,
+                          productsNamesAndCounts: pv.productsNamesAndCounts
+                        };
+                      }
                       if (pv.username || pv.login || pv.followers !== undefined) {
                         return {
                           username: pv.username || pv.login,
@@ -1209,6 +1227,24 @@ const DashboardPage = () => {
                           contributions: pv.contributions || pv.contributionsLastYear || '0'
                         };
                       }
+                    }
+                    // Check for Zepto data directly (grandTotalAmount, itemQuantityCount, productsNamesAndCounts)
+                    if (providerType === 'zepto' && (obj.grandTotalAmount !== undefined || obj.itemQuantityCount !== undefined || obj.productsNamesAndCounts !== undefined)) {
+                      console.log(`🛒 Found Zepto data directly:`, { grandTotalAmount: obj.grandTotalAmount, itemQuantityCount: obj.itemQuantityCount });
+                      return {
+                        grandTotalAmount: obj.grandTotalAmount,
+                        itemQuantityCount: obj.itemQuantityCount,
+                        productsNamesAndCounts: obj.productsNamesAndCounts
+                      };
+                    }
+                    // Check for Blinkit data directly
+                    if (providerType === 'blinkit' && (obj.grandTotalAmount !== undefined || obj.itemQuantityCount !== undefined || obj.productsNamesAndCounts !== undefined)) {
+                      console.log(`🛒 Found Blinkit data directly:`, { grandTotalAmount: obj.grandTotalAmount, itemQuantityCount: obj.itemQuantityCount });
+                      return {
+                        grandTotalAmount: obj.grandTotalAmount,
+                        itemQuantityCount: obj.itemQuantityCount,
+                        productsNamesAndCounts: obj.productsNamesAndCounts
+                      };
                     }
                     // Check for GitHub data directly
                     if (obj.username || obj.login || obj.followers !== undefined || obj.contributions !== undefined) {
@@ -1416,6 +1452,53 @@ const DashboardPage = () => {
                       rides: params.rides || params.ride_history || params.trips
                     };
                     console.log(`🚗 Found Uber Rides data in claimData.parameters with ${extractedData.rides?.length || 0} rides`);
+                  }
+                }
+                // For Zepto/Blinkit, check claimData.parameters for paramValues
+                if ((provider.id === 'zepto' || provider.id === 'blinkit') && proof?.claimData?.parameters) {
+                  try {
+                    const params = typeof proof.claimData.parameters === 'string'
+                      ? JSON.parse(proof.claimData.parameters)
+                      : proof.claimData.parameters;
+                    if (params.paramValues) {
+                      const pv = typeof params.paramValues === 'string' ? JSON.parse(params.paramValues) : params.paramValues;
+                      if (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined) {
+                        extractedData = {
+                          ...extractedData,
+                          grandTotalAmount: pv.grandTotalAmount,
+                          itemQuantityCount: pv.itemQuantityCount,
+                          productsNamesAndCounts: pv.productsNamesAndCounts
+                        };
+                        console.log(`🛒 Found ${provider.id} data in claimData.parameters.paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                      }
+                    }
+                  } catch (e) { /* ignore parse errors */ }
+                }
+                // Handle _rawProofString (callback mode) - parse and extract paramValues for Zepto/Blinkit
+                if ((provider.id === 'zepto' || provider.id === 'blinkit') && proof?._rawProofString) {
+                  try {
+                    const rawProof = typeof proof._rawProofString === 'string'
+                      ? JSON.parse(proof._rawProofString)
+                      : proof._rawProofString;
+                    if (rawProof?.claimData?.parameters) {
+                      const params = typeof rawProof.claimData.parameters === 'string'
+                        ? JSON.parse(rawProof.claimData.parameters)
+                        : rawProof.claimData.parameters;
+                      if (params.paramValues) {
+                        const pv = typeof params.paramValues === 'string' ? JSON.parse(params.paramValues) : params.paramValues;
+                        if (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined) {
+                          extractedData = {
+                            ...extractedData,
+                            grandTotalAmount: pv.grandTotalAmount,
+                            itemQuantityCount: pv.itemQuantityCount,
+                            productsNamesAndCounts: pv.productsNamesAndCounts
+                          };
+                          console.log(`🛒 Found ${provider.id} data in _rawProofString.paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    console.log(`⚠️ Error parsing _rawProofString for ${provider.id}:`, e);
                   }
                 }
 
@@ -1816,6 +1899,16 @@ const DashboardPage = () => {
               setActiveProvider(null);
               setContributing(null);
             }
+            return;
+          }
+
+          // "Interval ended without receiving proofs" - user completed verification on mobile
+          // Proof often arrives via callback; show friendly message instead of scary error
+          if (errorMessage.includes('Interval ended without receiving proofs') || errorMessage.includes('without receiving proofs')) {
+            showToast('info', 'Verification may have completed', 'If you finished verification on your phone, refresh the page to see your contributions.');
+            setVerificationUrl(null);
+            setActiveProvider(null);
+            setContributing(null);
             return;
           }
 

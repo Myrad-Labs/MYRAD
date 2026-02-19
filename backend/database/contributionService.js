@@ -625,7 +625,9 @@ async function saveContributionInternal(contribution) {
 
     if (dataType === 'zepto_order_history') {
       const indexedFields = extractZeptoFields(sellableData);
-      if (indexedFields.total_orders !== null && indexedFields.total_spend !== null) {
+      // Skip duplicate check for empty data (0/0) - will be rejected by route validation
+      const hasValidData = (indexedFields.total_orders ?? 0) > 0 || (indexedFields.total_spend ?? 0) > 0;
+      if (hasValidData && indexedFields.total_orders !== null && indexedFields.total_spend !== null) {
         // Check for non-opted-out contributions
         const existingResult = await query(
           `SELECT id, total_orders FROM zepto_contributions 
@@ -1150,6 +1152,8 @@ async function saveContributionInternal(contribution) {
       } else if (dataType === 'zepto_order_history') {
         const indexedFields = extractZeptoFields(sellableData);
 
+        // Use ON CONFLICT (id) to handle re-verification after opt-out
+        // (the old row has a different reclaim_proof_id, so ON CONFLICT (reclaim_proof_id) won't work)
         await query(
           `INSERT INTO zepto_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
@@ -1163,19 +1167,30 @@ async function saveContributionInternal(contribution) {
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
             $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, FALSE
           )
-          ON CONFLICT (reclaim_proof_id) DO UPDATE SET
-            id = EXCLUDED.id,
-            user_id = EXCLUDED.user_id,
+          ON CONFLICT (id) DO UPDATE SET
             reclaim_proof_id = EXCLUDED.reclaim_proof_id,
             status = EXCLUDED.status,
+            processing_method = EXCLUDED.processing_method,
             sellable_data = EXCLUDED.sellable_data,
             metadata = EXCLUDED.metadata,
             total_orders = EXCLUDED.total_orders,
             total_spend = EXCLUDED.total_spend,
             avg_order_value = EXCLUDED.avg_order_value,
+            total_items = EXCLUDED.total_items,
+            avg_items_per_order = EXCLUDED.avg_items_per_order,
+            data_window_days = EXCLUDED.data_window_days,
             top_categories = EXCLUDED.top_categories,
+            category_diversity_score = EXCLUDED.category_diversity_score,
+            essentials_buyer = EXCLUDED.essentials_buyer,
+            snacks_buyer = EXCLUDED.snacks_buyer,
+            personal_care_buyer = EXCLUDED.personal_care_buyer,
             top_brands = EXCLUDED.top_brands,
+            brand_loyalty_score = EXCLUDED.brand_loyalty_score,
             spend_bracket = EXCLUDED.spend_bracket,
+            order_frequency = EXCLUDED.order_frequency,
+            segment_id = EXCLUDED.segment_id,
+            cohort_id = EXCLUDED.cohort_id,
+            data_quality_score = EXCLUDED.data_quality_score,
             wallet_address = EXCLUDED.wallet_address,
             opt_out = FALSE,
             updated_at = NOW()`,
