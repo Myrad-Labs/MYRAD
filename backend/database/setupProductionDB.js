@@ -24,7 +24,8 @@ const MIGRATIONS = [
   '011_add_strava_table.sql',
   '012_add_opt_out_column.sql',
   '013_add_zepto_table.sql',
-  '014_add_composite_indexes.sql'
+  '014_add_composite_indexes.sql',
+  '015_add_zepto_processing_method.sql'
 ];
 
 async function runMigration(migrationFile) {
