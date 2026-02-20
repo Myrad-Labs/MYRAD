@@ -1202,14 +1202,32 @@ const DashboardPage = () => {
                     // Check for paramValues (common in Reclaim proofs)
                     if (obj.paramValues) {
                       const pv = typeof obj.paramValues === 'string' ? JSON.parse(obj.paramValues) : obj.paramValues;
-                      // Zepto-specific: grandTotalAmount, itemQuantityCount, productsNamesAndCounts
-                      if (providerType === 'zepto' && (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined || pv.productsNamesAndCounts !== undefined)) {
-                        console.log(`🛒 Found Zepto paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
-                        return {
-                          grandTotalAmount: pv.grandTotalAmount,
-                          itemQuantityCount: pv.itemQuantityCount,
-                          productsNamesAndCounts: pv.productsNamesAndCounts
-                        };
+                      // Zepto-specific: prefer orders array, fallback to flat fields
+                      if (providerType === 'zepto') {
+                        // New format: orders array with full order objects
+                        if (pv.orders && Array.isArray(pv.orders) && pv.orders.length > 0) {
+                          console.log(`🛒 Found Zepto orders array in paramValues with ${pv.orders.length} orders`);
+                          return { orders: pv.orders };
+                        }
+                        // Try parsing orders from string
+                        if (typeof pv.orders === 'string') {
+                          try {
+                            const parsed = JSON.parse(pv.orders);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                              console.log(`🛒 Parsed Zepto orders array from string with ${parsed.length} orders`);
+                              return { orders: parsed };
+                            }
+                          } catch (e) { /* not JSON */ }
+                        }
+                        // Legacy flat fields fallback
+                        if (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined || pv.productsNamesAndCounts !== undefined) {
+                          console.log(`🛒 Found Zepto paramValues (legacy):`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                          return {
+                            grandTotalAmount: pv.grandTotalAmount,
+                            itemQuantityCount: pv.itemQuantityCount,
+                            productsNamesAndCounts: pv.productsNamesAndCounts
+                          };
+                        }
                       }
                       // Blinkit-specific: similar structure
                       if (providerType === 'blinkit' && (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined || pv.productsNamesAndCounts !== undefined)) {
@@ -1228,14 +1246,20 @@ const DashboardPage = () => {
                         };
                       }
                     }
-                    // Check for Zepto data directly (grandTotalAmount, itemQuantityCount, productsNamesAndCounts)
-                    if (providerType === 'zepto' && (obj.grandTotalAmount !== undefined || obj.itemQuantityCount !== undefined || obj.productsNamesAndCounts !== undefined)) {
-                      console.log(`🛒 Found Zepto data directly:`, { grandTotalAmount: obj.grandTotalAmount, itemQuantityCount: obj.itemQuantityCount });
-                      return {
-                        grandTotalAmount: obj.grandTotalAmount,
-                        itemQuantityCount: obj.itemQuantityCount,
-                        productsNamesAndCounts: obj.productsNamesAndCounts
-                      };
+                    // Check for Zepto data directly — prefer orders array
+                    if (providerType === 'zepto') {
+                      if (obj.orders && Array.isArray(obj.orders) && obj.orders.length > 0) {
+                        console.log(`🛒 Found Zepto orders array directly with ${obj.orders.length} orders`);
+                        return { orders: obj.orders };
+                      }
+                      if (obj.grandTotalAmount !== undefined || obj.itemQuantityCount !== undefined || obj.productsNamesAndCounts !== undefined) {
+                        console.log(`🛒 Found Zepto data directly (legacy):`, { grandTotalAmount: obj.grandTotalAmount, itemQuantityCount: obj.itemQuantityCount });
+                        return {
+                          grandTotalAmount: obj.grandTotalAmount,
+                          itemQuantityCount: obj.itemQuantityCount,
+                          productsNamesAndCounts: obj.productsNamesAndCounts
+                        };
+                      }
                     }
                     // Check for Blinkit data directly
                     if (providerType === 'blinkit' && (obj.grandTotalAmount !== undefined || obj.itemQuantityCount !== undefined || obj.productsNamesAndCounts !== undefined)) {
@@ -1462,7 +1486,16 @@ const DashboardPage = () => {
                       : proof.claimData.parameters;
                     if (params.paramValues) {
                       const pv = typeof params.paramValues === 'string' ? JSON.parse(params.paramValues) : params.paramValues;
-                      if (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined) {
+                      // Zepto: prefer orders array from paramValues
+                      if (provider.id === 'zepto' && pv.orders) {
+                        const orders = typeof pv.orders === 'string' ? JSON.parse(pv.orders) : pv.orders;
+                        if (Array.isArray(orders) && orders.length > 0) {
+                          extractedData = { ...extractedData, orders };
+                          console.log(`🛒 Found Zepto orders array in claimData.parameters.paramValues with ${orders.length} orders`);
+                        }
+                      }
+                      // Fallback / Blinkit: use flat fields
+                      if (!extractedData.orders && (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined)) {
                         extractedData = {
                           ...extractedData,
                           grandTotalAmount: pv.grandTotalAmount,
@@ -1486,7 +1519,16 @@ const DashboardPage = () => {
                         : rawProof.claimData.parameters;
                       if (params.paramValues) {
                         const pv = typeof params.paramValues === 'string' ? JSON.parse(params.paramValues) : params.paramValues;
-                        if (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined) {
+                        // Zepto: prefer orders array
+                        if (provider.id === 'zepto' && pv.orders) {
+                          const orders = typeof pv.orders === 'string' ? JSON.parse(pv.orders) : pv.orders;
+                          if (Array.isArray(orders) && orders.length > 0) {
+                            extractedData = { ...extractedData, orders };
+                            console.log(`🛒 Found Zepto orders in _rawProofString.paramValues with ${orders.length} orders`);
+                          }
+                        }
+                        // Fallback / Blinkit: flat fields
+                        if (!extractedData.orders && (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined)) {
                           extractedData = {
                             ...extractedData,
                             grandTotalAmount: pv.grandTotalAmount,

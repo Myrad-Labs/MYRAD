@@ -352,7 +352,7 @@ router.get('/user/contributions', verifyPrivyToken, async (req, res) => {
 router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, res) => {
     // Acquire semaphore to control concurrent database operations
     await contributionSemaphore.acquire();
-    
+
     try {
         const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
@@ -432,16 +432,24 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
             const firstRide = rides[0];
             contentSignature = `uber_rides_${rides.length}_${firstRide?.fare || firstRide?.total || ''}_${firstRide?.timestamp || firstRide?.date || ''}`;
         } else if (dataType === 'zepto_order_history') {
-            // For Zepto: hash based on total amount + item count + first product name
-            const productsStr = anonymizedData.productsNamesAndCounts || '';
-            let firstProduct = '';
-            try {
-                const products = typeof productsStr === 'string' ? JSON.parse(productsStr) : productsStr;
-                if (Array.isArray(products) && products.length > 0) {
-                    firstProduct = products[0]?.name || '';
-                }
-            } catch (e) { /* ignore parse errors */ }
-            contentSignature = `zepto_${anonymizedData.grandTotalAmount || 0}_${anonymizedData.itemQuantityCount || 0}_${firstProduct}`;
+            // For Zepto: hash based on orders array (count + first/last order codes)
+            const orders = anonymizedData.orders;
+            if (Array.isArray(orders) && orders.length > 0) {
+                const firstCode = orders[0]?.code || orders[0]?.id || '';
+                const lastCode = orders[orders.length - 1]?.code || orders[orders.length - 1]?.id || '';
+                contentSignature = `zepto_${orders.length}_${firstCode}_${lastCode}`;
+            } else {
+                // Legacy single-order format fallback
+                const productsStr = anonymizedData.productsNamesAndCounts || '';
+                let firstProduct = '';
+                try {
+                    const products = typeof productsStr === 'string' ? JSON.parse(productsStr) : productsStr;
+                    if (Array.isArray(products) && products.length > 0) {
+                        firstProduct = products[0]?.name || '';
+                    }
+                } catch (e) { /* ignore parse errors */ }
+                contentSignature = `zepto_${anonymizedData.grandTotalAmount || 0}_${anonymizedData.itemQuantityCount || 0}_${firstProduct}`;
+            }
         }
 
         if (contentSignature) {
@@ -1769,7 +1777,7 @@ router.get('/reclaim-callback', (req, res) => {
 router.get('/user/opt-out-status', verifyPrivyToken, async (req, res) => {
     try {
         const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
-        
+
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -1791,7 +1799,7 @@ router.get('/user/opt-out-status', verifyPrivyToken, async (req, res) => {
 router.post('/user/opt-out', verifyPrivyToken, async (req, res) => {
     try {
         const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
-        
+
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -1808,9 +1816,9 @@ router.post('/user/opt-out', verifyPrivyToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Opt-out error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to process opt-out request',
-            message: error.message 
+            message: error.message
         });
     }
 });
@@ -1819,7 +1827,7 @@ router.post('/user/opt-out', verifyPrivyToken, async (req, res) => {
 router.get('/system/status', async (req, res) => {
     try {
         const semaphoreStats = contributionSemaphore.getStats();
-        
+
         res.json({
             success: true,
             timestamp: new Date().toISOString(),

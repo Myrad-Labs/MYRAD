@@ -1,6 +1,7 @@
 // Zepto Order History Pipeline for MYRAD
 // Transforms Zepto grocery order data into sellable, anonymized datasets
 // Focus on quick commerce / grocery delivery insights
+// Supports multi-order format from new Zepto provider
 
 import 'dotenv/config';
 import dayjs from 'dayjs';
@@ -13,7 +14,7 @@ const DATASET_CONFIG = {
     zepto: {
         dataset_id: 'myrad_zepto_v1',
         platform: 'zepto',
-        version: '1.0.0'
+        version: '2.0.0'
     }
 };
 
@@ -28,6 +29,7 @@ const GROCERY_CATEGORIES = {
     'snacks': { l1: 'Snacks & Beverages', l2: 'Snacks' },
     'chips': { l1: 'Snacks & Beverages', l2: 'Chips' },
     'beverages': { l1: 'Snacks & Beverages', l2: 'Beverages' },
+    'beer': { l1: 'Snacks & Beverages', l2: 'Beer & Non-Alcoholic' },
     'soft_drinks': { l1: 'Snacks & Beverages', l2: 'Soft Drinks' },
     'juice': { l1: 'Snacks & Beverages', l2: 'Juice' },
     'water': { l1: 'Snacks & Beverages', l2: 'Water' },
@@ -41,6 +43,9 @@ const GROCERY_CATEGORIES = {
     'pet': { l1: 'Pet Care', l2: 'Pet Food' },
     'frozen': { l1: 'Frozen', l2: 'Frozen Foods' },
     'instant': { l1: 'Ready to Eat', l2: 'Instant Food' },
+    'muesli': { l1: 'Health & Wellness', l2: 'Muesli & Granola' },
+    'cereal': { l1: 'Health & Wellness', l2: 'Cereal' },
+    'tobacco': { l1: 'Tobacco', l2: 'Cigarettes' },
     'default': { l1: 'Groceries', l2: 'General' }
 };
 
@@ -48,11 +53,12 @@ const GROCERY_CATEGORIES = {
 const CATEGORY_PATTERNS = [
     { pattern: /apple|banana|orange|mango|grape|fruit/i, category: 'fruits' },
     { pattern: /tomato|onion|potato|vegetable|carrot|spinach/i, category: 'vegetables' },
-    { pattern: /milk|curd|yogurt|paneer|cheese|butter/i, category: 'dairy' },
+    { pattern: /milk|curd|yogurt|paneer|cheese|butter|cream/i, category: 'dairy' },
     { pattern: /egg|anda/i, category: 'eggs' },
     { pattern: /bread|pav|bun|cake|cookie|biscuit/i, category: 'bread' },
-    { pattern: /chips|namkeen|snack|kurkure|lays/i, category: 'chips' },
-    { pattern: /cola|pepsi|sprite|fanta|soda|soft drink/i, category: 'soft_drinks' },
+    { pattern: /chips|namkeen|snack|kurkure|lays|multigrain.*chips|potato chips/i, category: 'chips' },
+    { pattern: /beer|non.?alcoholic.*beer|coolberg|kingfisher|budweiser|heineken/i, category: 'beer' },
+    { pattern: /cola|pepsi|sprite|fanta|soda|soft drink|thumbs up/i, category: 'soft_drinks' },
     { pattern: /juice|real|tropicana/i, category: 'juice' },
     { pattern: /water|bisleri|kinley/i, category: 'water' },
     { pattern: /rice|chawal|basmati/i, category: 'rice' },
@@ -64,7 +70,10 @@ const CATEGORY_PATTERNS = [
     { pattern: /diaper|baby|pamper/i, category: 'baby' },
     { pattern: /dog|cat|pet food/i, category: 'pet' },
     { pattern: /frozen|ice cream/i, category: 'frozen' },
-    { pattern: /maggi|noodle|instant|ready to eat/i, category: 'instant' }
+    { pattern: /maggi|noodle|instant|ready to eat/i, category: 'instant' },
+    { pattern: /muesli|granola|yoga bar|oats/i, category: 'muesli' },
+    { pattern: /cereal|corn flakes|chocos/i, category: 'cereal' },
+    { pattern: /marlboro|cigarette|classic milds|gold flake|kings?/i, category: 'tobacco' }
 ];
 
 // Brand patterns for quick commerce
@@ -75,8 +84,8 @@ const BRAND_PATTERNS = [
     { pattern: /britannia/i, brand: 'Britannia' },
     { pattern: /parle/i, brand: 'Parle' },
     { pattern: /haldiram/i, brand: 'Haldirams' },
-    { pattern: /lays|pepsi|kurkure/i, brand: 'PepsiCo' },
-    { pattern: /coca cola|sprite|fanta|minute maid/i, brand: 'Coca-Cola' },
+    { pattern: /lays|pepsi|kurkure|too yumm/i, brand: 'PepsiCo' },
+    { pattern: /coca cola|sprite|fanta|minute maid|thumbs up/i, brand: 'Coca-Cola' },
     { pattern: /hindustan unilever|surf|dove|lifebuoy/i, brand: 'HUL' },
     { pattern: /p&g|pantene|head.*shoulders|gillette/i, brand: 'P&G' },
     { pattern: /dabur/i, brand: 'Dabur' },
@@ -85,7 +94,10 @@ const BRAND_PATTERNS = [
     { pattern: /patanjali/i, brand: 'Patanjali' },
     { pattern: /mtr/i, brand: 'MTR' },
     { pattern: /fortune/i, brand: 'Fortune' },
-    { pattern: /saffola/i, brand: 'Saffola' }
+    { pattern: /saffola/i, brand: 'Saffola' },
+    { pattern: /coolberg/i, brand: 'Coolberg' },
+    { pattern: /yoga bar/i, brand: 'Yoga Bar' },
+    { pattern: /marlboro/i, brand: 'Marlboro' }
 ];
 
 // ================================
@@ -116,12 +128,21 @@ function inferBrand(itemName) {
     return 'Store Brand';
 }
 
-// Parse price from various formats
+// Parse price from various formats (handles paise values from Zepto)
 function parsePrice(p) {
     if (!p) return 0;
     if (typeof p === 'number') return p;
     const cleaned = ('' + p).replace(/[^\d.\-]/g, '');
     return parseFloat(cleaned) || 0;
+}
+
+// Convert paise to rupees (Zepto sends amounts in paise, e.g. 19400 = ₹194)
+function paiseToRupees(paise) {
+    const val = parsePrice(paise);
+    // If value > 10000, it's likely in paise (₹100+ orders)
+    // Most grocery orders are ₹50-₹5000, so amounts > 10000 are almost certainly paise
+    if (val > 10000) return Math.round(val) / 100;
+    return val;
 }
 
 // Parse timestamp
@@ -145,13 +166,12 @@ function getSpendBracket(totalSpend, orderCount) {
     return 'value_seeker';
 }
 
-// Parse Zepto's productsNamesAndCounts JSON string
-function parseZeptoProducts(productsStr) {
-    if (!productsStr) return [];
+// Parse Zepto's productsNamesAndCounts (can be JSON string or array)
+function parseZeptoProducts(productsData) {
+    if (!productsData) return [];
 
     try {
-        // Parse the JSON string
-        const products = typeof productsStr === 'string' ? JSON.parse(productsStr) : productsStr;
+        const products = typeof productsData === 'string' ? JSON.parse(productsData) : productsData;
 
         if (!Array.isArray(products)) return [];
 
@@ -166,52 +186,186 @@ function parseZeptoProducts(productsStr) {
     }
 }
 
+// Calculate temporal behavior from order timestamps
+function calculateTemporalBehavior(orderDates) {
+    if (!orderDates || orderDates.length === 0) {
+        return {
+            peak_ordering_time: 'unknown',
+            peak_ordering_day: 'unknown',
+            time_of_day_curve: { morning: 0, afternoon: 0, evening: 0, dinner: 0, late_night: 0 },
+            weekday_vs_weekend: { weekday: 0, weekend: 0 },
+            late_night_shopper: false
+        };
+    }
+
+    const hourBuckets = { morning: 0, afternoon: 0, evening: 0, dinner: 0, late_night: 0 };
+    const dayOfWeekCount = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    const weekdayVsWeekend = { weekday: 0, weekend: 0 };
+
+    orderDates.forEach(date => {
+        const hour = date.getHours();
+        const dayOfWeek = date.getDay();
+
+        // Time of day buckets
+        if (hour >= 6 && hour < 12) hourBuckets.morning++;
+        else if (hour >= 12 && hour < 16) hourBuckets.afternoon++;
+        else if (hour >= 16 && hour < 19) hourBuckets.evening++;
+        else if (hour >= 19 && hour < 22) hourBuckets.dinner++;
+        else hourBuckets.late_night++;
+
+        // Day of week
+        dayOfWeekCount[dayOfWeek]++;
+
+        // Weekend vs weekday
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            weekdayVsWeekend.weekend++;
+        } else {
+            weekdayVsWeekend.weekday++;
+        }
+    });
+
+    const peakTime = Object.entries(hourBuckets).sort((a, b) => b[1] - a[1])[0];
+    const peakDay = Object.entries(dayOfWeekCount).sort((a, b) => b[1] - a[1])[0];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    return {
+        peak_ordering_time: peakTime[0],
+        peak_ordering_day: dayNames[parseInt(peakDay[0])],
+        time_of_day_curve: hourBuckets,
+        weekday_vs_weekend: weekdayVsWeekend,
+        late_night_shopper: hourBuckets.late_night > orderDates.length * 0.2
+    };
+}
+
 // ================================
 // MAIN PROCESSING FUNCTION
 // ================================
 
 /**
  * Process Zepto order data from Reclaim proof
+ * Now supports multi-order format: { orders: [...] }
  * @param {Object} extractedData - Data from Reclaim proof
  * @param {Object} options - Processing options
  * @returns {Object} Processed sellable data
  */
 export function processZeptoData(extractedData, options = {}) {
     console.log('🛒 Processing Zepto data...');
-    console.log('🔍 Input data:', JSON.stringify(extractedData, null, 2).substring(0, 500));
+    console.log('🔍 Input data keys:', Object.keys(extractedData || {}));
 
-    // Zepto data comes in a different format from Reclaim:
-    // - grandTotalAmount: total order value
-    // - itemQuantityCount: number of items
-    // - productsNamesAndCounts: JSON string of products array
+    // ========================================
+    // STEP 1: Extract orders array
+    // ========================================
+    let rawOrders = [];
 
-    const grandTotalAmount = parsePrice(extractedData.grandTotalAmount);
-    const itemQuantityCount = parseInt(extractedData.itemQuantityCount, 10) || 0;
-    const products = parseZeptoProducts(extractedData.productsNamesAndCounts);
+    // New format: orders array with full order objects
+    if (extractedData.orders && Array.isArray(extractedData.orders)) {
+        rawOrders = extractedData.orders;
+        console.log(`📦 Found ${rawOrders.length} orders in orders array`);
+    }
+    // Try parsing if orders is a string
+    else if (typeof extractedData.orders === 'string') {
+        try {
+            rawOrders = JSON.parse(extractedData.orders);
+            console.log(`📦 Parsed ${rawOrders.length} orders from string`);
+        } catch (e) {
+            console.log('⚠️ Could not parse orders string');
+        }
+    }
+    // Legacy single-order format (backward compatibility)
+    else if (extractedData.grandTotalAmount !== undefined || extractedData.productsNamesAndCounts !== undefined) {
+        console.log('📦 Using legacy single-order format');
+        rawOrders = [{
+            grandTotalAmount: extractedData.grandTotalAmount,
+            itemQuantityCount: extractedData.itemQuantityCount,
+            productsNamesAndCounts: extractedData.productsNamesAndCounts,
+            status: 'DELIVERED',
+            placedTime: null
+        }];
+    }
 
-    console.log(`📦 Zepto order: ₹${grandTotalAmount}, ${itemQuantityCount} items, ${products.length} products parsed`);
+    if (rawOrders.length === 0) {
+        console.log('⚠️ No orders found in Zepto data');
+        return {
+            success: false,
+            sellableRecord: null,
+            rawProcessed: { orderCount: 0, totalSpend: 0 }
+        };
+    }
 
-    // Process product data
+    // ========================================
+    // STEP 2: Filter and process orders
+    // ========================================
+    // Only count DELIVERED orders for insights (skip CANCELLED etc.)
+    const deliveredOrders = rawOrders.filter(o => {
+        const status = (o.status || '').toUpperCase();
+        return status === 'DELIVERED' || status === '';  // empty status = legacy format
+    });
+    const cancelledOrders = rawOrders.filter(o => (o.status || '').toUpperCase() === 'CANCELLED');
+
+    console.log(`📊 ${deliveredOrders.length} delivered, ${cancelledOrders.length} cancelled out of ${rawOrders.length} total`);
+
+    // Process delivered orders
     const categoryCount = {};
     const brandCount = {};
     const allItems = [];
+    let totalSpend = 0;
+    let totalItems = 0;
+    const validDates = [];
+    const orderValues = [];
 
-    products.forEach(product => {
-        const itemName = product.name;
-        allItems.push(itemName);
+    deliveredOrders.forEach(order => {
+        // Parse amount (Zepto sends in paise)
+        const amount = paiseToRupees(order.grandTotalAmount);
+        totalSpend += amount;
+        orderValues.push(amount);
 
-        const category = inferCategoryFromItems(itemName);
-        const brand = inferBrand(itemName);
+        // Parse item count
+        const itemCount = parseInt(order.itemQuantityCount, 10) || 0;
+        totalItems += itemCount;
 
-        categoryCount[category] = (categoryCount[category] || 0) + (product.count || 1);
-        brandCount[brand] = (brandCount[brand] || 0) + (product.count || 1);
+        // Parse products
+        const products = parseZeptoProducts(order.productsNamesAndCounts);
+
+        products.forEach(product => {
+            const itemName = product.name;
+            allItems.push(itemName);
+
+            const category = inferCategoryFromItems(itemName);
+            const brand = inferBrand(itemName);
+
+            categoryCount[category] = (categoryCount[category] || 0) + (product.count || 1);
+            brandCount[brand] = (brandCount[brand] || 0) + (product.count || 1);
+        });
+
+        // Parse timestamp
+        const placedDate = parseOrderTimestamp(order.placedTime);
+        if (placedDate) {
+            validDates.push(placedDate);
+        }
     });
 
-    // Since we only have one order from Zepto currently, treat it as a single order
-    const orderCount = grandTotalAmount > 0 ? 1 : 0;
-    const totalSpend = grandTotalAmount;
-    const avgOrderValue = grandTotalAmount;
+    // ========================================
+    // STEP 3: Calculate analytics
+    // ========================================
+    const orderCount = deliveredOrders.length;
+    const avgOrderValue = orderCount > 0 ? Math.round(totalSpend / orderCount * 100) / 100 : 0;
     const spendBracket = getSpendBracket(totalSpend, orderCount);
+
+    // Calculate data window
+    let dataWindowDays = 0;
+    if (validDates.length > 1) {
+        validDates.sort((a, b) => a - b);
+        dataWindowDays = Math.round((validDates[validDates.length - 1] - validDates[0]) / (1000 * 60 * 60 * 24));
+    }
+
+    // Calculate order frequency
+    let orderFrequency = 'occasional';
+    if (orderCount >= 10) orderFrequency = 'frequent';
+    else if (orderCount >= 5) orderFrequency = 'regular';
+    else if (orderCount >= 2) orderFrequency = 'moderate';
+
+    // Temporal behavior
+    const temporalBehavior = calculateTemporalBehavior(validDates);
 
     // Get top categories and brands
     const topCategories = Object.entries(categoryCount)
@@ -236,13 +390,29 @@ export function processZeptoData(extractedData, options = {}) {
         }));
 
     // Determine shopper profile
-    const hasEssentials = ['dairy', 'vegetables', 'fruits', 'rice', 'atta'].some(c => categoryCount[c] > 0);
-    const hasSnacks = ['chips', 'snacks', 'soft_drinks'].some(c => categoryCount[c] > 0);
+    const hasEssentials = ['dairy', 'vegetables', 'fruits', 'rice', 'atta', 'eggs', 'milk'].some(c => categoryCount[c] > 0);
+    const hasSnacks = ['chips', 'snacks', 'soft_drinks', 'beer'].some(c => categoryCount[c] > 0);
     const hasPersonalCare = categoryCount['personal_care'] > 0 || categoryCount['cleaning'] > 0;
+    const hasHealthFood = categoryCount['muesli'] > 0 || categoryCount['cereal'] > 0;
 
-    // Generate sellable data record
+    // Price bucket distribution
+    const priceBuckets = { budget: 0, mid_range: 0, premium: 0 };
+    orderValues.forEach(val => {
+        if (val < 200) priceBuckets.budget++;
+        else if (val < 500) priceBuckets.mid_range++;
+        else priceBuckets.premium++;
+    });
+
+    // Cancellation rate
+    const cancellationRate = rawOrders.length > 0
+        ? Math.round((cancelledOrders.length / rawOrders.length) * 100)
+        : 0;
+
+    // ========================================
+    // STEP 4: Generate sellable data record
+    // ========================================
     const sellableData = {
-        schema_version: '1.0',
+        schema_version: '2.0',
         dataset_id: DATASET_CONFIG.zepto.dataset_id,
         record_type: 'quick_commerce_orders',
         generated_at: new Date().toISOString(),
@@ -251,35 +421,50 @@ export function processZeptoData(extractedData, options = {}) {
         transaction_data: {
             summary: {
                 total_orders: orderCount,
+                total_orders_including_cancelled: rawOrders.length,
+                cancelled_orders: cancelledOrders.length,
+                cancellation_rate_pct: cancellationRate,
                 total_spend: Math.round(totalSpend * 100) / 100,
                 avg_order_value: avgOrderValue,
-                total_items: itemQuantityCount,
-                avg_items_per_order: orderCount > 0 ? Math.round(itemQuantityCount / orderCount * 10) / 10 : 0,
-                data_window_days: 0 // Single order, no time span
+                total_items: totalItems,
+                avg_items_per_order: orderCount > 0 ? Math.round(totalItems / orderCount * 10) / 10 : 0,
+                data_window_days: dataWindowDays,
+                unique_products: allItems.length
+            },
+            price_distribution: {
+                budget_pct: orderCount > 0 ? Math.round((priceBuckets.budget / orderCount) * 100) : 0,
+                mid_range_pct: orderCount > 0 ? Math.round((priceBuckets.mid_range / orderCount) * 100) : 0,
+                premium_pct: orderCount > 0 ? Math.round((priceBuckets.premium / orderCount) * 100) : 0
             }
         },
 
         // Category preferences
         category_preferences: {
             top_categories: topCategories,
-            category_diversity_score: Object.keys(categoryCount).filter(c => c !== 'default').length * 10,
+            category_diversity_score: Math.min(100, Object.keys(categoryCount).filter(c => c !== 'default').length * 15),
             essentials_buyer: hasEssentials,
             snacks_buyer: hasSnacks,
-            personal_care_buyer: hasPersonalCare
+            personal_care_buyer: hasPersonalCare,
+            health_food_buyer: hasHealthFood
         },
 
         // Brand affinity
         brand_affinity: {
             top_brands: topBrands,
-            brand_loyalty_score: topBrands.length > 0 && topBrands[0].percentage > 30 ? 'high' : 'moderate'
+            brand_loyalty_score: topBrands.length > 0 && topBrands[0].percentage > 30 ? 'high' : 'moderate',
+            unique_brands: Object.keys(brandCount).filter(b => b !== 'Store Brand').length
         },
+
+        // Temporal behavior
+        temporal_behavior: temporalBehavior,
 
         // Behavioral insights
         behavioral_insights: {
             spend_bracket: spendBracket,
             quick_commerce_user: true,
             convenience_oriented: true,
-            order_frequency: 'occasional' // Single order for now
+            order_frequency: orderFrequency,
+            cancellation_tendency: cancellationRate > 20 ? 'high' : cancellationRate > 5 ? 'moderate' : 'low'
         },
 
         // Audience segment for targeting
@@ -291,7 +476,9 @@ export function processZeptoData(extractedData, options = {}) {
                 interest_convenience: true,
                 platform_zepto: true,
                 urban_consumer: true,
-                engagement_level: 'low' // Single order
+                engagement_level: orderCount >= 10 ? 'high' : orderCount >= 5 ? 'medium' : 'low',
+                health_conscious: hasHealthFood,
+                snack_lover: hasSnacks
             }
         },
 
@@ -299,7 +486,7 @@ export function processZeptoData(extractedData, options = {}) {
         metadata: {
             source: 'reclaim_protocol',
             platform: DATASET_CONFIG.zepto.platform,
-            schema_standard: 'myrad_quick_commerce_v1',
+            schema_standard: 'myrad_quick_commerce_v2',
             verification: {
                 status: 'zk_verified',
                 proof_type: 'zero_knowledge',
@@ -311,28 +498,36 @@ export function processZeptoData(extractedData, options = {}) {
                 ccpa_compatible: true
             },
             data_quality: {
-                score: Math.min(100, orderCount * 20 + (topCategories.length * 10) + (products.length * 5)),
-                completeness: orderCount > 0 ? 'good' : 'empty',
-                products_parsed: products.length,
-                items_count: itemQuantityCount
+                score: Math.min(100,
+                    (orderCount * 10) +
+                    (topCategories.length * 10) +
+                    (validDates.length > 0 ? 20 : 0) +
+                    (topBrands.length * 5)
+                ),
+                completeness: orderCount >= 5 ? 'excellent' : orderCount > 0 ? 'good' : 'empty',
+                orders_with_valid_dates: validDates.length,
+                products_parsed: allItems.length,
+                items_count: totalItems
             }
         }
     };
 
     console.log('✅ Zepto data processed successfully');
-    console.log(`📊 Order count: ${orderCount}, Total spend: ₹${totalSpend}`);
+    console.log(`📊 Orders: ${orderCount} delivered (${cancelledOrders.length} cancelled), Total spend: ₹${totalSpend.toFixed(2)}, Avg: ₹${avgOrderValue}`);
 
     return {
         success: true,
         sellableRecord: sellableData,
         rawProcessed: {
             orderCount,
-            totalSpend,
+            totalSpend: Math.round(totalSpend * 100) / 100,
             avgOrderValue,
             topCategories,
             topBrands,
-            itemQuantityCount,
-            productsCount: products.length
+            totalItems,
+            productsCount: allItems.length,
+            dataWindowDays,
+            cancelledOrders: cancelledOrders.length
         }
     };
 }
@@ -347,5 +542,6 @@ export default {
     inferCategoryFromItems,
     parsePrice,
     getSpendBracket,
-    parseZeptoProducts
+    parseZeptoProducts,
+    paiseToRupees
 };
