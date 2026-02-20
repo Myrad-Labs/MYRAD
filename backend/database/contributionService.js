@@ -405,16 +405,16 @@ export async function saveContribution(contribution) {
       return await saveContributionInternal(contribution);
     } catch (error) {
       lastError = error;
-      
+
       // Check if it's a retryable error (serialization failure, deadlock)
-      if (error.code === '40001' || error.code === '40P01' || 
-          error.message.includes('deadlock') || error.message.includes('could not serialize')) {
+      if (error.code === '40001' || error.code === '40P01' ||
+        error.message.includes('deadlock') || error.message.includes('could not serialize')) {
         console.log(`⚠️ Transaction conflict in saveContribution (attempt ${attempt}/${maxRetries}), retrying...`);
         // Small random delay before retry
         await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
         continue;
       }
-      
+
       // Non-retryable error, throw immediately
       throw error;
     }
@@ -457,7 +457,7 @@ async function saveContributionInternal(contribution) {
     // DUPLICATE CHECKS INSIDE TRANSACTION
     // Using SELECT FOR UPDATE to lock rows and prevent race conditions
     // ========================================
-    
+
     if (dataType === 'zomato_order_history') {
       const indexedFields = extractZomatoFields(sellableData);
       if (indexedFields.total_orders !== null && indexedFields.total_gmv !== null) {
@@ -469,7 +469,7 @@ async function saveContributionInternal(contribution) {
            FOR UPDATE`,
           [indexedFields.total_orders, indexedFields.total_gmv]
         );
-        
+
         if (existingResult.rows.length > 0) {
           const existing = existingResult.rows[0];
           if (indexedFields.total_orders > (existing.total_orders || 0)) {
@@ -483,7 +483,7 @@ async function saveContributionInternal(contribution) {
         }
       }
     }
-    
+
     if (dataType === 'github_profile') {
       const username = sellableData?.data?.username || contribution.data?.username;
       if (username) {
@@ -495,7 +495,7 @@ async function saveContributionInternal(contribution) {
            FOR UPDATE`,
           [`%"username":"${username}"%`]
         );
-        
+
         if (existingResult.rows.length > 0) {
           await query('ROLLBACK');
           console.log(`⚠️ DUPLICATE GitHub data detected (username: ${username}), rejecting`);
@@ -503,7 +503,7 @@ async function saveContributionInternal(contribution) {
         }
       }
     }
-    
+
     if (dataType === 'netflix_watch_history') {
       const titleCount = sellableData?.viewing_summary?.total_titles_watched;
       if (titleCount && titleCount > 0) {
@@ -514,7 +514,7 @@ async function saveContributionInternal(contribution) {
            FOR UPDATE`,
           [titleCount]
         );
-        
+
         if (existingResult.rows.length > 0) {
           await query('ROLLBACK');
           console.log(`⚠️ DUPLICATE Netflix data detected (titles: ${titleCount}), rejecting`);
@@ -533,7 +533,7 @@ async function saveContributionInternal(contribution) {
            FOR UPDATE`,
           [indexedFields.total_orders, indexedFields.total_spend]
         );
-        
+
         if (existingResult.rows.length > 0) {
           const existing = existingResult.rows[0];
           if (indexedFields.total_orders > (existing.total_orders || 0)) {
@@ -558,7 +558,7 @@ async function saveContributionInternal(contribution) {
            FOR UPDATE`,
           [indexedFields.total_orders, indexedFields.total_spend]
         );
-        
+
         if (existingResult.rows.length > 0) {
           const existing = existingResult.rows[0];
           if (indexedFields.total_orders > (existing.total_orders || 0)) {
@@ -583,7 +583,7 @@ async function saveContributionInternal(contribution) {
            FOR UPDATE`,
           [indexedFields.total_rides, indexedFields.total_spend]
         );
-        
+
         if (existingResult.rows.length > 0) {
           const existing = existingResult.rows[0];
           if (indexedFields.total_rides > (existing.total_rides || 0)) {
@@ -608,7 +608,7 @@ async function saveContributionInternal(contribution) {
            FOR UPDATE`,
           [indexedFields.total_activities, indexedFields.total_distance_km]
         );
-        
+
         if (existingResult.rows.length > 0) {
           const existing = existingResult.rows[0];
           if (indexedFields.total_activities > (existing.total_activities || 0)) {
@@ -636,7 +636,7 @@ async function saveContributionInternal(contribution) {
            FOR UPDATE`,
           [indexedFields.total_orders, indexedFields.total_spend]
         );
-        
+
         if (existingResult.rows.length > 0) {
           const existing = existingResult.rows[0];
           if (indexedFields.total_orders > (existing.total_orders || 0)) {
@@ -655,7 +655,7 @@ async function saveContributionInternal(contribution) {
              FOR UPDATE`,
             [String(userId), indexedFields.total_orders, indexedFields.total_spend]
           );
-          
+
           if (optedOutResult.rows.length > 0) {
             contributionId = optedOutResult.rows[0].id;
             console.log(`🔄 Found opted-out Zepto contribution, will update instead of creating new row`);
@@ -670,10 +670,10 @@ async function saveContributionInternal(contribution) {
 
     // Determine which table to use based on dataType
     if (dataType === 'zomato_order_history') {
-        const indexedFields = extractZomatoFields(sellableData);
+      const indexedFields = extractZomatoFields(sellableData);
 
-        await query(
-          `INSERT INTO zomato_contributions (
+      await query(
+        `INSERT INTO zomato_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
             sellable_data, metadata,
             total_orders, total_gmv, avg_order_value, frequency_tier,
@@ -725,47 +725,47 @@ async function saveContributionInternal(contribution) {
             cohort_id = EXCLUDED.cohort_id,
             opt_out = FALSE,
             updated_at = NOW()`,
-          [
-            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
-            JSON.stringify(sellableData),
-            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
-            indexedFields.total_orders,
-            indexedFields.total_gmv,
-            indexedFields.avg_order_value,
-            indexedFields.frequency_tier,
-            indexedFields.lifestyle_segment,
-            indexedFields.city_cluster,
-            indexedFields.data_quality_score,
-            indexedFields.cohort_id,
-            // Extended fields
-            indexedFields.top_cuisines ? JSON.stringify(indexedFields.top_cuisines) : null,
-            indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
-            indexedFields.segment_id,
-            indexedFields.chain_vs_local_preference,
-            indexedFields.day_of_week_distribution ? JSON.stringify(indexedFields.day_of_week_distribution) : null,
-            indexedFields.time_of_day_curve ? JSON.stringify(indexedFields.time_of_day_curve) : null,
-            indexedFields.peak_ordering_day,
-            indexedFields.peak_ordering_time,
-            indexedFields.late_night_eater,
-            indexedFields.price_bucket_distribution ? JSON.stringify(indexedFields.price_bucket_distribution) : null,
-            indexedFields.dominant_price_segment,
-            indexedFields.discount_usage_rate,
-            indexedFields.offer_dependent,
-            indexedFields.premium_vs_budget_ratio,
-            indexedFields.frequent_dishes ? JSON.stringify(indexedFields.frequent_dishes) : null,
-            indexedFields.favorite_restaurants ? JSON.stringify(indexedFields.favorite_restaurants) : null,
-            indexedFields.competitor_mapping ? JSON.stringify(indexedFields.competitor_mapping) : null,
-            indexedFields.repeat_baskets ? JSON.stringify(indexedFields.repeat_baskets) : null,
-            indexedFields.geo_data ? JSON.stringify(indexedFields.geo_data) : null,
-            walletAddress || null,
-          ]
-        );
+        [
+          contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+          JSON.stringify(sellableData),
+          behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+          indexedFields.total_orders,
+          indexedFields.total_gmv,
+          indexedFields.avg_order_value,
+          indexedFields.frequency_tier,
+          indexedFields.lifestyle_segment,
+          indexedFields.city_cluster,
+          indexedFields.data_quality_score,
+          indexedFields.cohort_id,
+          // Extended fields
+          indexedFields.top_cuisines ? JSON.stringify(indexedFields.top_cuisines) : null,
+          indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
+          indexedFields.segment_id,
+          indexedFields.chain_vs_local_preference,
+          indexedFields.day_of_week_distribution ? JSON.stringify(indexedFields.day_of_week_distribution) : null,
+          indexedFields.time_of_day_curve ? JSON.stringify(indexedFields.time_of_day_curve) : null,
+          indexedFields.peak_ordering_day,
+          indexedFields.peak_ordering_time,
+          indexedFields.late_night_eater,
+          indexedFields.price_bucket_distribution ? JSON.stringify(indexedFields.price_bucket_distribution) : null,
+          indexedFields.dominant_price_segment,
+          indexedFields.discount_usage_rate,
+          indexedFields.offer_dependent,
+          indexedFields.premium_vs_budget_ratio,
+          indexedFields.frequent_dishes ? JSON.stringify(indexedFields.frequent_dishes) : null,
+          indexedFields.favorite_restaurants ? JSON.stringify(indexedFields.favorite_restaurants) : null,
+          indexedFields.competitor_mapping ? JSON.stringify(indexedFields.competitor_mapping) : null,
+          indexedFields.repeat_baskets ? JSON.stringify(indexedFields.repeat_baskets) : null,
+          indexedFields.geo_data ? JSON.stringify(indexedFields.geo_data) : null,
+          walletAddress || null,
+        ]
+      );
 
-      } else if (dataType === 'github_profile') {
-        const indexedFields = extractGithubFields(sellableData, contribution);
+    } else if (dataType === 'github_profile') {
+      const indexedFields = extractGithubFields(sellableData, contribution);
 
-        await query(
-          `INSERT INTO github_contributions (
+      await query(
+        `INSERT INTO github_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
             sellable_data, metadata,
             follower_count, contribution_count, developer_tier, follower_tier,
@@ -791,28 +791,28 @@ async function saveContributionInternal(contribution) {
             wallet_address = EXCLUDED.wallet_address,
             opt_out = FALSE,
             updated_at = NOW()`,
-          [
-            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
-            JSON.stringify(sellableData),
-            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
-            indexedFields.follower_count,
-            indexedFields.contribution_count,
-            indexedFields.developer_tier,
-            indexedFields.follower_tier,
-            indexedFields.activity_level,
-            indexedFields.is_influencer,
-            indexedFields.is_active_contributor,
-            indexedFields.data_quality_score,
-            indexedFields.cohort_id,
-            walletAddress || null
-          ]
-        );
+        [
+          contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+          JSON.stringify(sellableData),
+          behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+          indexedFields.follower_count,
+          indexedFields.contribution_count,
+          indexedFields.developer_tier,
+          indexedFields.follower_tier,
+          indexedFields.activity_level,
+          indexedFields.is_influencer,
+          indexedFields.is_active_contributor,
+          indexedFields.data_quality_score,
+          indexedFields.cohort_id,
+          walletAddress || null
+        ]
+      );
 
-      } else if (dataType === 'netflix_watch_history') {
-        const indexedFields = extractNetflixFields(sellableData);
+    } else if (dataType === 'netflix_watch_history') {
+      const indexedFields = extractNetflixFields(sellableData);
 
-        await query(
-          `INSERT INTO netflix_contributions (
+      await query(
+        `INSERT INTO netflix_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
             sellable_data, metadata,
             total_titles_watched, total_watch_hours, binge_score, engagement_tier,
@@ -845,46 +845,46 @@ async function saveContributionInternal(contribution) {
             wallet_address = EXCLUDED.wallet_address,
             opt_out = FALSE,
             updated_at = NOW()`,
-          [
-            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
-            JSON.stringify(sellableData),
-            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
-            indexedFields.total_titles_watched,
-            indexedFields.total_watch_hours,
-            indexedFields.binge_score,
-            indexedFields.engagement_tier,
-            indexedFields.top_genres ? JSON.stringify(indexedFields.top_genres) : null,
-            indexedFields.genre_diversity_score,
-            indexedFields.dominant_content_type,
-            indexedFields.primary_language,
-            indexedFields.peak_viewing_day,
-            indexedFields.peak_viewing_time,
-            indexedFields.late_night_viewer,
-            indexedFields.is_binge_watcher,
-            indexedFields.day_of_week_distribution ? JSON.stringify(indexedFields.day_of_week_distribution) : null,
-            indexedFields.time_of_day_curve ? JSON.stringify(indexedFields.time_of_day_curve) : null,
-            indexedFields.subscription_tier,
-            indexedFields.account_age_years,
-            indexedFields.member_since_year,
-            indexedFields.loyalty_tier,
-            indexedFields.churn_risk,
-            indexedFields.kids_content_pct,
-            indexedFields.mature_content_pct,
-            indexedFields.primary_audience,
-            indexedFields.segment_id,
-            indexedFields.cohort_id,
-            indexedFields.data_quality_score,
-            indexedFields.movies_watched ? JSON.stringify(indexedFields.movies_watched) : null,
-            indexedFields.top_series ? JSON.stringify(indexedFields.top_series) : null,
-            walletAddress || null
-          ]
-        );
+        [
+          contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+          JSON.stringify(sellableData),
+          behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+          indexedFields.total_titles_watched,
+          indexedFields.total_watch_hours,
+          indexedFields.binge_score,
+          indexedFields.engagement_tier,
+          indexedFields.top_genres ? JSON.stringify(indexedFields.top_genres) : null,
+          indexedFields.genre_diversity_score,
+          indexedFields.dominant_content_type,
+          indexedFields.primary_language,
+          indexedFields.peak_viewing_day,
+          indexedFields.peak_viewing_time,
+          indexedFields.late_night_viewer,
+          indexedFields.is_binge_watcher,
+          indexedFields.day_of_week_distribution ? JSON.stringify(indexedFields.day_of_week_distribution) : null,
+          indexedFields.time_of_day_curve ? JSON.stringify(indexedFields.time_of_day_curve) : null,
+          indexedFields.subscription_tier,
+          indexedFields.account_age_years,
+          indexedFields.member_since_year,
+          indexedFields.loyalty_tier,
+          indexedFields.churn_risk,
+          indexedFields.kids_content_pct,
+          indexedFields.mature_content_pct,
+          indexedFields.primary_audience,
+          indexedFields.segment_id,
+          indexedFields.cohort_id,
+          indexedFields.data_quality_score,
+          indexedFields.movies_watched ? JSON.stringify(indexedFields.movies_watched) : null,
+          indexedFields.top_series ? JSON.stringify(indexedFields.top_series) : null,
+          walletAddress || null
+        ]
+      );
 
-      } else if (dataType === 'blinkit_order_history') {
-        const indexedFields = extractBlinkitFields(sellableData);
+    } else if (dataType === 'blinkit_order_history') {
+      const indexedFields = extractBlinkitFields(sellableData);
 
-        await query(
-          `INSERT INTO blinkit_contributions (
+      await query(
+        `INSERT INTO blinkit_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
             sellable_data, metadata,
             total_orders, total_spend, avg_order_value, total_items, avg_items_per_order,
@@ -911,37 +911,37 @@ async function saveContributionInternal(contribution) {
             spend_bracket = EXCLUDED.spend_bracket,
             wallet_address = EXCLUDED.wallet_address,
             updated_at = NOW()`,
-          [
-            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
-            JSON.stringify(sellableData),
-            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
-            indexedFields.total_orders,
-            indexedFields.total_spend,
-            indexedFields.avg_order_value,
-            indexedFields.total_items,
-            indexedFields.avg_items_per_order,
-            indexedFields.data_window_days,
-            indexedFields.top_categories ? JSON.stringify(indexedFields.top_categories) : null,
-            indexedFields.category_diversity_score,
-            indexedFields.essentials_buyer,
-            indexedFields.snacks_buyer,
-            indexedFields.personal_care_buyer,
-            indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
-            indexedFields.brand_loyalty_score,
-            indexedFields.spend_bracket,
-            indexedFields.order_frequency,
-            indexedFields.segment_id,
-            indexedFields.cohort_id,
-            indexedFields.data_quality_score,
-            walletAddress || null,
-          ]
-        );
+        [
+          contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+          JSON.stringify(sellableData),
+          behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+          indexedFields.total_orders,
+          indexedFields.total_spend,
+          indexedFields.avg_order_value,
+          indexedFields.total_items,
+          indexedFields.avg_items_per_order,
+          indexedFields.data_window_days,
+          indexedFields.top_categories ? JSON.stringify(indexedFields.top_categories) : null,
+          indexedFields.category_diversity_score,
+          indexedFields.essentials_buyer,
+          indexedFields.snacks_buyer,
+          indexedFields.personal_care_buyer,
+          indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
+          indexedFields.brand_loyalty_score,
+          indexedFields.spend_bracket,
+          indexedFields.order_frequency,
+          indexedFields.segment_id,
+          indexedFields.cohort_id,
+          indexedFields.data_quality_score,
+          walletAddress || null,
+        ]
+      );
 
-      } else if (dataType === 'ubereats_order_history') {
-        const indexedFields = extractUberEatsFields(sellableData);
+    } else if (dataType === 'ubereats_order_history') {
+      const indexedFields = extractUberEatsFields(sellableData);
 
-        await query(
-          `INSERT INTO ubereats_contributions (
+      await query(
+        `INSERT INTO ubereats_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
             sellable_data, metadata,
             total_orders, total_spend, avg_order_value, data_window_days,
@@ -968,39 +968,39 @@ async function saveContributionInternal(contribution) {
             spend_bracket = EXCLUDED.spend_bracket,
             wallet_address = EXCLUDED.wallet_address,
             updated_at = NOW()`,
-          [
-            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
-            JSON.stringify(sellableData),
-            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
-            indexedFields.total_orders,
-            indexedFields.total_spend,
-            indexedFields.avg_order_value,
-            indexedFields.data_window_days,
-            indexedFields.top_cuisines ? JSON.stringify(indexedFields.top_cuisines) : null,
-            indexedFields.cuisine_diversity_score,
-            indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
-            indexedFields.brand_loyalty_score,
-            indexedFields.spend_bracket,
-            indexedFields.price_sensitivity_index,
-            indexedFields.price_sensitivity_category,
-            indexedFields.peak_ordering_day,
-            indexedFields.peak_ordering_time,
-            indexedFields.late_night_eater,
-            indexedFields.avg_items_per_order,
-            indexedFields.day_of_week_distribution ? JSON.stringify(indexedFields.day_of_week_distribution) : null,
-            indexedFields.time_of_day_curve ? JSON.stringify(indexedFields.time_of_day_curve) : null,
-            indexedFields.segment_id,
-            indexedFields.cohort_id,
-            indexedFields.data_quality_score,
-            walletAddress || null,
-          ]
-        );
+        [
+          contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+          JSON.stringify(sellableData),
+          behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+          indexedFields.total_orders,
+          indexedFields.total_spend,
+          indexedFields.avg_order_value,
+          indexedFields.data_window_days,
+          indexedFields.top_cuisines ? JSON.stringify(indexedFields.top_cuisines) : null,
+          indexedFields.cuisine_diversity_score,
+          indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
+          indexedFields.brand_loyalty_score,
+          indexedFields.spend_bracket,
+          indexedFields.price_sensitivity_index,
+          indexedFields.price_sensitivity_category,
+          indexedFields.peak_ordering_day,
+          indexedFields.peak_ordering_time,
+          indexedFields.late_night_eater,
+          indexedFields.avg_items_per_order,
+          indexedFields.day_of_week_distribution ? JSON.stringify(indexedFields.day_of_week_distribution) : null,
+          indexedFields.time_of_day_curve ? JSON.stringify(indexedFields.time_of_day_curve) : null,
+          indexedFields.segment_id,
+          indexedFields.cohort_id,
+          indexedFields.data_quality_score,
+          walletAddress || null,
+        ]
+      );
 
-      } else if (dataType === 'uber_ride_history') {
-        const indexedFields = extractUberRidesFields(sellableData);
+    } else if (dataType === 'uber_ride_history') {
+      const indexedFields = extractUberRidesFields(sellableData);
 
-        await query(
-          `INSERT INTO uber_rides_contributions (
+      await query(
+        `INSERT INTO uber_rides_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
             sellable_data, metadata,
             total_rides, total_spend, total_distance_km, total_duration_min,
@@ -1027,41 +1027,41 @@ async function saveContributionInternal(contribution) {
             wallet_address = EXCLUDED.wallet_address,
             opt_out = FALSE,
             updated_at = NOW()`,
-          [
-            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
-            JSON.stringify(sellableData),
-            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
-            indexedFields.total_rides,
-            indexedFields.total_spend,
-            indexedFields.total_distance_km,
-            indexedFields.total_duration_min,
-            indexedFields.avg_fare,
-            indexedFields.avg_distance_km,
-            indexedFields.avg_duration_min,
-            indexedFields.preferred_ride_type,
-            indexedFields.ride_type_distribution ? JSON.stringify(indexedFields.ride_type_distribution) : null,
-            indexedFields.uses_premium,
-            indexedFields.uses_shared,
-            indexedFields.peak_time_period,
-            indexedFields.peak_day,
-            indexedFields.is_commuter,
-            indexedFields.weekend_preference,
-            indexedFields.late_night_rider,
-            indexedFields.spend_bracket,
-            indexedFields.frequency,
-            indexedFields.urban_mobility_score,
-            indexedFields.segment_id,
-            indexedFields.cohort_id,
-            indexedFields.data_quality_score,
-            walletAddress || null,
-          ]
-        );
+        [
+          contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+          JSON.stringify(sellableData),
+          behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+          indexedFields.total_rides,
+          indexedFields.total_spend,
+          indexedFields.total_distance_km,
+          indexedFields.total_duration_min,
+          indexedFields.avg_fare,
+          indexedFields.avg_distance_km,
+          indexedFields.avg_duration_min,
+          indexedFields.preferred_ride_type,
+          indexedFields.ride_type_distribution ? JSON.stringify(indexedFields.ride_type_distribution) : null,
+          indexedFields.uses_premium,
+          indexedFields.uses_shared,
+          indexedFields.peak_time_period,
+          indexedFields.peak_day,
+          indexedFields.is_commuter,
+          indexedFields.weekend_preference,
+          indexedFields.late_night_rider,
+          indexedFields.spend_bracket,
+          indexedFields.frequency,
+          indexedFields.urban_mobility_score,
+          indexedFields.segment_id,
+          indexedFields.cohort_id,
+          indexedFields.data_quality_score,
+          walletAddress || null,
+        ]
+      );
 
-      } else if (dataType === 'strava_fitness') {
-        const indexedFields = extractStravaFields(sellableData);
+    } else if (dataType === 'strava_fitness') {
+      const indexedFields = extractStravaFields(sellableData);
 
-        await query(
-          `INSERT INTO strava_contributions (
+      await query(
+        `INSERT INTO strava_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
             sellable_data, metadata,
             fitness_tier, tier_label, activities_per_week, primary_activity, engagement_score,
@@ -1114,48 +1114,48 @@ async function saveContributionInternal(contribution) {
             wallet_address = EXCLUDED.wallet_address,
             opt_out = FALSE,
             updated_at = NOW()`,
-          [
-            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
-            JSON.stringify(sellableData),
-            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
-            indexedFields.fitness_tier,
-            indexedFields.tier_label,
-            indexedFields.activities_per_week,
-            indexedFields.primary_activity,
-            indexedFields.engagement_score,
-            indexedFields.total_distance_km,
-            indexedFields.total_activities,
-            indexedFields.total_time_hours,
-            indexedFields.running_distance_km,
-            indexedFields.running_count,
-            indexedFields.running_time_hours,
-            indexedFields.cycling_distance_km,
-            indexedFields.cycling_count,
-            indexedFields.cycling_time_hours,
-            indexedFields.walking_distance_km,
-            indexedFields.walking_count,
-            indexedFields.swimming_distance_km,
-            indexedFields.swimming_count,
-            indexedFields.consistency_score,
-            indexedFields.multi_sport_athlete,
-            indexedFields.endurance_focused,
-            indexedFields.outdoor_enthusiast,
-            indexedFields.region,
-            indexedFields.country,
-            indexedFields.segment_id,
-            indexedFields.cohort_id,
-            indexedFields.data_quality_score,
-            walletAddress || null,
-          ]
-        );
+        [
+          contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+          JSON.stringify(sellableData),
+          behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+          indexedFields.fitness_tier,
+          indexedFields.tier_label,
+          indexedFields.activities_per_week,
+          indexedFields.primary_activity,
+          indexedFields.engagement_score,
+          indexedFields.total_distance_km,
+          indexedFields.total_activities,
+          indexedFields.total_time_hours,
+          indexedFields.running_distance_km,
+          indexedFields.running_count,
+          indexedFields.running_time_hours,
+          indexedFields.cycling_distance_km,
+          indexedFields.cycling_count,
+          indexedFields.cycling_time_hours,
+          indexedFields.walking_distance_km,
+          indexedFields.walking_count,
+          indexedFields.swimming_distance_km,
+          indexedFields.swimming_count,
+          indexedFields.consistency_score,
+          indexedFields.multi_sport_athlete,
+          indexedFields.endurance_focused,
+          indexedFields.outdoor_enthusiast,
+          indexedFields.region,
+          indexedFields.country,
+          indexedFields.segment_id,
+          indexedFields.cohort_id,
+          indexedFields.data_quality_score,
+          walletAddress || null,
+        ]
+      );
 
-      } else if (dataType === 'zepto_order_history') {
-        const indexedFields = extractZeptoFields(sellableData);
+    } else if (dataType === 'zepto_order_history') {
+      const indexedFields = extractZeptoFields(sellableData);
 
-        // Use ON CONFLICT (id) to handle re-verification after opt-out
-        // (the old row has a different reclaim_proof_id, so ON CONFLICT (reclaim_proof_id) won't work)
-        await query(
-          `INSERT INTO zepto_contributions (
+      // Use ON CONFLICT (id) to handle re-verification after opt-out
+      // (the old row has a different reclaim_proof_id, so ON CONFLICT (reclaim_proof_id) won't work)
+      await query(
+        `INSERT INTO zepto_contributions (
             id, user_id, reclaim_proof_id, status, processing_method, created_at,
             sellable_data, metadata,
             total_orders, total_spend, avg_order_value, total_items, avg_items_per_order,
@@ -1194,31 +1194,31 @@ async function saveContributionInternal(contribution) {
             wallet_address = EXCLUDED.wallet_address,
             opt_out = FALSE,
             updated_at = NOW()`,
-          [
-            contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
-            JSON.stringify(sellableData),
-            behavioralInsights ? JSON.stringify(behavioralInsights) : null,
-            indexedFields.total_orders,
-            indexedFields.total_spend,
-            indexedFields.avg_order_value,
-            indexedFields.total_items,
-            indexedFields.avg_items_per_order,
-            indexedFields.data_window_days,
-            indexedFields.top_categories ? JSON.stringify(indexedFields.top_categories) : null,
-            indexedFields.category_diversity_score,
-            indexedFields.essentials_buyer,
-            indexedFields.snacks_buyer,
-            indexedFields.personal_care_buyer,
-            indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
-            indexedFields.brand_loyalty_score,
-            indexedFields.spend_bracket,
-            indexedFields.order_frequency,
-            indexedFields.segment_id,
-            indexedFields.cohort_id,
-            indexedFields.data_quality_score,
-            walletAddress || null,
-          ]
-        );
+        [
+          contributionId, String(userId), reclaimProofId, status, processingMethod, createdAt || new Date(),
+          JSON.stringify(sellableData),
+          behavioralInsights ? JSON.stringify(behavioralInsights) : null,
+          indexedFields.total_orders,
+          indexedFields.total_spend,
+          indexedFields.avg_order_value,
+          indexedFields.total_items,
+          indexedFields.avg_items_per_order,
+          indexedFields.data_window_days,
+          indexedFields.top_categories ? JSON.stringify(indexedFields.top_categories) : null,
+          indexedFields.category_diversity_score,
+          indexedFields.essentials_buyer,
+          indexedFields.snacks_buyer,
+          indexedFields.personal_care_buyer,
+          indexedFields.top_brands ? JSON.stringify(indexedFields.top_brands) : null,
+          indexedFields.brand_loyalty_score,
+          indexedFields.spend_bracket,
+          indexedFields.order_frequency,
+          indexedFields.segment_id,
+          indexedFields.cohort_id,
+          indexedFields.data_quality_score,
+          walletAddress || null,
+        ]
+      );
 
     } else {
       console.warn(`⚠️  Unknown dataType: ${dataType}, skipping database save`);
@@ -1237,7 +1237,7 @@ async function saveContributionInternal(contribution) {
     } catch (rollbackError) {
       // Ignore rollback errors
     }
-    
+
     // Re-throw for retry logic in saveContribution wrapper
     throw error;
   }
@@ -1935,18 +1935,18 @@ export async function queryZeptoContributions(filters = {}) {
       userId: row.user_id,
       reclaimProofId: row.reclaim_proof_id,
       status: row.status,
-      createdAt: row.created_at,
-      sellableData: parseJsonb(row.sellable_data),
+      created_at: row.created_at,
+      sellable_data: parseJsonb(row.sellable_data),
       metadata: parseJsonb(row.metadata),
       dataType: 'zepto_order_history',
-      totalOrders: row.total_orders,
-      totalSpend: row.total_spend ? parseFloat(row.total_spend) : null,
-      avgOrderValue: row.avg_order_value ? parseFloat(row.avg_order_value) : null,
-      spendBracket: row.spend_bracket,
-      orderFrequency: row.order_frequency,
-      segmentId: row.segment_id,
-      cohortId: row.cohort_id,
-      dataQualityScore: row.data_quality_score
+      total_orders: row.total_orders,
+      total_spend: row.total_spend ? parseFloat(row.total_spend) : null,
+      avg_order_value: row.avg_order_value ? parseFloat(row.avg_order_value) : null,
+      spend_bracket: row.spend_bracket,
+      order_frequency: row.order_frequency,
+      segment_id: row.segment_id,
+      cohort_id: row.cohort_id,
+      data_quality_score: row.data_quality_score
     }));
   } catch (error) {
     console.error('Error querying Zepto contributions:', error);
@@ -2049,6 +2049,18 @@ export async function getUserContributions(userId) {
           dataType = 'uber_ride_history';
         } else if (contrib.total_activities !== undefined && contrib.fitness_tier !== undefined) {
           dataType = 'strava_fitness';
+        } else if (contrib.total_orders !== undefined && (contrib.total_spend !== undefined || contrib.total_gmv !== undefined)) {
+          // If total_spend is present, it's either Blinkit, Uber Eats, or Zepto
+          // If total_gmv is present, it's Zomato
+          if (contrib.total_gmv !== undefined) {
+            dataType = 'zomato_order_history';
+          } else if (contrib.top_categories !== undefined) {
+            dataType = 'blinkit_order_history';
+          } else if (contrib.top_cuisines !== undefined) {
+            dataType = 'ubereats_order_history';
+          } else if (contrib.spend_bracket !== undefined || contrib.order_frequency !== undefined) {
+            dataType = 'zepto_order_history';
+          }
         }
       }
 
@@ -2372,12 +2384,12 @@ export async function findDuplicateByContent(dataType, contentSignature) {
   try {
     // Parse the content signature to extract searchable fields
     const parts = contentSignature.split('_');
-    
+
     if (dataType === 'zomato_order_history' && parts[0] === 'zomato') {
       // Format: zomato_userId_orderCount_restaurant_timestamp
       const zomatoUserId = parts[1] || '';
       const orderCount = parseInt(parts[2], 10) || 0;
-      
+
       // Check if same Zomato userId with same order count exists
       if (zomatoUserId) {
         // Only check for duplicates among contributions that haven't opted out
@@ -2400,7 +2412,7 @@ export async function findDuplicateByContent(dataType, contentSignature) {
       const username = parts[1] || '';
       const followers = parseInt(parts[2], 10) || 0;
       const contributions = parseInt(parts[3], 10) || 0;
-      
+
       if (username) {
         // Only check for duplicates among contributions that haven't opted out
         const result = await query(
@@ -2421,7 +2433,7 @@ export async function findDuplicateByContent(dataType, contentSignature) {
     } else if (dataType === 'netflix_watch_history' && parts[0] === 'netflix') {
       // Format: netflix_titleCount_firstTitle
       const titleCount = parseInt(parts[1], 10) || 0;
-      
+
       if (titleCount > 0) {
         // Only check for duplicates among contributions that haven't opted out
         const result = await query(
