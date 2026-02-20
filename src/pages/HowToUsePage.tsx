@@ -56,6 +56,31 @@ const HowToUsePage = () => {
                     margin: 0 auto;
                     padding: 40px 24px;
                 }
+                
+                @media (max-width: 768px) {
+                    .how-to-use-page {
+                        padding-left: 0 !important;
+                        padding-bottom: 80px !important;
+                    }
+                    .how-to-use-content {
+                        padding: 100px 20px 40px !important;
+                    }
+                    .how-to-use-content h2 {
+                        font-size: 28px !important;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .how-to-use-content {
+                        padding: 90px 16px 32px !important;
+                    }
+                    .how-to-use-content h2 {
+                        font-size: 24px !important;
+                    }
+                    .how-to-use-content p {
+                        font-size: 14px !important;
+                    }
+                }
             `}</style>
 
             <div className="how-to-use-page">

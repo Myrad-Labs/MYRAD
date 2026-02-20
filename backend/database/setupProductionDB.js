@@ -23,14 +23,16 @@ const MIGRATIONS = [
   '010_add_uber_rides_table.sql',
   '011_add_strava_table.sql',
   '012_add_opt_out_column.sql',
-  '013_add_zepto_table.sql'
+  '013_add_zepto_table.sql',
+  '014_add_composite_indexes.sql',
+  '015_add_zepto_processing_method.sql'
 ];
 
 async function runMigration(migrationFile) {
   // Temporarily override process.argv to pass the migration file to runMigrations
   const originalArgv = process.argv;
   process.argv = [process.argv[0], process.argv[1], migrationFile];
-  
+
   try {
     await runMigrations();
   } finally {
@@ -41,7 +43,7 @@ async function runMigration(migrationFile) {
 
 async function setupProductionDatabase() {
   console.log('🚀 Setting up production database...\n');
-  
+
   // Test connection first
   const connected = await testConnection();
   if (!connected) {
@@ -49,19 +51,19 @@ async function setupProductionDatabase() {
     console.error('   Make sure DATABASE_URL is set to your production NeonDB URL.');
     process.exit(1);
   }
-  
+
   console.log('✅ Database connection successful!\n');
-  
+
   try {
     for (let i = 0; i < MIGRATIONS.length; i++) {
       const migrationFile = MIGRATIONS[i];
       console.log(`\n📦 Running migration ${i + 1}/${MIGRATIONS.length}: ${migrationFile}...\n`);
-      
+
       await runMigration(migrationFile);
-      
+
       console.log(`\n✅ Migration ${i + 1} completed: ${migrationFile}`);
     }
-    
+
     console.log('\n🎉 All migrations completed successfully!');
     console.log('\n📊 Database tables created:');
     console.log('   - zomato_contributions');
@@ -75,7 +77,7 @@ async function setupProductionDatabase() {
     console.log('   - users');
     console.log('   - points_history');
     console.log('\n✅ Production database is ready!');
-    
+
   } catch (error) {
     console.error('\n❌ Migration error:', error.message);
     process.exit(1);

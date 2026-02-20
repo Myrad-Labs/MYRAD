@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 
 const Header = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login, authenticated, ready } = usePrivy();
-    const [scrollY, setScrollY] = useState(0);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // Redirect to dashboard when user authenticates
@@ -15,12 +15,6 @@ const Header = () => {
             navigate('/dashboard');
         }
     }, [authenticated, ready, navigate]);
-
-    useEffect(() => {
-        const handleScroll = () => setScrollY(window.scrollY);
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
     const handleGetStarted = () => {
         if (authenticated) {
@@ -69,10 +63,19 @@ const Header = () => {
                     .desktop-nav { display: none !important; }
                     .mobile-menu-btn { display: flex !important; }
                     .contribute-btn { display: none !important; }
+                    header > div {
+                        padding: 0 16px !important;
+                    }
                 }
                 
                 @media (min-width: 769px) {
                     .mobile-menu-btn { display: none !important; }
+                }
+                
+                @media (max-width: 480px) {
+                    header > div {
+                        padding: 0 12px !important;
+                    }
                 }
             `}</style>
             <header style={{
@@ -81,18 +84,18 @@ const Header = () => {
                 left: 0,
                 right: 0,
                 zIndex: 1000,
-                background: scrollY > 50 ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-                backdropFilter: scrollY > 50 ? 'blur(20px)' : 'none',
-                borderBottom: scrollY > 50 ? '1px solid rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.4s ease',
-                width: '100%',
-                overflowX: 'hidden'
+                background: 'rgba(250, 250, 250, 0.95)',
+                backdropFilter: 'blur(10px)',
+                borderBottom: '1px solid #e5e7eb',
+                height: '60px',
+                display: 'flex',
+                alignItems: 'center'
             }}>
                 <div
                     style={{
-                        maxWidth: '1280px',
-                        margin: '0 auto',
-                        padding: '20px 24px',
+                        width: '100%',
+                        maxWidth: '100%',
+                        padding: '0 40px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -100,41 +103,51 @@ const Header = () => {
                     }}
                 >
                     {/* Left: logo */}
-                    <div style={{ flex: 1 }}>
-                        <Link to="/" style={{ textDecoration: 'none' }}>
-                            <img
-                                src="myrad-removebg-preview.png"
-                                alt="MYRAD logo"
-                                loading="lazy"
-                                style={{
-                                    height: '40px',
-                                    objectFit: 'contain'
-                                }}
-                            />
-                        </Link>
-                    </div>
 
                     {/* Center: nav */}
                     <nav
                         className="desktop-nav"
-                        style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', position: 'relative' }}
                     >
-                        {[
-                            { label: 'Home', href: '/' },
-                            { label: 'Contribute', href: '/contribute' },
-                            { label: 'Docs', href: 'https://docs.myradhq.xyz' },
-                            { label: 'About', href: '/about' },
-                        ].map((link, i) =>
-                            link.href.startsWith('#') || link.href.startsWith('http') ? (
-                                <a key={i} href={link.href} className="nav-link" target={link.href.startsWith('http') ? "_blank" : "_self"} rel={link.href.startsWith('http') ? "noopener noreferrer" : ""}>
-                                    {link.label}
-                                </a>
-                            ) : (
-                                <Link key={i} to={link.href} className="nav-link" onClick={() => window.scrollTo(0, 0)}>
-                                    {link.label}
-                                </Link>
-                            )
-                        )}
+                        {/* Active Page Link - Left Aligned */}
+                        {(() => {
+                            const allLinks = [
+                                { label: 'Home', href: '/' },
+                                { label: 'Contribute', href: '/contribute' },
+                                { label: 'About', href: '/about' },
+                            ];
+                            const activeLink = allLinks.find(l => l.href === location.pathname) || allLinks[0];
+                            const centerLinks = [
+                                ...allLinks.filter(l => l.href !== activeLink.href),
+                                { label: 'Docs', href: 'https://docs.myradhq.xyz' },
+                            ];
+
+                            return (
+                                <>
+                                    <Link to={activeLink.href} className="nav-link" onClick={() => window.scrollTo(0, 0)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <svg width="6" height="8" viewBox="0 0 6 8" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '2px' }}>
+                                            <path d="M6 4L0 0V8L6 4Z" fill="#0fab5aff" />
+                                        </svg>
+                                        {activeLink.label}
+                                    </Link>
+
+                                    {/* Other Links - Centered */}
+                                    <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                        {centerLinks.map((link, i) =>
+                                            link.href.startsWith('http') ? (
+                                                <a key={i} href={link.href} className="nav-link" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {link.label}
+                                                </a>
+                                            ) : (
+                                                <Link key={i} to={link.href} className="nav-link" onClick={() => window.scrollTo(0, 0)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {link.label}
+                                                </Link>
+                                            )
+                                        )}
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </nav>
 
                     {/* Right: button + mobile toggle */}
@@ -143,9 +156,9 @@ const Header = () => {
                             onClick={handleGetStarted}
                             className="btn-primary contribute-btn"
                             style={{
-                                padding: '14px 28px',
-                                borderRadius: '10px',
-                                fontSize: '14px',
+                                padding: '10px 22px',
+                                borderRadius: '50px',
+                                fontSize: '13px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
@@ -153,7 +166,6 @@ const Header = () => {
                             }}
                         >
                             {authenticated ? 'Go to Dashboard' : 'Get Started'}
-                            <ArrowRight size={16} />
                         </button>
 
                         <button
@@ -175,7 +187,6 @@ const Header = () => {
                         </button>
                     </div>
                 </div>
-
 
                 {/* Mobile Menu */}
                 {mobileMenuOpen && (

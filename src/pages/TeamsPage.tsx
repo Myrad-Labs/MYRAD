@@ -107,11 +107,11 @@ const TeamsPage = () => {
                 .team-card {
                     background: #f3f4f6;
                     border-radius: 100px; /* Pill shape */
-                    padding: 16px;
+                    padding: 24px;
                     padding-right: 48px;
                     display: flex;
                     align-items: center;
-                    gap: 24px;
+                    gap: 32px;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     border: 1px solid transparent;
                     cursor: default;
@@ -125,8 +125,8 @@ const TeamsPage = () => {
                 }
 
                 .member-image-container {
-                    width: 120px;
-                    height: 120px;
+                    width: 150px;
+                    height: 150px;
                     border-radius: 50%;
                     overflow: hidden;
                     background: #e5e7eb;
@@ -151,17 +151,17 @@ const TeamsPage = () => {
                 }
 
                 .member-name {
-                    font-size: 22px;
+                    font-size: 24px;
                     font-weight: 700;
                     color: #111827;
                     margin-bottom: 4px;
                 }
 
                 .member-role {
-                    font-size: 15px;
+                    font-size: 16px;
                     color: #6b7280;
                     font-weight: 500;
-                    margin-bottom: 12px;
+                    margin-bottom: 16px;
                 }
 
                 .social-links {
@@ -172,6 +172,9 @@ const TeamsPage = () => {
                 .social-icon {
                     color: #9ca3af;
                     transition: color 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
 
                 .social-icon:hover {
@@ -181,22 +184,34 @@ const TeamsPage = () => {
                 @media (max-width: 768px) {
                     .teams-grid {
                         grid-template-columns: 1fr;
-                        gap: 16px;
+                        gap: 24px;
                     }
                     
                     .team-card {
-                        padding: 16px;
+                        padding: 20px;
                         padding-right: 24px;
                         gap: 20px;
+                        border-radius: 24px;
+                        flex-direction: column;
+                        text-align: center;
+                        align-items: center;
                     }
 
                     .member-image-container {
-                        width: 80px;
-                        height: 80px;
+                        width: 120px;
+                        height: 120px;
                     }
 
                     .member-name {
-                        font-size: 18px;
+                        font-size: 20px;
+                    }
+                    
+                    .member-role {
+                         margin-bottom: 12px;
+                    }
+                    
+                    .social-links {
+                        justify-content: center;
                     }
                 }
             `}</style>

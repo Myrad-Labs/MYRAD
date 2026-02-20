@@ -91,6 +91,41 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
           z-index: 50;
           font-family: 'Satoshi', sans-serif;
         }
+        
+        @media (max-width: 768px) {
+          .dashboard-header {
+            margin-left: 0 !important;
+            padding: 12px 16px !important;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          
+          .header-right {
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          
+          .wallet-badge {
+            font-size: 11px !important;
+            padding: 6px 10px !important;
+          }
+          
+          .btn-logout, .btn-export, .btn-opt-out {
+            font-size: 11px !important;
+            padding: 6px 12px !important;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .dashboard-header {
+            padding: 10px 12px !important;
+          }
+          
+          .header-right {
+            width: 100%;
+            justify-content: space-between;
+          }
+        }
 
         .dash-logo { 
           height: 32px; 
@@ -369,7 +404,17 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
           
           .header-right {
             width: 100%;
-            justify-content: space-between;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+
+          .btn-export span, .btn-opt-out span, .btn-logout span, .wallet-badge span:not(:first-child) {
+             display: none;
+          }
+          
+          .wallet-badge {
+            margin-right: auto;
           }
         }
       `}</style>
@@ -396,15 +441,15 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
 
           <button onClick={() => exportWallet && exportWallet()} className="btn-export" title="Export Private Key">
             <Key size={14} />
-            Export Key
+            <span>Export Key</span>
           </button>
           <button onClick={() => setShowOptOutModal(true)} className="btn-opt-out" title="Opt Out of Data Marketplace">
             <AlertTriangle size={14} />
-            Opt Out
+            <span>Opt Out</span>
           </button>
           <button onClick={handleLogout} className="btn-logout">
             <LogOut size={16} />
-            Logout
+            <span>Logout</span>
           </button>
         </div>
       </header>
@@ -413,8 +458,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
       {showOptOutModal && (
         <div className="opt-out-modal-overlay" onClick={() => !optOutLoading && setShowOptOutModal(false)}>
           <div className="opt-out-modal" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className="opt-out-modal-close" 
+            <button
+              className="opt-out-modal-close"
               onClick={() => !optOutLoading && setShowOptOutModal(false)}
               disabled={optOutLoading}
             >
@@ -441,20 +486,20 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
             </div>
 
             <p className="opt-out-description">
-              By confirming, you acknowledge that your contributed data will no longer be available 
+              By confirming, you acknowledge that your contributed data will no longer be available
               in Myrad, and your accumulated points will be reset.
             </p>
 
             <div className="opt-out-buttons">
-              <button 
-                className="opt-out-btn-cancel" 
+              <button
+                className="opt-out-btn-cancel"
                 onClick={() => setShowOptOutModal(false)}
                 disabled={optOutLoading}
               >
                 Cancel
               </button>
-              <button 
-                className="opt-out-btn-confirm" 
+              <button
+                className="opt-out-btn-confirm"
                 onClick={handleOptOut}
                 disabled={optOutLoading}
               >

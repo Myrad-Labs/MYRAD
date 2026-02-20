@@ -20,7 +20,7 @@ export async function getUserByPrivyId(privyId) {
 
   try {
     const result = await query(
-      'SELECT * FROM users WHERE privy_id = $1',
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE privy_id = $1',
       [String(privyId)] // Ensure it's a string
     );
 
@@ -50,7 +50,7 @@ export async function getUserById(userId) {
 
   try {
     const result = await query(
-      'SELECT * FROM users WHERE id = $1',
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE id = $1',
       [userId]
     );
 
@@ -169,6 +169,8 @@ export async function createUser(privyId, email, walletAddress = null) {
   } catch (error) {
     await query('ROLLBACK');
 
+    // If it's a unique constraint violation, try to get the existing user
+    if (error.code === '23505' || error.message.includes('unique constraint') || error.message.includes('duplicate key')) {
     if (
       error.code === '23505' ||
       error.message.includes('unique constraint') ||
@@ -308,11 +310,11 @@ export async function getAllUsers(limit = null) {
   }
 
   try {
-    let queryText = 'SELECT * FROM users ORDER BY total_points DESC, created_at ASC';
+    let queryText = 'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users ORDER BY total_points DESC, created_at ASC';
     if (limit && limit > 0) {
       queryText += ` LIMIT ${parseInt(limit, 10)}`;
     }
-    
+
     const result = await query(queryText);
 
     return result.rows.map(formatUser);
@@ -360,18 +362,24 @@ export async function addPoints(userId, points, reason) {
           [pointsId, userId, points, reason]
         );
 
-        // Recalculate and update user's total points
-        const totalResult = await query(
-          'SELECT COALESCE(SUM(points), 0) as total FROM points_history WHERE user_id = $1',
-          [userId]
+        // Increment total_points directly instead of recalculating SUM from full history
+        await query(
+          'UPDATE users SET total_points = total_points + $1, updated_at = NOW() WHERE id = $2',
+          [points, userId]
         );
 
-        const totalPoints = parseInt(totalResult.rows[0].total, 10);
+        // Fetch updated total to calculate league
+        const totalResult = await query(
+          'SELECT total_points FROM users WHERE id = $1',
+          [userId]
+        );
+        const totalPoints = parseInt(totalResult.rows[0].total_points, 10);
         const league = calculateLeague(totalPoints);
 
+        // Only update league if it changed
         await query(
-          'UPDATE users SET total_points = $1, league = $2, updated_at = NOW() WHERE id = $3',
-          [totalPoints, league, userId]
+          'UPDATE users SET league = $1 WHERE id = $2 AND league != $1',
+          [league, userId]
         );
 
         await query('COMMIT');
@@ -389,7 +397,7 @@ export async function addPoints(userId, points, reason) {
       }
     } catch (error) {
       lastError = error;
-      
+
       // Check if it's a serialization failure or deadlock - these are retryable
       if (error.code === '40001' || error.code === '40P01' || error.message.includes('deadlock') || error.message.includes('could not serialize')) {
         console.log(`⚠️ Transaction conflict in addPoints (attempt ${attempt}/${maxRetries}), retrying...`);
@@ -397,7 +405,7 @@ export async function addPoints(userId, points, reason) {
         await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
         continue;
       }
-      
+
       // Non-retryable error
       throw error;
     }
@@ -482,7 +490,6 @@ export async function getWeeklyLeaderboard(limit = 10) {
   }
 
   try {
-    const { query } = await import('./db.js');
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 

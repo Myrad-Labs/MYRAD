@@ -143,7 +143,7 @@ const DashboardPage = () => {
   const [verificationUrl, setVerificationUrl] = useState<string | null>(null);
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isHoveringOnboarding, setIsHoveringOnboarding] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isTabVisible, setIsTabVisible] = useState(true);
   const [verificationStartTime, setVerificationStartTime] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -432,15 +432,15 @@ const [submittingReferral, setSubmittingReferral] = useState(false);
     }
   }, [ready, authenticated, user?.id]);
 
-  // Handle video playback on hover
+  // Handle video playback
   useEffect(() => {
-    if (isHoveringOnboarding && videoRef.current) {
+    if (isExpanded && videoRef.current) {
       videoRef.current.play().catch(err => console.log('Video play error:', err));
-    } else if (!isHoveringOnboarding && videoRef.current) {
+    } else if (!isExpanded && videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
-  }, [isHoveringOnboarding]);
+  }, [isExpanded]);
 
   const dismissOnboarding = () => {
     setShowOnboarding(false);
@@ -602,12 +602,12 @@ if (verifyData.isNewUser) {
       logErrorToServer(error, 'DashboardPage.fetchUserData');
     } finally {
       if (showRefresh) {
-      setRefreshing(false);
+        setRefreshing(false);
       } else {
         setLoading(false);
       }
     }
-  }, [user?.id, user?.email?.address, API_URL]);
+  }, [user?.id, user?.email?.address, user?.wallet?.address, API_URL]);
 
   // Fetch on mount
   useEffect(() => {
@@ -616,6 +616,34 @@ if (verifyData.isNewUser) {
       fetchUserData();
     }
   }, [authenticated, user?.id, fetchUserData]);
+
+  // Sync wallet address to backend when it becomes available AFTER initial load.
+  // Privy creates embedded wallets asynchronously after login,
+  // so user?.wallet?.address may not be available on initial auth/verify call.
+  // Skip on first render — fetchUserData already handles the initial sync.
+  const hasRunInitialFetch = useRef(false);
+  useEffect(() => {
+    if (!hasRunInitialFetch.current) {
+      // Mark that the first render has passed; fetchUserData handles initial sync
+      hasRunInitialFetch.current = true;
+      return;
+    }
+    const walletAddr = user?.wallet?.address;
+    if (!walletAddr || !authenticated || !user?.id) return;
+
+    const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+    fetch(`${API_URL}/api/auth/verify`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: user?.email?.address || null,
+        walletAddress: walletAddr
+      })
+    }).catch(err => console.error('Wallet sync error:', err));
+  }, [user?.wallet?.address]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Monitor tab visibility changes to handle background verification
@@ -752,7 +780,7 @@ if (verifyData.isNewUser) {
       let requestUrl: string;
       try {
         requestUrl = await reclaimProofRequest.getRequestUrl();
-      setVerificationUrl(requestUrl);
+        setVerificationUrl(requestUrl);
       } catch (urlError: any) {
         console.error('❌ Failed to get request URL:', urlError);
         // If it's a callback URL validation error and we're on localhost, try without callback URL
@@ -1019,9 +1047,9 @@ if (verifyData.isNewUser) {
                       try {
                         const parsed = JSON.parse(rawStr);
                         const orders = parsed.orders || parsed.order_history ||
-                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.orders ||
                           parsed.claimData?.parameters?.order_history;
-                        
+
                         if (Array.isArray(orders) && orders.length > 0) {
                           console.log(`🍔 Extracted Uber Eats orders array with ${orders.length} orders from structured JSON`);
                           return { orders };
@@ -1029,7 +1057,7 @@ if (verifyData.isNewUser) {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try various Uber Eats order formats using regex
                       const orderMatches = rawStr.match(/\{"items":"[^"]+","price":"[^"]+","timestamp":"[^"]+","restaurant":"[^"]+"\}/g) ||
                         rawStr.match(/\{"restaurant":"[^"]+","items":"[^"]+","total":"[^"]+","date":"[^"]+"\}/g) ||
@@ -1048,10 +1076,10 @@ if (verifyData.isNewUser) {
                       try {
                         // Try to parse the entire raw string as JSON to find structured data
                         const parsed = JSON.parse(rawStr);
-                        const allTimeActivity = parsed.allTimeActivity || parsed.all_time_activity || 
-                          parsed.claimData?.parameters?.allTimeActivity || 
+                        const allTimeActivity = parsed.allTimeActivity || parsed.all_time_activity ||
+                          parsed.claimData?.parameters?.allTimeActivity ||
                           parsed.claimData?.parameters?.all_time_activity;
-                        
+
                         if (Array.isArray(allTimeActivity) && allTimeActivity.length > 0) {
                           const stravaData: any = {
                             allTimeActivity: allTimeActivity,
@@ -1064,11 +1092,11 @@ if (verifyData.isNewUser) {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try to extract allTimeActivity array using regex
                       const allTimeActivityMatch = rawStr.match(/"allTimeActivity"\s*:\s*\[([^\]]+)\]/) ||
                         rawStr.match(/"all_time_activity"\s*:\s*\[([^\]]+)\]/);
-                      
+
                       if (allTimeActivityMatch) {
                         try {
                           const activitiesStr = `[${allTimeActivityMatch[1]}]`;
@@ -1086,7 +1114,7 @@ if (verifyData.isNewUser) {
                           // Continue to legacy regex extraction
                         }
                       }
-                      
+
                       // Legacy fallback: Try to extract fitness stats using regex
                       const runningMatch = rawStr.match(/running[_\s]?total["\s:]+["']?([\d.]+)/i);
                       const cyclingMatch = rawStr.match(/(?:cycling|ride)[_\s]?total["\s:]+["']?([\d.]+)/i);
@@ -1114,9 +1142,9 @@ if (verifyData.isNewUser) {
                       try {
                         const parsed = JSON.parse(rawStr);
                         const orders = parsed.orders || parsed.order_history ||
-                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.orders ||
                           parsed.claimData?.parameters?.order_history;
-                        
+
                         if (Array.isArray(orders) && orders.length > 0) {
                           console.log(`🛒 Extracted Blinkit orders array with ${orders.length} orders from structured JSON`);
                           return { orders };
@@ -1124,7 +1152,7 @@ if (verifyData.isNewUser) {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try various Blinkit order formats using regex
                       const orderMatches = rawStr.match(/\{"items":"[^"]+","(?:price|total)":"[^"]+","(?:timestamp|date)":"[^"]+"\}/g) ||
                         rawStr.match(/\{"order_items":"[^"]+","order_total":"[^"]+","order_date":"[^"]+"\}/g);
@@ -1142,9 +1170,9 @@ if (verifyData.isNewUser) {
                       try {
                         const parsed = JSON.parse(rawStr);
                         const orders = parsed.orders || parsed.order_history ||
-                          parsed.claimData?.parameters?.orders || 
+                          parsed.claimData?.parameters?.orders ||
                           parsed.claimData?.parameters?.order_history;
-                        
+
                         if (Array.isArray(orders) && orders.length > 0) {
                           console.log(`🛍️ Extracted Zepto orders array with ${orders.length} orders from structured JSON`);
                           return { orders };
@@ -1152,7 +1180,7 @@ if (verifyData.isNewUser) {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try various Zepto order formats using regex
                       const orderMatches = rawStr.match(/\{"items":"[^"]+","(?:price|total|amount)":"[^"]+","(?:timestamp|date)":"[^"]+"\}/g) ||
                         rawStr.match(/\{"product":"[^"]+","quantity":"[^"]+","price":"[^"]+"\}/g);
@@ -1171,10 +1199,10 @@ if (verifyData.isNewUser) {
                         // Try to parse the entire raw string as JSON to find structured data
                         const parsed = JSON.parse(rawStr);
                         const rides = parsed.rides || parsed.ride_history || parsed.trips ||
-                          parsed.claimData?.parameters?.rides || 
+                          parsed.claimData?.parameters?.rides ||
                           parsed.claimData?.parameters?.ride_history ||
                           parsed.claimData?.parameters?.trips;
-                        
+
                         if (Array.isArray(rides) && rides.length > 0) {
                           console.log(`🚗 Extracted Uber Rides array with ${rides.length} rides from structured JSON`);
                           return { rides };
@@ -1182,12 +1210,12 @@ if (verifyData.isNewUser) {
                       } catch (e) {
                         // If parsing fails, continue with regex fallback
                       }
-                      
+
                       // Fallback: Try to extract rides array using regex
                       const ridesArrayMatch = rawStr.match(/"rides"\s*:\s*\[([^\]]+)\]/) ||
                         rawStr.match(/"ride_history"\s*:\s*\[([^\]]+)\]/) ||
                         rawStr.match(/"trips"\s*:\s*\[([^\]]+)\]/);
-                      
+
                       if (ridesArrayMatch) {
                         try {
                           const ridesStr = `[${ridesArrayMatch[1]}]`;
@@ -1200,7 +1228,7 @@ if (verifyData.isNewUser) {
                           // Continue to legacy regex extraction
                         }
                       }
-                      
+
                       // Legacy fallback: Try various Uber ride formats using regex
                       const rideMatches = rawStr.match(/\{"(?:fare|total)":"[^"]+","(?:timestamp|date|pickup_time)":"[^"]+"\}/g) ||
                         rawStr.match(/\{"trip_id":"[^"]+","fare":"[^"]+"\}/g) ||
@@ -1267,6 +1295,24 @@ if (verifyData.isNewUser) {
                     // Check for paramValues (common in Reclaim proofs)
                     if (obj.paramValues) {
                       const pv = typeof obj.paramValues === 'string' ? JSON.parse(obj.paramValues) : obj.paramValues;
+                      // Zepto-specific: grandTotalAmount, itemQuantityCount, productsNamesAndCounts
+                      if (providerType === 'zepto' && (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined || pv.productsNamesAndCounts !== undefined)) {
+                        console.log(`🛒 Found Zepto paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                        return {
+                          grandTotalAmount: pv.grandTotalAmount,
+                          itemQuantityCount: pv.itemQuantityCount,
+                          productsNamesAndCounts: pv.productsNamesAndCounts
+                        };
+                      }
+                      // Blinkit-specific: similar structure
+                      if (providerType === 'blinkit' && (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined || pv.productsNamesAndCounts !== undefined)) {
+                        console.log(`🛒 Found Blinkit paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                        return {
+                          grandTotalAmount: pv.grandTotalAmount,
+                          itemQuantityCount: pv.itemQuantityCount,
+                          productsNamesAndCounts: pv.productsNamesAndCounts
+                        };
+                      }
                       if (pv.username || pv.login || pv.followers !== undefined) {
                         return {
                           username: pv.username || pv.login,
@@ -1274,6 +1320,24 @@ if (verifyData.isNewUser) {
                           contributions: pv.contributions || pv.contributionsLastYear || '0'
                         };
                       }
+                    }
+                    // Check for Zepto data directly (grandTotalAmount, itemQuantityCount, productsNamesAndCounts)
+                    if (providerType === 'zepto' && (obj.grandTotalAmount !== undefined || obj.itemQuantityCount !== undefined || obj.productsNamesAndCounts !== undefined)) {
+                      console.log(`🛒 Found Zepto data directly:`, { grandTotalAmount: obj.grandTotalAmount, itemQuantityCount: obj.itemQuantityCount });
+                      return {
+                        grandTotalAmount: obj.grandTotalAmount,
+                        itemQuantityCount: obj.itemQuantityCount,
+                        productsNamesAndCounts: obj.productsNamesAndCounts
+                      };
+                    }
+                    // Check for Blinkit data directly
+                    if (providerType === 'blinkit' && (obj.grandTotalAmount !== undefined || obj.itemQuantityCount !== undefined || obj.productsNamesAndCounts !== undefined)) {
+                      console.log(`🛒 Found Blinkit data directly:`, { grandTotalAmount: obj.grandTotalAmount, itemQuantityCount: obj.itemQuantityCount });
+                      return {
+                        grandTotalAmount: obj.grandTotalAmount,
+                        itemQuantityCount: obj.itemQuantityCount,
+                        productsNamesAndCounts: obj.productsNamesAndCounts
+                      };
                     }
                     // Check for GitHub data directly
                     if (obj.username || obj.login || obj.followers !== undefined || obj.contributions !== undefined) {
@@ -1483,6 +1547,53 @@ if (verifyData.isNewUser) {
                     console.log(`🚗 Found Uber Rides data in claimData.parameters with ${extractedData.rides?.length || 0} rides`);
                   }
                 }
+                // For Zepto/Blinkit, check claimData.parameters for paramValues
+                if ((provider.id === 'zepto' || provider.id === 'blinkit') && proof?.claimData?.parameters) {
+                  try {
+                    const params = typeof proof.claimData.parameters === 'string'
+                      ? JSON.parse(proof.claimData.parameters)
+                      : proof.claimData.parameters;
+                    if (params.paramValues) {
+                      const pv = typeof params.paramValues === 'string' ? JSON.parse(params.paramValues) : params.paramValues;
+                      if (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined) {
+                        extractedData = {
+                          ...extractedData,
+                          grandTotalAmount: pv.grandTotalAmount,
+                          itemQuantityCount: pv.itemQuantityCount,
+                          productsNamesAndCounts: pv.productsNamesAndCounts
+                        };
+                        console.log(`🛒 Found ${provider.id} data in claimData.parameters.paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                      }
+                    }
+                  } catch (e) { /* ignore parse errors */ }
+                }
+                // Handle _rawProofString (callback mode) - parse and extract paramValues for Zepto/Blinkit
+                if ((provider.id === 'zepto' || provider.id === 'blinkit') && proof?._rawProofString) {
+                  try {
+                    const rawProof = typeof proof._rawProofString === 'string'
+                      ? JSON.parse(proof._rawProofString)
+                      : proof._rawProofString;
+                    if (rawProof?.claimData?.parameters) {
+                      const params = typeof rawProof.claimData.parameters === 'string'
+                        ? JSON.parse(rawProof.claimData.parameters)
+                        : rawProof.claimData.parameters;
+                      if (params.paramValues) {
+                        const pv = typeof params.paramValues === 'string' ? JSON.parse(params.paramValues) : params.paramValues;
+                        if (pv.grandTotalAmount !== undefined || pv.itemQuantityCount !== undefined) {
+                          extractedData = {
+                            ...extractedData,
+                            grandTotalAmount: pv.grandTotalAmount,
+                            itemQuantityCount: pv.itemQuantityCount,
+                            productsNamesAndCounts: pv.productsNamesAndCounts
+                          };
+                          console.log(`🛒 Found ${provider.id} data in _rawProofString.paramValues:`, { grandTotalAmount: pv.grandTotalAmount, itemQuantityCount: pv.itemQuantityCount });
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    console.log(`⚠️ Error parsing _rawProofString for ${provider.id}:`, e);
+                  }
+                }
 
                 // Deep search for provider-specific data if not found
                 const needsDeepSearch =
@@ -1579,16 +1690,16 @@ if (verifyData.isNewUser) {
                 console.error('Process polled proof error:', error);
                 setVerificationUrl(null);
                 setActiveProvider(null);
-                
+
                 // Complete progress bar on error
                 setVerificationProgressComplete(true);
-                
+
                 // Small delay then hide
                 setTimeout(() => {
                   setVerificationProgress(false);
                   setVerificationProgressComplete(false);
                 }, 300);
-                
+
                 showToast('error', 'Error', 'Failed to process verification data');
               }
             };
@@ -1877,10 +1988,20 @@ if (verifyData.isNewUser) {
             // Only show error if tab is visible OR it's been more than 2 minutes
             if (!tabHidden || timeSinceStart > 120000) {
               showToast('error', 'Network Error', 'Please check your internet connection and try again. Mobile networks can be slower.');
-          setVerificationUrl(null);
-          setActiveProvider(null);
+              setVerificationUrl(null);
+              setActiveProvider(null);
               setContributing(null);
             }
+            return;
+          }
+
+          // "Interval ended without receiving proofs" - user completed verification on mobile
+          // Proof often arrives via callback; show friendly message instead of scary error
+          if (errorMessage.includes('Interval ended without receiving proofs') || errorMessage.includes('without receiving proofs')) {
+            showToast('info', 'Verification may have completed', 'If you finished verification on your phone, refresh the page to see your contributions.');
+            setVerificationUrl(null);
+            setActiveProvider(null);
+            setContributing(null);
             return;
           }
 
@@ -2126,6 +2247,18 @@ if (verifyData.isNewUser) {
       {/* Sidebar Navigation */}
       <Sidebar />
 
+      {/* Bounty Banner */}
+      <a
+        href="https://app.firstdollar.money/company/myrad/bounty/myrad-user-experience-bounty"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bounty-banner"
+      >
+        <span className="bounty-banner-text">
+          🏆 Myrad User Experience Bounty is now live on EarnFirstDollar. Check it out now →
+        </span>
+      </a>
+
       {/* Verification Progress Indicator */}
       {verificationProgress && (
         <div className="verification-progress-overlay">
@@ -2283,17 +2416,34 @@ if (verifyData.isNewUser) {
         {/* Onboarding Card */}
         {showOnboarding && (
           <div
-            className="onboarding-card"
-            onMouseEnter={() => setIsHoveringOnboarding(true)}
-            onMouseLeave={() => setIsHoveringOnboarding(false)}
+            className={`onboarding-card ${isExpanded ? 'expanded' : ''}`}
+            onMouseEnter={() => {
+              if (window.matchMedia('(hover: hover)').matches) {
+                setIsExpanded(true);
+              }
+            }}
+            onMouseLeave={() => {
+              if (window.matchMedia('(hover: hover)').matches) {
+                setIsExpanded(false);
+              }
+            }}
+            onClick={() => {
+              // Toggle on click (works for mobile tap and desktop click)
+              // For desktop, hover handles open, so click could close it or do nothing
+              // For mobile, click is the only way
+              setIsExpanded(prev => !prev);
+            }}
           >
             <button
               className="onboarding-close"
-              onClick={dismissOnboarding}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click
+                dismissOnboarding();
+              }}
               aria-label="Dismiss onboarding"
             >
               <X size={18} />
-              </button>
+            </button>
 
             <div className="onboarding-content">
               <div className="onboarding-left">
@@ -2314,13 +2464,13 @@ if (verifyData.isNewUser) {
                     </ul>
 
                   </div>
-            </div>
+                </div>
 
                 <div className="onboarding-hover-hint">
                   <PlayCircle size={16} />
                   <span>Hover to play tutorial</span>
-          </div>
-        </div>
+                </div>
+              </div>
 
               <div className="onboarding-video-container">
                 <video
@@ -2332,7 +2482,7 @@ if (verifyData.isNewUser) {
                   playsInline
                   preload="metadata"
                 />
-          </div>
+              </div>
             </div>
           </div>
         )}
@@ -2347,8 +2497,8 @@ if (verifyData.isNewUser) {
             {/* Stats Cards */}
             <section className="stats-grid animate-enter">
               <div className="stat-card" style={{ position: 'relative' }}>
-                  <span className="stat-label">Total Points</span>
-                  <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
+                <span className="stat-label">Total Points</span>
+                <span className="stat-value">{points?.balance?.toLocaleString() || 0}</span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -2380,11 +2530,11 @@ if (verifyData.isNewUser) {
                     className={(loading || refreshing) ? 'spin' : ''}
                   />
                 </button>
-                </div>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Total Contributions</span>
-                  <span className="stat-value">{contributions.length}</span>
-                </div>
+                <span className="stat-value">{contributions.length}</span>
+              </div>
               <div className="stat-card">
                 <span className="stat-label">Account Status</span>
                 <span className="stat-value" style={{ color: '#059669' }}>Active</span>
@@ -2406,9 +2556,9 @@ if (verifyData.isNewUser) {
                   >
                     <div className="provider-header">
                       {provider.logoUrl ? (
-                        <img 
-                          src={provider.logoUrl} 
-                          alt={provider.name} 
+                        <img
+                          src={provider.logoUrl}
+                          alt={provider.name}
                           className="provider-logo"
                         />
                       ) : (
@@ -2456,16 +2606,16 @@ if (verifyData.isNewUser) {
                         ) : (
                           // Desktop: Show QR code
                           <>
-                        <p className="qr-title">Scan to verify</p>
-                        <div className="qr-container">
+                            <p className="qr-title">Scan to verify</p>
+                            <div className="qr-container">
                               <QRCode value={verificationUrl} size={120} level="M" />
-                        </div>
-                        <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
-                          Open Link
-                        </a>
+                            </div>
+                            <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="qr-link">
+                              Open Link
+                            </a>
                             <button onClick={() => { setVerificationUrl(null); setActiveProvider(null); setContributing(null); }} className="qr-cancel">
                               Cancel
-                        </button>
+                            </button>
                           </>
                         )}
                       </div>
@@ -2473,18 +2623,18 @@ if (verifyData.isNewUser) {
 
                     {/* Only show Connect button if this card is not active AND no other card is active */}
                     {!(activeProvider === provider.id && verificationUrl) && (
-                    <button
-                      onClick={() => handleContribute(provider)}
+                      <button
+                        onClick={() => handleContribute(provider)}
                         disabled={contributing !== null || activeProvider !== null}
-                      className="btn-verify"
+                        className="btn-verify"
                         style={{ display: activeProvider && activeProvider !== provider.id ? 'none' : 'flex' }}
-                    >
-                      {contributing === provider.id ? (
-                        <><Loader2 size={16} className="spin" /> Verifying...</>
-                      ) : (
+                      >
+                        {contributing === provider.id ? (
+                          <><Loader2 size={16} className="spin" /> Verifying...</>
+                        ) : (
                           <>Verify</>
-                      )}
-                    </button>
+                        )}
+                      </button>
                     )}
                   </div>
                 ))}
@@ -2573,6 +2723,44 @@ const styles = `
     font-family: 'Satoshi', sans-serif;
     padding-left: 70px;
     transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Bounty Banner */
+  .bounty-banner {
+    display: block;
+    width: 100%;
+    background-image: url('/earnfirstdollar.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: repeat;
+    background-color: #1e40af; /* Fallback blue color */
+    color: #ffffff;
+    text-decoration: none;
+    padding: 12px 24px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    position: relative;
+    z-index: 10;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .bounty-banner:hover {
+    opacity: 0.95;
+    transform: translateY(0);
+  }
+
+  .bounty-banner-text {
+    display: inline-block;
+    letter-spacing: 0.2px;
+  }
+
+  @media (max-width: 768px) {
+    .bounty-banner {
+      padding: 10px 16px;
+      font-size: 13px;
+    }
   }
 
   /* Animations */
@@ -2710,7 +2898,7 @@ const styles = `
     border-style: dashed; 
     background: #f9fafb; 
     align-items: center;
-    justify-content: center; 
+    justify-content: center;
     opacity: 0.8; 
     min-height: 200px;
   }
@@ -2802,7 +2990,7 @@ const styles = `
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .onboarding-card:hover {
+  .onboarding-card:hover, .onboarding-card.expanded {
     transform: translateY(-2px);
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     border-color: #d1d5db;
@@ -2842,7 +3030,7 @@ const styles = `
     align-items: start;
   }
 
-  .onboarding-card:hover .onboarding-content {
+  .onboarding-card:hover .onboarding-content, .onboarding-card.expanded .onboarding-content {
     grid-template-columns: 1fr 500px;
     gap: 40px;
   }
@@ -2906,7 +3094,7 @@ const styles = `
     margin-bottom: 0;
   }
 
-  .onboarding-card:hover .onboarding-description {
+  .onboarding-card:hover .onboarding-description, .onboarding-card.expanded .onboarding-description {
     opacity: 1;
     max-height: 300px;
     margin-bottom: 16px;
@@ -2916,7 +3104,7 @@ const styles = `
     display: none;
   }
 
-  .onboarding-card:hover .onboarding-line-break {
+  .onboarding-card:hover .onboarding-line-break, .onboarding-card.expanded .onboarding-line-break {
     display: block;
   }
 
@@ -2938,7 +3126,7 @@ const styles = `
     justify-self: center;
   }
 
-  .onboarding-card:hover .onboarding-video-container {
+  .onboarding-card:hover .onboarding-video-container, .onboarding-card.expanded .onboarding-video-container {
     opacity: 1;
     transform: scale(1);
     max-height: 225px; /* 400px * 0.5625 for 16:9 */
@@ -2956,12 +3144,12 @@ const styles = `
   }
 
   @media (max-width: 1024px) {
-    .onboarding-card:hover .onboarding-content {
+    .onboarding-card:hover .onboarding-content, .onboarding-card.expanded .onboarding-content {
       grid-template-columns: 1fr 400px;
       gap: 32px;
     }
 
-    .onboarding-card:hover .onboarding-video-container {
+    .onboarding-card:hover .onboarding-video-container, .onboarding-card.expanded .onboarding-video-container {
       max-height: 225px;
       padding-bottom: 56.25%;
     }
@@ -2972,7 +3160,7 @@ const styles = `
       padding: 32px 24px;
     }
 
-    .onboarding-card:hover .onboarding-content {
+    .onboarding-card:hover .onboarding-content, .onboarding-card.expanded .onboarding-content {
       grid-template-columns: 1fr;
       gap: 24px;
     }
@@ -2995,7 +3183,7 @@ const styles = `
       height: 48px;
     }
 
-    .onboarding-card:hover .onboarding-video-container {
+    .onboarding-card:hover .onboarding-video-container, .onboarding-card.expanded .onboarding-video-container {
       max-height: 225px;
       padding-bottom: 56.25%;
       transform: scale(1);
@@ -3019,7 +3207,7 @@ const styles = `
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .onboarding-card:hover .onboarding-hover-hint {
+  .onboarding-card:hover .onboarding-hover-hint, .onboarding-card.expanded .onboarding-hover-hint {
     opacity: 0;
     max-height: 0;
     margin-top: 0;
@@ -3036,20 +3224,43 @@ const styles = `
     .providers-grid { grid-template-columns: repeat(3, 1fr); }
   }
   
-  @media (max-width: 768px) {
-    .dashboard {
-        padding-left: 0 !important;
-        padding-bottom: 80px;
-    }
-    .stats-grid { grid-template-columns: 1fr; }
+    @media (max-width: 768px) {
+      .dashboard {
+          padding-left: 0 !important;
+          padding-bottom: 80px;
+      }
+      .dashboard-main {
+          padding: 20px 16px !important;
+      }
+      .welcome-text h1 { font-size: 28px; }
+      .stats-grid { grid-template-columns: 1fr; }
     .providers-grid { grid-template-columns: repeat(2, 1fr); }
     .welcome-section { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .stat-card {
+        padding: 20px !important;
+    }
+    .stat-value {
+        font-size: 28px !important;
+    }
+    .provider-card {
+        padding: 20px !important;
+    }
+    .toast {
+        top: 16px !important;
+        right: 16px !important;
+        left: 16px !important;
+        max-width: none !important;
+    }
+    .verification-progress-container {
+        padding: 32px 24px !important;
+        width: 95% !important;
+    }
     .onboarding-content {
       grid-template-columns: 1fr;
       gap: 20px;
       min-height: 40px;
     }
-    .onboarding-card:hover .onboarding-content {
+    .onboarding-card:hover .onboarding-content, .onboarding-card.expanded .onboarding-content {
       align-items: start;
     }
     .onboarding-video-container {
@@ -3058,7 +3269,7 @@ const styles = `
       max-height: 197px;
       margin-top: 20px;
     }
-    .onboarding-card:hover .onboarding-video-container {
+    .onboarding-card:hover .onboarding-video-container, .onboarding-card.expanded .onboarding-video-container {
       max-height: 197px;
     }
     .onboarding-card {
@@ -3066,7 +3277,7 @@ const styles = `
       min-height: 48px;
       margin-bottom: 20px;
     }
-    .onboarding-card:hover {
+    .onboarding-card:hover, .onboarding-card.expanded {
       padding: 20px;
       min-height: 180px;
     }
@@ -3074,6 +3285,32 @@ const styles = `
   
   @media (max-width: 480px) {
     .providers-grid { grid-template-columns: 1fr; }
+    .dashboard-main {
+        padding: 16px 12px !important;
+    }
+    .welcome-text h1 { font-size: 24px !important; }
+    .welcome-text p { font-size: 14px !important; }
+    .stat-card {
+        padding: 16px !important;
+    }
+    .stat-value {
+        font-size: 24px !important;
+    }
+    .stat-label {
+        font-size: 12px !important;
+    }
+    .provider-card {
+        padding: 16px !important;
+    }
+    .section-header h2 {
+        font-size: 20px !important;
+    }
+    .section-header p {
+        font-size: 13px !important;
+    }
+    .verification-progress-container {
+        padding: 24px 20px !important;
+    }
   }
 
   /* Keep Toast Styles as is, they are fine */

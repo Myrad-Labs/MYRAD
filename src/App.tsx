@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
+import SmoothScroll from './components/SmoothScroll';
 import ContributorPage from './pages/ContributorPage';
 import DashboardPage from './pages/DashboardPage';
 import LeaderboardPage from './pages/LeaderboardPage';
@@ -11,6 +12,7 @@ import TermsOfServicePage from './pages/TermsOfServicePage';
 import WhitepaperPage from './pages/Whitepaper';
 import TeamsPage from './pages/TeamsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (

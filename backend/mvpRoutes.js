@@ -793,6 +793,9 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
                 const { processZeptoData } = await import('./zeptoPipeline.js');
 
                 console.log('🛒 Processing Zepto data through order pipeline...');
+                console.log('🔍 Zepto input data keys:', Object.keys(anonymizedData || {}));
+                console.log('🔍 Zepto grandTotalAmount:', anonymizedData?.grandTotalAmount);
+                console.log('🔍 Zepto itemQuantityCount:', anonymizedData?.itemQuantityCount);
 
                 const result = processZeptoData(anonymizedData);
 
@@ -801,10 +804,35 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
                     processedData = result.rawProcessed;
                     console.log('✅ Zepto order pipeline complete');
                     console.log(`📊 Order count: ${sellableData?.transaction_data?.summary?.total_orders || 'unknown'}`);
+
+                    // Reject empty Zepto data before save - prevents false "duplicate" errors
+                    const zeptoOrderCount = sellableData?.transaction_data?.summary?.total_orders ?? 0;
+                    const zeptoTotalSpend = sellableData?.transaction_data?.summary?.total_spend ?? 0;
+                    if (zeptoOrderCount === 0 && zeptoTotalSpend === 0) {
+                        console.log(`⚠️ Empty Zepto data (0 orders, ₹0) - rejecting before save`);
+                        return res.status(400).json({
+                            success: false,
+                            error: 'No order data found',
+                            message: 'We couldn\'t extract any order data from your Zepto verification. Please ensure you have orders in your Zepto app and try again.',
+                        });
+                    }
+                } else {
+                    // Pipeline failed - reject
+                    console.log(`⚠️ Zepto pipeline returned success=false`);
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Processing failed',
+                        message: 'We couldn\'t process your Zepto data. Please try again.',
+                    });
                 }
             } catch (pipelineError) {
                 console.error('⚠️ Zepto pipeline error:', pipelineError.message);
-                console.error('⚠️ Pipeline stack:', pipelineError.stack);
+                console.error('⚠️ Zepto pipeline stack:', pipelineError.stack);
+                return res.status(400).json({
+                    success: false,
+                    error: 'Processing error',
+                    message: 'An error occurred while processing your Zepto data. Please try again.',
+                });
             }
         }
 
