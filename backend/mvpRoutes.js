@@ -132,9 +132,12 @@ const verifyPrivyToken = (req, res, next) => {
 
         // privyId is always parts[1] (the Privy user.id, which should be stable)
         // Email is optional and may be in parts[2] or later, but we'll get it from request body instead
+        const tokenEmail = parts.length >= 3 ? parts.slice(2).join('_') : null;
+        // Filter out the 'user' placeholder — it's not a real email
+        const validEmail = (tokenEmail && tokenEmail !== 'user' && tokenEmail.includes('@')) ? tokenEmail : null;
         req.user = {
             privyId: parts[1], // This is the stable Privy user.id
-            email: parts.length >= 3 ? parts.slice(2).join('_') : null // Optional, prefer request body
+            email: validEmail
         };
         next();
     } catch (error) {
@@ -196,107 +199,123 @@ router.post('/user/username', verifyPrivyToken, async (req, res) => {
 });
 
 // Verify Privy token and get/create user
+// Handles Privy App ID migration via email-based reconciliation:
+//   1. Try matching by privy_id (same App ID — fast path)
+//   2. Try matching by email (returning user with new App ID — migration)
+//   3. Create new user (genuinely new user)
 router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
     try {
-        const email = req.body.email || req.user.email || null;
+        // Get email from request body (preferred) or from token (fallback)
+        // Filter out the 'user' placeholder that frontend sends when no email is found
+        const rawEmail = req.body.email || req.user.email || null;
+        const email = (rawEmail && rawEmail !== 'user' && rawEmail.includes('@')) ? rawEmail : null;
         const walletAddress = req.body.walletAddress || null;
-        const referralCode = req.body.referralCode || null; // 🔥 NEW
+        const referralCode = req.body.referralCode || null;
 
         console.log(`🔍 Auth verify: privyId=${req.user.privyId}, email=${email || 'null'}, wallet=${walletAddress ? walletAddress.slice(0, 10) + '...' : 'null'}`);
 
-        let user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+        let user = null;
         let isNewUser = false;
+        let wasMigrated = false;
 
-        if (!user) {
-            console.log(`✅ Creating new user with privyId: ${req.user.privyId}`);
-            try {
-                const result = await jsonStorage.createUser(
-                    req.user.privyId,
-                    email,
-                    walletAddress
-                );
+        try {
+            // reconcileOrCreateUser handles all 3 cases:
+            // 1. Existing user by privyId → returns existing (fast path)
+            // 2. Existing user by email → updates privyId + wallet, logs audit → returns reconciled
+            // 3. New user → creates fresh account → returns new
+            const result = await jsonStorage.reconcileOrCreateUser(
+                req.user.privyId,
+                email,
+                walletAddress
+            );
 
-                user = result.user;
-                isNewUser = result.isNewUser;
+            user = result.user;
+            isNewUser = result.isNewUser;
+            wasMigrated = result.wasMigrated;
 
-            } catch (createError) {
-                if (createError.code === '23505' || createError.message.includes('unique constraint')) {
-                    console.log(`⚠️ Race condition during user creation, fetching existing user...`);
-                    user = await jsonStorage.getUserByPrivyId(req.user.privyId);
-                    if (!user) {
-                        throw createError;
-                    }
-                } else {
+            if (wasMigrated) {
+                console.log(`🔄 MIGRATION COMPLETE: User ${user.id} successfully migrated to new Privy App ID`);
+            }
+
+        } catch (createError) {
+            if (createError.code === '23505' || createError.message?.includes('unique constraint')) {
+                console.log(`⚠️ Race condition during user creation/reconciliation, fetching existing user...`);
+                user = await jsonStorage.getUserByPrivyId(req.user.privyId);
+                if (!user && email) {
+                    user = await jsonStorage.getUserByEmail(email);
+                }
+                if (!user) {
                     throw createError;
                 }
+            } else {
+                throw createError;
             }
         }
 
         // ===============================
         // 🔥 REFERRAL LOGIC (SAFE ADD)
         // ===============================
-if (isNewUser && referralCode) {
-    try {
-        console.log("🟡 Referral Attempt:", referralCode);
-        console.log("🟡 New user ID:", user?.id);
+        if (isNewUser && referralCode) {
+            try {
+                console.log("🟡 Referral Attempt:", referralCode);
+                console.log("🟡 New user ID:", user?.id);
 
-        const { query } = await import('./database/db.js');
+                const { query: dbQuery } = await import('./database/db.js');
 
-        const refCheck = await query(
-            'SELECT id, referral_count FROM referrals WHERE referral_code = $1',
-            [referralCode]
-        );
+                const refCheck = await dbQuery(
+                    'SELECT id, referral_count FROM referrals WHERE referral_code = $1',
+                    [referralCode]
+                );
 
-        console.log("🟡 Referral rows found:", refCheck.rows.length);
+                console.log("🟡 Referral rows found:", refCheck.rows.length);
 
-        if (refCheck.rows.length > 0) {
+                if (refCheck.rows.length > 0) {
+                    const updateUser = await dbQuery(
+                        'UPDATE users SET referred_by = $1 WHERE id = $2 RETURNING referred_by',
+                        [referralCode, user.id]
+                    );
 
-            const updateUser = await query(
-                'UPDATE users SET referred_by = $1 WHERE id = $2 RETURNING referred_by',
-                [referralCode, user.id]
-            );
+                    console.log("🟢 referred_by updated:", updateUser.rows[0]);
 
-            console.log("🟢 referred_by updated:", updateUser.rows[0]);
+                    const updateRef = await dbQuery(
+                        'UPDATE referrals SET referral_count = referral_count + 1 WHERE referral_code = $1 RETURNING referral_count',
+                        [referralCode]
+                    );
 
-            const updateRef = await query(
-                'UPDATE referrals SET referral_count = referral_count + 1 WHERE referral_code = $1 RETURNING referral_count',
-                [referralCode]
-            );
-
-            console.log("🟢 referral_count new value:", updateRef.rows[0]);
-
-        } else {
-            console.log("❌ Referral code NOT found in DB");
+                    console.log("🟢 referral_count new value:", updateRef.rows[0]);
+                } else {
+                    console.log("❌ Referral code NOT found in DB");
+                }
+            } catch (err) {
+                console.error("🚨 Referral system error:", err);
+            }
         }
-
-    } catch (err) {
-        console.error("🚨 Referral system error:", err);
-    }
-}
-
         // ===============================
 
-        let needsRefetch = false;
-        const updates = {};
+        // Update email/wallet if they changed (for non-migrated users)
+        if (!wasMigrated) {
+            let needsRefetch = false;
+            const updates = {};
 
-        if (email && email !== user.email) {
-            updates.email = email;
-            needsRefetch = true;
-            console.log(`📧 Updating email for user ${user.id}: ${user.email || 'null'} -> ${email}`);
-        }
+            if (email && email !== user.email) {
+                updates.email = email;
+                needsRefetch = true;
+                console.log(`📧 Updating email for user ${user.id}: ${user.email || 'null'} -> ${email}`);
+            }
 
-        if (walletAddress && walletAddress !== user.walletAddress) {
-            await jsonStorage.updateUserWallet(user.id, walletAddress);
-            needsRefetch = true;
-            console.log(`💳 Updating wallet for user ${user.id}: ${user.walletAddress ? user.walletAddress.slice(0, 10) + '...' : 'null'} -> ${walletAddress.slice(0, 10)}...`);
-        }
+            if (walletAddress && walletAddress !== user.walletAddress) {
+                await jsonStorage.updateUserWallet(user.id, walletAddress);
+                needsRefetch = true;
+                console.log(`💳 Updating wallet for user ${user.id}: ${user.walletAddress ? user.walletAddress.slice(0, 10) + '...' : 'null'} -> ${walletAddress.slice(0, 10)}...`);
+            }
 
-        if (Object.keys(updates).length > 0) {
-            await jsonStorage.updateUserProfile(user.id, updates);
-        }
+            if (Object.keys(updates).length > 0) {
+                await jsonStorage.updateUserProfile(user.id, updates);
+            }
 
-        if (needsRefetch) {
-            user = await jsonStorage.getUserById(user.id);
+            if (needsRefetch) {
+                user = await jsonStorage.getUserById(user.id);
+            }
         }
 
         await jsonStorage.updateUserActivity(user.id);
@@ -304,6 +323,7 @@ if (isNewUser && referralCode) {
         res.json({
             success: true,
             isNewUser,
+            wasMigrated,
             user: {
                 id: user.id,
                 email: user.email,
@@ -367,11 +387,7 @@ router.post("/referral", async (req, res) => {
 
     // 2️⃣ Check referral exists in referrals table
     const referralResult = await query(
-      `
-      SELECT wallet_address
-      FROM referrals
-      WHERE referral_code = $1
-      `,
+      `SELECT user_id, wallet_address, referral_code FROM referrals WHERE referral_code = $1`,
       [referral_code]
     );
 
@@ -382,25 +398,33 @@ router.post("/referral", async (req, res) => {
       return res.status(400).json({ message: "Referral code not found" });
     }
 
+    const referrerUserId = referralResult.rows[0].user_id;
     const referrerWallet = referralResult.rows[0].wallet_address;
-    console.log("Referrer wallet:", referrerWallet);
+    console.log("Referrer userId:", referrerUserId, "wallet:", referrerWallet);
 
-    // 3️⃣ Prevent self referral
-    if (referrerWallet === wallet_address) {
+    // 3️⃣ Prevent self referral (check by both wallet and user_id)
+    const selfCheck = await query(
+      `SELECT id FROM users WHERE wallet_address = $1`,
+      [wallet_address]
+    );
+    if (selfCheck.rows.length > 0 && selfCheck.rows[0].id === referrerUserId) {
       console.log("User tried self referral");
       return res.status(400).json({ message: "Cannot refer yourself" });
     }
+    if (referrerWallet && referrerWallet.toLowerCase() === wallet_address?.toLowerCase()) {
+      console.log("User tried self referral (wallet match)");
+      return res.status(400).json({ message: "Cannot refer yourself" });
+    }
 
-    // 4️⃣ Update user (only if first time)
+    // 4️⃣ Update user — store referral_code (not wallet) in referred_by
+    //    referral_code is stable across migrations unlike wallet_address
     const updateUser = await query(
-      `
-      UPDATE users
-      SET referred_by = $1
-      WHERE wallet_address = $2
-      AND referred_by IS NULL
-      RETURNING *
-      `,
-      [referrerWallet, wallet_address]
+      `UPDATE users
+       SET referred_by = $1
+       WHERE wallet_address = $2
+       AND referred_by IS NULL
+       RETURNING *`,
+      [referral_code, wallet_address]
     );
 
     console.log("User update result:", updateUser.rows);
@@ -410,28 +434,20 @@ router.post("/referral", async (req, res) => {
       return res.status(400).json({ message: "Referral already used or user not found" });
     }
 
-// 5️⃣ Increase referral_count in referrals table
-await query(
-  `
-  UPDATE referrals
-  SET referral_count = referral_count + 1
-  WHERE wallet_address = $1
-  `,
-  [referrerWallet]
-);
+    // 5️⃣ Increase referral_count in referrals table (by referral_code, not wallet)
+    await query(
+      `UPDATE referrals SET referral_count = referral_count + 1 WHERE referral_code = $1`,
+      [referral_code]
+    );
+    console.log("Referral count incremented");
 
-console.log("Referral count incremented");
+    // 🔥 Give 20 referral bonus
+    const userId = updateUser.rows[0].id;
+    await jsonStorage.addPoints(userId, 20, 'referral_bonus');
+    console.log("20 referral points awarded");
 
-// 🔥 Give 20 referral bonus
-const userId = updateUser.rows[0].id;
-await jsonStorage.addPoints(userId, 20, 'referral_bonus');
+    res.json({ message: "Referral saved successfully + 20 points awarded" });
 
-console.log("20 referral points awarded");
-
-res.json({ message: "Referral saved successfully + 20 points awarded" });
-
-
-   
   } catch (err) {
     console.error("Server error:", err);
     res.status(500).json({ message: "Server error" });
@@ -443,12 +459,24 @@ router.get("/referral-stats/:wallet", async (req, res) => {
   const wallet = req.params.wallet;
 
   try {
-    // Total referrals
+    // First, find the referral_code for this wallet's user
+    const refCodeResult = await query(
+      `SELECT referral_code FROM referrals WHERE LOWER(wallet_address) = LOWER($1)`,
+      [wallet]
+    );
+
+    if (refCodeResult.rows.length === 0) {
+      return res.json({ total: 0, successful: 0 });
+    }
+
+    const referralCode = refCodeResult.rows[0].referral_code;
+
+    // Total referrals (referred_by now stores referral_code)
     const totalResult = await query(
       `SELECT COUNT(*) AS total
        FROM users
        WHERE referred_by = $1`,
-      [wallet]
+      [referralCode]
     );
 
     // Successful referrals
@@ -457,7 +485,7 @@ router.get("/referral-stats/:wallet", async (req, res) => {
        FROM users
        WHERE referred_by = $1
        AND total_points > 10`,
-      [wallet]
+      [referralCode]
     );
 
     res.json({

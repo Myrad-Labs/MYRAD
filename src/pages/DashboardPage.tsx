@@ -14,7 +14,49 @@ interface ToastState {
   message: string;
 }
 
-// Provider configurations
+/**
+ * Extract the verified email from a Privy user object.
+ * Privy stores email in different places depending on login method:
+ *   - Email login:   user.email.address
+ *   - Google login:  user.google.email
+ *   - Twitter login: user.twitter.email (rare)
+ *   - Any linked account in user.linkedAccounts[]
+ * This helper checks all possible sources.
+ */
+function getPrivyEmail(user: any): string | null {
+  if (!user) return null;
+
+  // 1. Direct email login
+  if (user.email?.address) return user.email.address;
+
+  // 2. Google login
+  if (user.google?.email) return user.google.email;
+
+  // 3. Twitter login (sometimes has email)
+  if (user.twitter?.email) return user.twitter.email;
+
+  // 4. Apple login
+  if (user.apple?.email) return user.apple.email;
+
+  // 5. Discord login
+  if (user.discord?.email) return user.discord.email;
+
+  // 6. Search through linkedAccounts array (catches all methods)
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'email' && account.address) return account.address;
+      if (account.type === 'google_oauth' && account.email) return account.email;
+      if (account.type === 'twitter_oauth' && account.email) return account.email;
+      if (account.type === 'apple_oauth' && account.email) return account.email;
+      if (account.type === 'discord_oauth' && account.email) return account.email;
+      // Generic fallback: any account with an email field
+      if (account.email) return account.email;
+    }
+  }
+
+  return null;
+}
+
 // Provider configurations
 const PROVIDERS = [
   {
@@ -346,7 +388,7 @@ const [submittingReferral, setSubmittingReferral] = useState(false);
             ) || PROVIDERS[0];
 
             const walletAddress = user?.wallet?.address || null;
-            const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+            const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
             showToast('info', 'Processing verification...', `Submitting ${detectedProvider.name} data`, true);
 
@@ -515,8 +557,8 @@ const handleReferralSubmit = async () => {
         setLoading(true);
       }
 
-      const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
-      const email = user?.email?.address || user?.email || null;
+      const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
+      const email = getPrivyEmail(user);
       const walletAddr = user?.wallet?.address || null;
 
       // Verify/create user (send email and wallet address in body)
@@ -535,8 +577,9 @@ const verifyRes = await fetch(`${API_URL}/api/auth/verify`, {
 
 const verifyData = await verifyRes.json();
 
-// 🔥 SHOW REFERRAL MODAL IF NEW USER
-if (verifyData.isNewUser) {
+// 🔥 SHOW REFERRAL MODAL ONLY FOR GENUINELY NEW USERS
+// Migrated users (wasMigrated=true) should NOT see this popup again
+if (verifyData.isNewUser && !verifyData.wasMigrated) {
   setShowReferralModal(true);
 }
 
@@ -607,7 +650,8 @@ if (verifyData.isNewUser) {
         setLoading(false);
       }
     }
-  }, [user?.id, user?.email?.address, user?.wallet?.address, API_URL]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.email?.address, user?.google?.email, user?.wallet?.address, API_URL]);
 
   // Fetch on mount
   useEffect(() => {
@@ -631,7 +675,7 @@ if (verifyData.isNewUser) {
     const walletAddr = user?.wallet?.address;
     if (!walletAddr || !authenticated || !user?.id) return;
 
-    const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+    const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
     fetch(`${API_URL}/api/auth/verify`, {
       method: 'POST',
       headers: {
@@ -639,7 +683,7 @@ if (verifyData.isNewUser) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        email: user?.email?.address || null,
+        email: getPrivyEmail(user),
         walletAddress: walletAddr
       })
     }).catch(err => console.error('Wallet sync error:', err));
@@ -1623,7 +1667,7 @@ if (verifyData.isNewUser) {
                 }
 
                 const walletAddress = user?.wallet?.address || null;
-                const token = `privy_${user?.id}_${user?.email?.address || 'user'}`;
+                const token = `privy_${user?.id}_${getPrivyEmail(user) || 'user'}`;
 
                 // #region agent log
                 fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.submitting', message: 'Submitting polled proof to backend', data: { provider: provider.id, hasOrders: !!extractedData.orders, ordersLength: extractedData.orders?.length || 0 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run7', hypothesisId: 'J' }) }).catch(() => { });
@@ -1852,7 +1896,7 @@ if (verifyData.isNewUser) {
             // #endregion
           }
 
-          const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+          const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
           const response = await fetch(`${API_URL}/api/contribute`, {
             method: 'POST',
@@ -2044,7 +2088,7 @@ if (verifyData.isNewUser) {
                 if (Object.keys(extractedData).length > 0) {
                   console.log('✅ Successfully extracted data:', Object.keys(extractedData));
 
-                  const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+                  const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
                   const response = await fetch(`${API_URL}/api/contribute`, {
                     method: 'POST',
@@ -2120,7 +2164,7 @@ if (verifyData.isNewUser) {
                 if (Object.keys(extractedData).length > 0) {
                   console.log('Successfully extracted data from error proof:', Object.keys(extractedData));
 
-                  const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+                  const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
                   const response = await fetch(`${API_URL}/api/contribute`, {
                     method: 'POST',
