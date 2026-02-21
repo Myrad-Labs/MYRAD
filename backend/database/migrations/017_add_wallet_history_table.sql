@@ -25,3 +25,9 @@ CREATE INDEX IF NOT EXISTS idx_wallet_history_created_at ON wallet_history(creat
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique 
     ON users(email) 
     WHERE email IS NOT NULL;
+
+-- Ensure wallet_address is unique per user to prevent duplicate accounts
+-- Using a partial unique index so NULLs are allowed (users without wallet yet)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_wallet_unique
+    ON users(wallet_address)
+    WHERE wallet_address IS NOT NULL;

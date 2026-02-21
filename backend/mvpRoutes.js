@@ -244,6 +244,10 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
                 if (!user && email) {
                     user = await jsonStorage.getUserByEmail(email);
                 }
+                if (!user && walletAddress) {
+                    const { getUserByWallet } = await import('./database/userService.js');
+                    user = await getUserByWallet(walletAddress);
+                }
                 if (!user) {
                     throw createError;
                 }

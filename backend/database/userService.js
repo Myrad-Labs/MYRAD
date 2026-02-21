@@ -75,6 +75,40 @@ export async function getUserByEmail(email) {
 }
 
 /**
+ * Get user by wallet address
+ * Used as fallback reconciliation for wallet-only users during Privy App ID migration
+ */
+export async function getUserByWallet(walletAddress) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return null;
+  }
+
+  if (!walletAddress) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE LOWER(wallet_address) = LOWER($1)',
+      [String(walletAddress)]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    if (result.rows.length > 1) {
+      console.error(`⚠️ WARNING: Multiple users found with wallet ${walletAddress}! Using first match.`);
+    }
+
+    return formatUser(result.rows[0]);
+  } catch (error) {
+    console.error('Error getting user by wallet:', error);
+    return null;
+  }
+}
+
+/**
  * Reconcile an existing user during Privy App ID migration
  * Updates privy_id and wallet_address, logs the change in wallet_history
  * 
@@ -195,8 +229,29 @@ export async function reconcileOrCreateUser(privyId, email, walletAddress) {
     }
   }
 
+  // === STEP 2b: Check by wallet address (wallet-only users — no email available) ===
+  if (walletAddress) {
+    const existingByWallet = await getUserByWallet(walletAddress);
+    if (existingByWallet) {
+      console.log(`🔄 MIGRATION (wallet): User found by wallet (${walletAddress.slice(0, 10)}...), reconciling privy_id...`);
+      console.log(`   Old privyId: ${existingByWallet.privyId}`);
+      console.log(`   New privyId: ${privyId}`);
+
+      // For wallet-only users the wallet stays the same — only privy_id changes
+      const reconciled = await reconcileUser(
+        existingByWallet.id,
+        privyId,
+        walletAddress,           // same wallet
+        existingByWallet.privyId,
+        existingByWallet.walletAddress
+      );
+
+      return { user: reconciled, isNewUser: false, wasMigrated: true };
+    }
+  }
+
   // === STEP 3: Genuinely new user — create fresh account ===
-  console.log(`🆕 No existing user found by privyId or email. Creating new user.`);
+  console.log(`🆕 No existing user found by privyId, email, or wallet. Creating new user.`);
   const result = await createUser(privyId, email, walletAddress);
   return { user: result.user, isNewUser: result.isNewUser, wasMigrated: false };
 }
