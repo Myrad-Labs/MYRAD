@@ -12,19 +12,15 @@ cron.schedule("*/15 * * * * *", async () => {
     // 1️⃣ Generate referral codes for eligible users
     //    Uses user_id join (stable across migrations)
     // ==============================================
-await query(`
-  INSERT INTO referrals (user_id, wallet_address, referral_code)
-  SELECT 
-    u.id, 
-    u.wallet_address, 
-    upper(substr(md5(random()::text), 1, 8))
-  FROM users u
-  LEFT JOIN referrals r 
-    ON u.id = r.user_id
-  WHERE u.total_points >= 100
-    AND u.wallet_address IS NOT NULL
-    AND r.user_id IS NULL;
-`);
+    await query(`
+      INSERT INTO referrals (user_id, wallet_address, referral_code)
+      SELECT u.id, u.wallet_address, upper(substr(md5(random()::text), 1, 8))
+      FROM users u
+      LEFT JOIN referrals r ON u.id = r.user_id
+      WHERE u.total_points >= 100
+      AND r.user_id IS NULL
+      AND u.wallet_address IS NOT NULL;
+    `);
 
     // ==============================================
     // 1b. Sync referrals.wallet_address from users

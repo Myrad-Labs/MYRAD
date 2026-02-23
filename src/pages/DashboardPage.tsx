@@ -15,13 +15,11 @@ interface ToastState {
 }
 
 /**
- * Extract the verified email from a Privy user object.
- * Privy stores email in different places depending on login method:
- *   - Email login:   user.email.address
- *   - Google login:  user.google.email
- *   - Twitter login: user.twitter.email (rare)
- *   - Any linked account in user.linkedAccounts[]
- * This helper checks all possible sources.
+ * Extract a stable identifier from a Privy user object.
+ * Priority:
+ *   1. Real email (email login, Google, Apple, Discord, linkedAccounts)
+ *   2. Twitter handle as @username (stored in DB email column for reconciliation)
+ *   3. null (wallet-only users — reconciled by wallet address on backend)
  */
 function getPrivyEmail(user: any): string | null {
   if (!user) return null;
@@ -32,7 +30,7 @@ function getPrivyEmail(user: any): string | null {
   // 2. Google login
   if (user.google?.email) return user.google.email;
 
-  // 3. Twitter login (sometimes has email)
+  // 3. Twitter login (sometimes has email — rare)
   if (user.twitter?.email) return user.twitter.email;
 
   // 4. Apple login
@@ -41,7 +39,7 @@ function getPrivyEmail(user: any): string | null {
   // 5. Discord login
   if (user.discord?.email) return user.discord.email;
 
-  // 6. Search through linkedAccounts array (catches all methods)
+  // 6. Search through linkedAccounts array for email
   if (Array.isArray(user.linkedAccounts)) {
     for (const account of user.linkedAccounts) {
       if (account.type === 'email' && account.address) return account.address;
@@ -49,8 +47,16 @@ function getPrivyEmail(user: any): string | null {
       if (account.type === 'twitter_oauth' && account.email) return account.email;
       if (account.type === 'apple_oauth' && account.email) return account.email;
       if (account.type === 'discord_oauth' && account.email) return account.email;
-      // Generic fallback: any account with an email field
       if (account.email) return account.email;
+    }
+  }
+
+  // 7. Twitter handle as fallback identifier (no email available)
+  //    Stored as @username in the DB email column for reconciliation
+  if (user.twitter?.username) return `@${user.twitter.username}`;
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'twitter_oauth' && account.username) return `@${account.username}`;
     }
   }
 
@@ -651,7 +657,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.email?.address, user?.google?.email, user?.wallet?.address, API_URL]);
+  }, [user?.id, user?.email?.address, user?.google?.email, user?.twitter?.username, user?.wallet?.address, API_URL]);
 
   // Fetch on mount
   useEffect(() => {

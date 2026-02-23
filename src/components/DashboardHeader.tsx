@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Copy, LogOut, Key, AlertTriangle, X, Loader2 } from 'lucide-react';
 
 /**
- * Extract the verified email from a Privy user object.
- * Checks all login methods: email, Google, Twitter, Apple, Discord, linkedAccounts.
+ * Extract a stable identifier from a Privy user object.
+ * Checks email sources first, then falls back to Twitter handle (@username).
  */
 function getPrivyEmail(user: any): string | null {
   if (!user) return null;
@@ -18,6 +18,13 @@ function getPrivyEmail(user: any): string | null {
     for (const account of user.linkedAccounts) {
       if (account.type === 'email' && account.address) return account.address;
       if (account.email) return account.email;
+    }
+  }
+  // Twitter handle fallback (stored as @username in DB)
+  if (user.twitter?.username) return `@${user.twitter.username}`;
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'twitter_oauth' && account.username) return `@${account.username}`;
     }
   }
   return null;

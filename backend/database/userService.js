@@ -130,13 +130,18 @@ export async function reconcileUser(userId, newPrivyId, newWalletAddress, oldPri
     // Lock the user row to prevent concurrent updates
     await query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
 
-    // Log the wallet change in audit table
-    const historyId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    await query(
-      `INSERT INTO wallet_history (id, user_id, old_wallet_address, new_wallet_address, old_privy_id, new_privy_id, migration_reason, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-      [historyId, userId, oldWalletAddress || null, newWalletAddress || null, oldPrivyId || null, newPrivyId, 'privy_app_id_switch']
-    );
+    // Log the wallet change in audit table (if it exists)
+    try {
+      const historyId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      await query(
+        `INSERT INTO wallet_history (id, user_id, old_wallet_address, new_wallet_address, old_privy_id, new_privy_id, migration_reason, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+        [historyId, userId, oldWalletAddress || null, newWalletAddress || null, oldPrivyId || null, newPrivyId, 'privy_app_id_switch']
+      );
+    } catch (historyError) {
+      // wallet_history table may not exist yet on production — log and continue
+      console.warn(`⚠️ Could not log wallet change to wallet_history (table may not exist): ${historyError.message}`);
+    }
 
     // Update the user record with new privy_id and wallet_address
     await query(
