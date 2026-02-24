@@ -17,20 +17,23 @@ import ScrollToTop from './components/ScrollToTop';
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/contribute" element={<ContributorPage />} />
-        <Route path="/leaderboard" element={<LeaderboardPage />} />
-        <Route path="/referral" element={<ReferralPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/how-to-use" element={<HowToUsePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/whitepaper" element={<WhitepaperPage />} />
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
-        <Route path="/terms" element={<TermsOfServicePage />} />
-        <Route path="/team" element={<TeamsPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      <ScrollToTop />
+      <SmoothScroll>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/contribute" element={<ContributorPage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/referral" element={<ReferralPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/how-to-use" element={<HowToUsePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/whitepaper" element={<WhitepaperPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/team" element={<TeamsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </SmoothScroll>
     </Router>
   );
 }

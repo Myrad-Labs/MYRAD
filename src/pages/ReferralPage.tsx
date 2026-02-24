@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { Copy, Check, Lock, Award, Star, Share2 } from 'lucide-react';
+import { Copy, Check, Lock, Star, Share2 } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
 import Sidebar from '../components/Sidebar';
 
@@ -505,8 +505,6 @@ const ReferralPage: React.FC = () => {
                 const tier = computeTier(successful);
                 const tierKey = tier.current.key; // Always has a tier (Bronze at minimum)
                 const colors = TIER_COLORS[tierKey];
-                const nextTierKey = tier.nextTier?.key || 'champion';
-                const nextColors = TIER_COLORS[nextTierKey] || TIER_COLORS.champion;
 
                 return (
                   <div className="tier-card-main" style={{
@@ -626,7 +624,7 @@ const ReferralPage: React.FC = () => {
                       position: 'relative' as const,
                       zIndex: 1,
                     }}>
-                      {TIERS.map((t, idx) => {
+                      {TIERS.map((t) => {
                         const isAchieved = successful >= t.min;
                         const isCurrent = tier.current.key === t.key;
                         const tColors = TIER_COLORS[t.key];
