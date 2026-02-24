@@ -554,7 +554,7 @@ const LandingPage = () => {
                                     borderRadius: '24px' // Ensure video itself is rounded
                                 }}
                             >
-                                <source src="/myrad.mp4" type="video/mp4" />
+                                <source src="/myrad.webm" type="video/webm" />
                                 Your browser does not support the video tag.
                             </video>
                         </motion.div>

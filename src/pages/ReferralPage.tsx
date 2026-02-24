@@ -193,7 +193,7 @@ const ReferralPage: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', color: '#111827', fontFamily: 'Satoshi, Inter, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#fff', color: '#111827', fontFamily: 'Satoshi' }}>
       <Sidebar />
       <DashboardHeader />
       <div className="referral-wrapper" style={{ maxWidth: 1000, margin: '0 auto', padding: 32, transition: 'padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>

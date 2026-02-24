@@ -397,7 +397,7 @@ const ContributorPage = () => {
                             >
                                 <video
                                     ref={videoRef}
-                                    src="tutorial.mp4"
+                                    src="tutorial.webm"
                                     loop
                                     muted
                                     playsInline

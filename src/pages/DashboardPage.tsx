@@ -2624,7 +2624,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                 <video
                   ref={videoRef}
                   className="onboarding-video"
-                  src="/tutorial.mp4"
+                  src="/tutorial.webm"
                   muted
                   loop
                   playsInline
