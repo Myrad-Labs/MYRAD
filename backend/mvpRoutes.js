@@ -376,10 +376,11 @@ router.get('/user/profile', verifyPrivyToken, async (req, res) => {
     }
 });
 
-router.post("/referral", async (req, res) => {
-  const { wallet_address, referral_code } = req.body;
+router.post("/referral", verifyPrivyToken, async (req, res) => {
+  const { referral_code } = req.body;
+  const privyId = req.user.privyId;
 
-  console.log("Incoming wallet:", wallet_address);
+  console.log("Referral attempt by privyId:", privyId);
   console.log("Entered referral code:", referral_code);
 
   try {
@@ -389,7 +390,21 @@ router.post("/referral", async (req, res) => {
       return res.status(400).json({ message: "Invalid referral code" });
     }
 
-    // 2️⃣ Check referral exists in referrals table
+    // 2️⃣ Look up the current user by privyId (reliable, always available)
+    const currentUser = await jsonStorage.getUserByPrivyId(privyId);
+    if (!currentUser) {
+      console.log("User not found for privyId:", privyId);
+      return res.status(400).json({ message: "User not found. Please refresh and try again." });
+    }
+    console.log("Current user:", currentUser.id, "wallet:", currentUser.walletAddress);
+
+    // 3️⃣ Check if user already has a referral
+    if (currentUser.referredBy) {
+      console.log("User already has a referral:", currentUser.referredBy);
+      return res.status(400).json({ message: "You have already used a referral code" });
+    }
+
+    // 4️⃣ Check referral exists in referrals table
     const referralResult = await query(
       `SELECT user_id, wallet_address, referral_code FROM referrals WHERE referral_code = $1`,
       [referral_code]
@@ -403,32 +418,22 @@ router.post("/referral", async (req, res) => {
     }
 
     const referrerUserId = referralResult.rows[0].user_id;
-    const referrerWallet = referralResult.rows[0].wallet_address;
-    console.log("Referrer userId:", referrerUserId, "wallet:", referrerWallet);
+    console.log("Referrer userId:", referrerUserId);
 
-    // 3️⃣ Prevent self referral (check by both wallet and user_id)
-    const selfCheck = await query(
-      `SELECT id FROM users WHERE wallet_address = $1`,
-      [wallet_address]
-    );
-    if (selfCheck.rows.length > 0 && selfCheck.rows[0].id === referrerUserId) {
+    // 5️⃣ Prevent self referral
+    if (currentUser.id === referrerUserId) {
       console.log("User tried self referral");
       return res.status(400).json({ message: "Cannot refer yourself" });
     }
-    if (referrerWallet && referrerWallet.toLowerCase() === wallet_address?.toLowerCase()) {
-      console.log("User tried self referral (wallet match)");
-      return res.status(400).json({ message: "Cannot refer yourself" });
-    }
 
-    // 4️⃣ Update user — store referral_code (not wallet) in referred_by
-    //    referral_code is stable across migrations unlike wallet_address
+    // 6️⃣ Update user — store referral_code in referred_by (using user id, not wallet)
     const updateUser = await query(
       `UPDATE users
        SET referred_by = $1
-       WHERE wallet_address = $2
+       WHERE id = $2
        AND referred_by IS NULL
        RETURNING *`,
-      [referral_code, wallet_address]
+      [referral_code, currentUser.id]
     );
 
     console.log("User update result:", updateUser.rows);
@@ -438,7 +443,7 @@ router.post("/referral", async (req, res) => {
       return res.status(400).json({ message: "Referral already used or user not found" });
     }
 
-    // 5️⃣ Increase referral_count in referrals table (by referral_code, not wallet)
+    // 7️⃣ Increase referral_count in referrals table
     await query(
       `UPDATE referrals SET referral_count = referral_count + 1 WHERE referral_code = $1`,
       [referral_code]
@@ -446,9 +451,8 @@ router.post("/referral", async (req, res) => {
     console.log("Referral count incremented");
 
     // 🔥 Give 20 referral bonus
-    const userId = updateUser.rows[0].id;
-    await jsonStorage.addPoints(userId, 20, 'referral_bonus');
-    console.log("20 referral points awarded");
+    await jsonStorage.addPoints(currentUser.id, 20, 'referral_bonus');
+    console.log("20 referral points awarded to user:", currentUser.id);
 
     res.json({ message: "Referral saved successfully + 20 points awarded" });
 

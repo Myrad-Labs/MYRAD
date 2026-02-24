@@ -515,13 +515,14 @@ const handleReferralSubmit = async () => {
 
   try {
     const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+    const token = `privy_${user?.id}_${getPrivyEmail(user) || 'user'}`;
     const res = await fetch(`${API_URL}/api/referral`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
       },
       body: JSON.stringify({
-        wallet_address: walletAddress,
         referral_code: referralCode,
       }),
     });

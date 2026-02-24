@@ -10,13 +10,14 @@ const SmoothScroll: React.FC<SmoothScrollProps> = ({ children }) => {
         const lenis = new Lenis({
             duration: 1.2,
             easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            direction: 'vertical',
-            gestureDirection: 'vertical',
-            smooth: true,
-            mouseMultiplier: 1,
-            smoothTouch: false,
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+            syncTouch: false,
+            wheelMultiplier: 1,
             touchMultiplier: 2,
-        } as any);
+            autoResize: true,
+        });
 
         function raf(time: number) {
             lenis.raf(time);

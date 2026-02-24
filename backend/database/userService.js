@@ -20,7 +20,7 @@ export async function getUserByPrivyId(privyId) {
 
   try {
     const result = await query(
-      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE privy_id = $1',
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at, referred_by FROM users WHERE privy_id = $1',
       [String(privyId)] // Ensure it's a string
     );
 
@@ -55,7 +55,7 @@ export async function getUserByEmail(email) {
 
   try {
     const result = await query(
-      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE LOWER(email) = LOWER($1)',
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at, referred_by FROM users WHERE LOWER(email) = LOWER($1)',
       [String(email)]
     );
 
@@ -89,7 +89,7 @@ export async function getUserByWallet(walletAddress) {
 
   try {
     const result = await query(
-      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE LOWER(wallet_address) = LOWER($1)',
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at, referred_by FROM users WHERE LOWER(wallet_address) = LOWER($1)',
       [String(walletAddress)]
     );
 
@@ -271,7 +271,7 @@ export async function getUserById(userId) {
 
   try {
     const result = await query(
-      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE id = $1',
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at, referred_by FROM users WHERE id = $1',
       [userId]
     );
 
@@ -530,7 +530,7 @@ export async function getAllUsers(limit = null) {
   }
 
   try {
-    let queryText = 'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users ORDER BY total_points DESC, created_at ASC';
+    let queryText = 'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at, referred_by FROM users ORDER BY total_points DESC, created_at ASC';
     if (limit && limit > 0) {
       queryText += ` LIMIT ${parseInt(limit, 10)}`;
     }
@@ -758,7 +758,8 @@ function formatUser(row) {
     league: row.league || 'Bronze',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    lastActiveAt: row.last_active_at
+    lastActiveAt: row.last_active_at,
+    referredBy: row.referred_by || null
   };
 }
 
