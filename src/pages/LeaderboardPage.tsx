@@ -664,8 +664,8 @@ const LeaderboardPage: React.FC = () => {
 
         <div className="animate-enter" style={{ marginBottom: 32 }}>
           <h1 style={{ fontSize: 32, margin: 0, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 8 }}>
-            Leaderboard
-          </h1>
+  Leaderboard
+</h1>
           <p style={{ margin: 0, color: '#6b7280', fontSize: 16 }}>Top contributors ranked by points and contributions</p>
         </div>
 
@@ -721,9 +721,50 @@ const LeaderboardPage: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p style={{ fontSize: 16, fontWeight: 500 }}>Loading leaderboard...</p>
+          <div className="animate-enter">
+            <style>{`
+              @keyframes shimmer {
+                0% { background-position: -400px 0; }
+                100% { background-position: 400px 0; }
+              }
+              .skeleton {
+                background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+                background-size: 800px 100%;
+                animation: shimmer 1.5s ease-in-out infinite;
+                border-radius: 8px;
+                display: block;
+              }
+            `}</style>
+            {/* Your rank skeleton */}
+            <div className="your-rank-card" style={{ marginBottom: 24 }}>
+              <div>
+                <div className="skeleton" style={{ width: 80, height: 12, marginBottom: 8 }} />
+                <div className="skeleton" style={{ width: 48, height: 32 }} />
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div className="skeleton" style={{ width: 64, height: 24, marginBottom: 4, marginLeft: 'auto' }} />
+                <div className="skeleton" style={{ width: 80, height: 12, marginLeft: 'auto' }} />
+              </div>
+            </div>
+            {/* Search skeleton */}
+            <div className="search-container" style={{ marginBottom: 24 }}>
+              <div className="skeleton" style={{ width: '100%', height: 48, borderRadius: 12 }} />
+        </div>
+            {/* Table skeleton */}
+            <div className="leaderboard-container">
+          <div className="lb-header">
+            <div>Rank</div>
+                <div>Wallet Address</div>
+                <div style={{ textAlign: 'right' }}>Points</div>
+              </div>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="lb-row" style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid #f3f4f6' }}>
+                  <div className="skeleton" style={{ width: 28, height: 20 }} />
+                  <div className="skeleton" style={{ width: `${60 + Math.random() * 30}%`, height: 16 }} />
+                  <div className="skeleton" style={{ width: 60, height: 20, marginLeft: 'auto' }} />
+                </div>
+              ))}
+            </div>
           </div>
         ) : error ? (
           <div className="error-state">
@@ -806,7 +847,7 @@ const LeaderboardPage: React.FC = () => {
                       </div>
 
                       {row.isYou && <div className="you-badge">You</div>}
-                    </div>
+          </div>
 
                     <div className="lb-points">{row.totalPoints.toLocaleString()}</div>
                   </div>
@@ -855,7 +896,7 @@ const LeaderboardPage: React.FC = () => {
             {totalPages > 1 && (
               <div className="pagination-info">
                 Showing {startIndex + 1}-{Math.min(endIndex, sortedList.length)} of {sortedList.length} users
-              </div>
+        </div>
             )}
 
             <p className="auto-refresh-indicator">

@@ -105,6 +105,24 @@ export const createUser = async (privyId, email, walletAddress = null) => {
     throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
 };
 
+export const getUserByEmail = async (email) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.getUserByEmail(email);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
+export const reconcileOrCreateUser = async (privyId, email, walletAddress = null) => {
+    const config = await import('./config.js');
+    if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {
+        const service = await getUserService();
+        return await service.reconcileOrCreateUser(privyId, email, walletAddress);
+    }
+    throw new Error('Database is required but not configured. Set DATABASE_URL environment variable.');
+};
+
 export const updateUserWallet = async (userId, walletAddress) => {
     const config = await import('./config.js');
     if (config.default.DB_USE_DATABASE && config.default.DATABASE_URL) {

@@ -22,6 +22,7 @@
     "db:migrate:ubereats": "node backend/database/migrate.js 009_add_ubereats_table.sql",
     "db:migrate:uberrides": "node backend/database/migrate.js 010_add_uber_rides_table.sql",
     "db:migrate:strava": "node backend/database/migrate.js 011_add_strava_table.sql",
+    "db:migrate:wallet-history": "node backend/database/migrate.js 017_add_wallet_history_table.sql",
     "db:migrate:data": "node backend/database/migrateData.js",
     "db:backfill:netflix": "node backend/database/backfillNetflixContent.js",
     "db:cleanup": "node backend/database/cleanup.js"
@@ -46,6 +47,7 @@
     "jsonwebtoken": "^9.0.2",
     "lenis": "^1.3.17",
     "lucide-react": "^0.546.0",
+    "node-cron": "^4.2.1",
     "pg": "^8.16.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

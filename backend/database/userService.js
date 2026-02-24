@@ -41,6 +41,227 @@ export async function getUserByPrivyId(privyId) {
 }
 
 /**
+ * Get user by verified email address
+ * Used for email-based reconciliation during Privy App ID migration
+ */
+export async function getUserByEmail(email) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return null;
+  }
+
+  if (!email) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE LOWER(email) = LOWER($1)',
+      [String(email)]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    if (result.rows.length > 1) {
+      console.error(`⚠️ WARNING: Multiple users found with email ${email}! Using first match.`);
+    }
+
+    return formatUser(result.rows[0]);
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
+}
+
+/**
+ * Get user by wallet address
+ * Used as fallback reconciliation for wallet-only users during Privy App ID migration
+ */
+export async function getUserByWallet(walletAddress) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    return null;
+  }
+
+  if (!walletAddress) {
+    return null;
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, privy_id, email, wallet_address, username, streak, last_contribution_date, total_points, league, created_at, updated_at, last_active_at FROM users WHERE LOWER(wallet_address) = LOWER($1)',
+      [String(walletAddress)]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    if (result.rows.length > 1) {
+      console.error(`⚠️ WARNING: Multiple users found with wallet ${walletAddress}! Using first match.`);
+    }
+
+    return formatUser(result.rows[0]);
+  } catch (error) {
+    console.error('Error getting user by wallet:', error);
+    return null;
+  }
+}
+
+/**
+ * Reconcile an existing user during Privy App ID migration
+ * Updates privy_id and wallet_address, logs the change in wallet_history
+ * 
+ * @param {string} userId - Internal user ID
+ * @param {string} newPrivyId - New Privy ID from the new App ID
+ * @param {string} newWalletAddress - New wallet from the new App ID
+ * @param {string} oldPrivyId - Old Privy ID being replaced
+ * @param {string} oldWalletAddress - Old wallet being replaced
+ * @returns {object} Updated user
+ */
+export async function reconcileUser(userId, newPrivyId, newWalletAddress, oldPrivyId, oldWalletAddress) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    throw new Error('Database is required but not configured');
+  }
+
+  await query('BEGIN');
+
+  try {
+    // Lock the user row to prevent concurrent updates
+    await query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
+
+    // Log the wallet change in audit table (if it exists)
+    try {
+      const historyId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      await query(
+        `INSERT INTO wallet_history (id, user_id, old_wallet_address, new_wallet_address, old_privy_id, new_privy_id, migration_reason, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+        [historyId, userId, oldWalletAddress || null, newWalletAddress || null, oldPrivyId || null, newPrivyId, 'privy_app_id_switch']
+      );
+    } catch (historyError) {
+      // wallet_history table may not exist yet on production — log and continue
+      console.warn(`⚠️ Could not log wallet change to wallet_history (table may not exist): ${historyError.message}`);
+    }
+
+    // Update the user record with new privy_id and wallet_address
+    await query(
+      `UPDATE users 
+       SET privy_id = $1, 
+           wallet_address = COALESCE($2, wallet_address),
+           updated_at = NOW(), 
+           last_active_at = NOW() 
+       WHERE id = $3`,
+      [String(newPrivyId), newWalletAddress || null, userId]
+    );
+
+    // Also update wallet_address in referrals table so referral system stays consistent
+    if (newWalletAddress && oldWalletAddress && newWalletAddress !== oldWalletAddress) {
+      await query(
+        `UPDATE referrals SET wallet_address = $1 WHERE user_id = $2`,
+        [newWalletAddress, userId]
+      );
+      console.log(`🔄 Referrals wallet updated for user ${userId}: ${oldWalletAddress.slice(0, 10)}... → ${newWalletAddress.slice(0, 10)}...`);
+
+      // Update referred_by in users table where referred_by = old wallet
+      // This ensures the scheduler can still match referees to their referrer
+      await query(
+        `UPDATE users SET referred_by = $1 WHERE referred_by = $2`,
+        [newWalletAddress, oldWalletAddress]
+      );
+      console.log(`🔄 referred_by references updated: ${oldWalletAddress.slice(0, 10)}... → ${newWalletAddress.slice(0, 10)}...`);
+    }
+
+    await query('COMMIT');
+
+    const updatedUser = await getUserById(userId);
+    console.log(`🔄 User reconciled: id=${userId}, oldPrivyId=${oldPrivyId}, newPrivyId=${newPrivyId}, oldWallet=${oldWalletAddress ? oldWalletAddress.slice(0, 10) + '...' : 'null'}, newWallet=${newWalletAddress ? newWalletAddress.slice(0, 10) + '...' : 'null'}`);
+    
+    return updatedUser;
+  } catch (error) {
+    await query('ROLLBACK');
+    console.error('Error reconciling user:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reconcile or create a user during auth verification
+ * Handles the Privy App ID migration:
+ *   1. Check by privy_id (same App ID, fast path)
+ *   2. Check by email (returning user with new App ID)
+ *   3. Create new user (genuinely new user)
+ * 
+ * @param {string} privyId - Privy user ID from current App ID
+ * @param {string} email - Verified email address
+ * @param {string} walletAddress - Wallet address from current App ID
+ * @returns {{ user: object, isNewUser: boolean, wasMigrated: boolean }}
+ */
+export async function reconcileOrCreateUser(privyId, email, walletAddress) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) {
+    throw new Error('Database is required but not configured');
+  }
+
+  if (!privyId) {
+    throw new Error('privyId is required');
+  }
+
+  // === STEP 1: Check by Privy ID (fast path — same App ID user) ===
+  const existingByPrivyId = await getUserByPrivyId(privyId);
+  if (existingByPrivyId) {
+    console.log(`✅ User found by privyId: id=${existingByPrivyId.id}`);
+    return { user: existingByPrivyId, isNewUser: false, wasMigrated: false };
+  }
+
+  // === STEP 2: Check by email (returning user — Privy App ID switched) ===
+  if (email) {
+    const existingByEmail = await getUserByEmail(email);
+    if (existingByEmail) {
+      console.log(`🔄 MIGRATION: User found by email (${email}), reconciling privy_id and wallet...`);
+      console.log(`   Old privyId: ${existingByEmail.privyId}`);
+      console.log(`   New privyId: ${privyId}`);
+      console.log(`   Old wallet: ${existingByEmail.walletAddress || 'null'}`);
+      console.log(`   New wallet: ${walletAddress || 'null'}`);
+
+      const reconciled = await reconcileUser(
+        existingByEmail.id,
+        privyId,
+        walletAddress,
+        existingByEmail.privyId,
+        existingByEmail.walletAddress
+      );
+
+      return { user: reconciled, isNewUser: false, wasMigrated: true };
+    }
+  }
+
+  // === STEP 2b: Check by wallet address (wallet-only users — no email available) ===
+  if (walletAddress) {
+    const existingByWallet = await getUserByWallet(walletAddress);
+    if (existingByWallet) {
+      console.log(`🔄 MIGRATION (wallet): User found by wallet (${walletAddress.slice(0, 10)}...), reconciling privy_id...`);
+      console.log(`   Old privyId: ${existingByWallet.privyId}`);
+      console.log(`   New privyId: ${privyId}`);
+
+      // For wallet-only users the wallet stays the same — only privy_id changes
+      const reconciled = await reconcileUser(
+        existingByWallet.id,
+        privyId,
+        walletAddress,           // same wallet
+        existingByWallet.privyId,
+        existingByWallet.walletAddress
+      );
+
+      return { user: reconciled, isNewUser: false, wasMigrated: true };
+    }
+  }
+
+  // === STEP 3: Genuinely new user — create fresh account ===
+  console.log(`🆕 No existing user found by privyId, email, or wallet. Creating new user.`);
+  const result = await createUser(privyId, email, walletAddress);
+  return { user: result.user, isNewUser: result.isNewUser, wasMigrated: false };
+}
+
+/**
  * Get user by ID
  */
 export async function getUserById(userId) {
@@ -77,31 +298,26 @@ export async function createUser(privyId, email, walletAddress = null) {
     throw new Error('privyId is required to create user');
   }
 
-  // Generate unique userId: timestamp + random component to prevent collisions
-  // Format: timestamp_randomHex (e.g., "1704067200000_a3f2b1")
   const generateUniqueId = () => {
     const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8); // 6 char random string
+    const random = Math.random().toString(36).substring(2, 8);
     return `${timestamp}_${random}`;
   };
 
-  // Use transaction to ensure atomicity
   await query('BEGIN');
 
   try {
-    // First, check if user exists (within transaction to prevent race conditions)
+    // 🔥 Check if user already exists
     const existing = await getUserByPrivyId(privyId);
     if (existing) {
       await query('ROLLBACK');
-      console.log(`ℹ️ User with privyId ${privyId} already exists, returning existing user`);
-      return existing;
+      console.log(`ℹ️ User with privyId ${privyId} already exists`);
+      return { user: existing, isNewUser: false };
     }
 
     const userId = generateUniqueId();
     const now = new Date();
 
-    // Use ON CONFLICT to handle race conditions at database level
-    // If privy_id already exists (due to race condition), return existing user
     const result = await query(
       `INSERT INTO users (
         id, privy_id, email, wallet_address, username, streak,
@@ -114,13 +330,13 @@ export async function createUser(privyId, email, walletAddress = null) {
       RETURNING *`,
       [
         userId,
-        String(privyId), // Ensure privyId is a string
-        email || null, // Explicitly set to null if not provided
-        walletAddress || null, // Explicitly set to null if not provided
-        null, // username
-        0, // streak
-        null, // last_contribution_date
-        0, // total_points (will be updated when points are awarded)
+        String(privyId),
+        email || null,
+        walletAddress || null,
+        null,
+        0,
+        null,
+        0,
         'Bronze',
         now,
         now
@@ -130,7 +346,7 @@ export async function createUser(privyId, email, walletAddress = null) {
     const insertedUser = result.rows[0];
     const finalUserId = insertedUser.id;
 
-    // Check if this was an insert or update (by checking if points_history exists)
+    // 🔥 Check if first access bonus already exists
     const pointsCheck = await query(
       'SELECT COUNT(*) as count FROM points_history WHERE user_id = $1 AND reason = $2',
       [finalUserId, 'first_access_bonus']
@@ -138,17 +354,15 @@ export async function createUser(privyId, email, walletAddress = null) {
 
     const hasInitialPoints = parseInt(pointsCheck.rows[0].count, 10) > 0;
 
-    // Only award points if this was a new user (not an update due to conflict)
-    // Add points within the same transaction
     if (!hasInitialPoints) {
       try {
         const pointsId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
         await query(
           'INSERT INTO points_history (id, user_id, points, reason, created_at) VALUES ($1, $2, $3, $4, NOW())',
           [pointsId, finalUserId, 10, 'first_access_bonus']
         );
 
-        // Recalculate and update user's total points within transaction
         const totalResult = await query(
           'SELECT COALESCE(SUM(points), 0) as total FROM points_history WHERE user_id = $1',
           [finalUserId]
@@ -162,7 +376,6 @@ export async function createUser(privyId, email, walletAddress = null) {
           [totalPoints, league, finalUserId]
         );
       } catch (pointsError) {
-        // If points already exist, that's okay (race condition handled)
         console.log(`ℹ️ Points may already exist for user ${finalUserId}, continuing...`);
       }
     }
@@ -170,17 +383,23 @@ export async function createUser(privyId, email, walletAddress = null) {
     await query('COMMIT');
 
     const user = await getUserById(finalUserId);
-    console.log(`✅ User created/retrieved: id=${user.id}, privyId=${privyId}, email=${email || 'null'}, wallet=${walletAddress ? walletAddress.slice(0, 10) + '...' : 'null'}`);
-    return user;
+
+    console.log(`✅ New user created: id=${user.id}`);
+    return { user, isNewUser: true };
+
   } catch (error) {
     await query('ROLLBACK');
 
     // If it's a unique constraint violation, try to get the existing user
-    if (error.code === '23505' || error.message.includes('unique constraint') || error.message.includes('duplicate key')) {
+    if (
+      error.code === '23505' ||
+      error.message.includes('unique constraint') ||
+      error.message.includes('duplicate key')
+    ) {
       console.log(`⚠️ Race condition detected for privyId ${privyId}, fetching existing user...`);
       const existing = await getUserByPrivyId(privyId);
       if (existing) {
-        return existing;
+        return { user: existing, isNewUser: false };
       }
     }
 
@@ -188,6 +407,7 @@ export async function createUser(privyId, email, walletAddress = null) {
     throw error;
   }
 }
+
 
 /**
  * Update user wallet address

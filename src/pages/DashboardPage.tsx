@@ -14,7 +14,55 @@ interface ToastState {
   message: string;
 }
 
-// Provider configurations
+/**
+ * Extract a stable identifier from a Privy user object.
+ * Priority:
+ *   1. Real email (email login, Google, Apple, Discord, linkedAccounts)
+ *   2. Twitter handle as @username (stored in DB email column for reconciliation)
+ *   3. null (wallet-only users — reconciled by wallet address on backend)
+ */
+function getPrivyEmail(user: any): string | null {
+  if (!user) return null;
+
+  // 1. Direct email login
+  if (user.email?.address) return user.email.address;
+
+  // 2. Google login
+  if (user.google?.email) return user.google.email;
+
+  // 3. Twitter login (sometimes has email — rare)
+  if (user.twitter?.email) return user.twitter.email;
+
+  // 4. Apple login
+  if (user.apple?.email) return user.apple.email;
+
+  // 5. Discord login
+  if (user.discord?.email) return user.discord.email;
+
+  // 6. Search through linkedAccounts array for email
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'email' && account.address) return account.address;
+      if (account.type === 'google_oauth' && account.email) return account.email;
+      if (account.type === 'twitter_oauth' && account.email) return account.email;
+      if (account.type === 'apple_oauth' && account.email) return account.email;
+      if (account.type === 'discord_oauth' && account.email) return account.email;
+      if (account.email) return account.email;
+    }
+  }
+
+  // 7. Twitter handle as fallback identifier (no email available)
+  //    Stored as @username in the DB email column for reconciliation
+  if (user.twitter?.username) return `@${user.twitter.username}`;
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'twitter_oauth' && account.username) return `@${account.username}`;
+    }
+  }
+
+  return null;
+}
+
 // Provider configurations
 const PROVIDERS = [
   {
@@ -166,6 +214,12 @@ const DashboardPage = () => {
     provider: '',
     points: 0
   });
+
+  // Referral modal state
+const [showReferralModal, setShowReferralModal] = useState(false);
+const [referralCode, setReferralCode] = useState('');
+const [submittingReferral, setSubmittingReferral] = useState(false);
+
 
   const showToast = (type: ToastType, title: string, message: string, persistent = false) => {
     // Clear any existing timeout
@@ -340,7 +394,7 @@ const DashboardPage = () => {
             ) || PROVIDERS[0];
 
             const walletAddress = user?.wallet?.address || null;
-            const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+            const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
             showToast('info', 'Processing verification...', `Submitting ${detectedProvider.name} data`, true);
 
@@ -446,6 +500,54 @@ const DashboardPage = () => {
   // Get wallet address from Privy user
   const walletAddress = user?.wallet?.address || null;
 
+const handleReferralSubmit = async () => {
+  if (!referralCode.trim()) {
+    showToast('error', 'Invalid Code', 'Please enter a referral code');
+    return;
+  }
+
+  if (referralCode.length !== 8) {
+    showToast('error', 'Invalid Code', 'Referral code must be 8 characters');
+    return;
+  }
+
+  setSubmittingReferral(true);
+
+  try {
+    const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+    const res = await fetch(`${API_URL}/api/referral`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        wallet_address: walletAddress,
+        referral_code: referralCode,
+      }),
+    });
+
+    const data = await res.json();
+    console.log('Referral response:', data);
+
+    if (res.ok) {
+      showToast('success', 'Referral Successful!', 'Referral code applied successfully');
+      setReferralCode('');
+      setShowReferralModal(false);
+      // Optionally refresh user data to show updated points
+      setTimeout(() => fetchUserData(true), 1000);
+    } else {
+      // Handle different error messages from backend
+      const errorMsg = data.message || 'Failed to apply referral code';
+      showToast('error', 'Referral Failed', errorMsg);
+    }
+  } catch (err) {
+    console.error('Referral submission error:', err);
+    showToast('error', 'Error', 'An error occurred while processing your referral');
+  } finally {
+    setSubmittingReferral(false);
+  }
+};
+
 
   // Fetch user data
   const fetchUserData = useCallback(async (showRefresh = false) => {
@@ -461,22 +563,32 @@ const DashboardPage = () => {
         setLoading(true);
       }
 
-      const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
-      const email = user?.email?.address || user?.email || null;
+      const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
+      const email = getPrivyEmail(user);
       const walletAddr = user?.wallet?.address || null;
 
       // Verify/create user (send email and wallet address in body)
-      await fetch(`${API_URL}/api/auth/verify`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
-          walletAddress: walletAddr
-        })
-      });
+// Verify/create user (send email and wallet address in body)
+const verifyRes = await fetch(`${API_URL}/api/auth/verify`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    email: email,
+    walletAddress: walletAddr
+  })
+});
+
+const verifyData = await verifyRes.json();
+
+// 🔥 SHOW REFERRAL MODAL ONLY FOR GENUINELY NEW USERS
+// Migrated users (wasMigrated=true) should NOT see this popup again
+if (verifyData.isNewUser && !verifyData.wasMigrated) {
+  setShowReferralModal(true);
+}
+
 
       // Fetch all data in parallel with cache-busting for refresh
       const [profileRes, pointsRes, contribRes] = await Promise.all([
@@ -502,7 +614,37 @@ const DashboardPage = () => {
 
       setProfile(profileData.profile);
       setPoints(pointsData.points);
-      setContributions(contribData.contributions || []);
+
+      // Merge contributions and referral/points history into a single recent-activity list
+      try {
+        const pointsHistory = (pointsData?.points?.history) || [];
+
+        // Map referral/points entries into activity-like objects
+        const referralActivities = pointsHistory
+          .filter((ph: any) => ph && ph.reason === 'referral_bonus')
+          .map((ph: any) => ({
+            id: ph.id ? `points_${ph.id}` : `points_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+            createdAt: ph.createdAt || ph.created_at || new Date().toISOString(),
+            dataType: 'referral',
+            providerName: 'Referral',
+            pointsAwarded: ph.points,
+            reason: ph.reason
+          }));
+
+        const contributionActivities = (contribData.contributions || []).map((c: any) => ({ ...c, activityType: 'contribution' }));
+
+        // Merge and sort by createdAt desc
+        const merged = [...contributionActivities, ...referralActivities].sort((a: any, b: any) => {
+          const ta = new Date(a.createdAt).getTime();
+          const tb = new Date(b.createdAt).getTime();
+          return tb - ta;
+        });
+
+        setContributions(merged);
+      } catch (mergeErr) {
+        console.error('Error merging referral history into contributions:', mergeErr);
+        setContributions(contribData.contributions || []);
+      }
 
     } catch (error) {
       console.error('Error verifying user:', error);
@@ -514,7 +656,8 @@ const DashboardPage = () => {
         setLoading(false);
       }
     }
-  }, [user?.id, user?.email?.address, user?.wallet?.address, API_URL]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.email?.address, user?.google?.email, user?.twitter?.username, user?.wallet?.address, API_URL]);
 
   // Fetch on mount
   useEffect(() => {
@@ -538,7 +681,7 @@ const DashboardPage = () => {
     const walletAddr = user?.wallet?.address;
     if (!walletAddr || !authenticated || !user?.id) return;
 
-    const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+    const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
     fetch(`${API_URL}/api/auth/verify`, {
       method: 'POST',
       headers: {
@@ -546,7 +689,7 @@ const DashboardPage = () => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        email: user?.email?.address || null,
+        email: getPrivyEmail(user),
         walletAddress: walletAddr
       })
     }).catch(err => console.error('Wallet sync error:', err));
@@ -1572,7 +1715,7 @@ const DashboardPage = () => {
                 }
 
                 const walletAddress = user?.wallet?.address || null;
-                const token = `privy_${user?.id}_${user?.email?.address || 'user'}`;
+                const token = `privy_${user?.id}_${getPrivyEmail(user) || 'user'}`;
 
                 // #region agent log
                 fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.processPolledProof.submitting', message: 'Submitting polled proof to backend', data: { provider: provider.id, hasOrders: !!extractedData.orders, ordersLength: extractedData.orders?.length || 0 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run7', hypothesisId: 'J' }) }).catch(() => { });
@@ -1801,7 +1944,7 @@ const DashboardPage = () => {
             // #endregion
           }
 
-          const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+          const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
           const response = await fetch(`${API_URL}/api/contribute`, {
             method: 'POST',
@@ -1993,7 +2136,7 @@ const DashboardPage = () => {
                 if (Object.keys(extractedData).length > 0) {
                   console.log('✅ Successfully extracted data:', Object.keys(extractedData));
 
-                  const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+                  const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
                   const response = await fetch(`${API_URL}/api/contribute`, {
                     method: 'POST',
@@ -2069,7 +2212,7 @@ const DashboardPage = () => {
                 if (Object.keys(extractedData).length > 0) {
                   console.log('Successfully extracted data from error proof:', Object.keys(extractedData));
 
-                  const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+                  const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
                   const response = await fetch(`${API_URL}/api/contribute`, {
                     method: 'POST',
@@ -2176,10 +2319,66 @@ const DashboardPage = () => {
   // Loading state (only show if authenticated, otherwise redirect handles it)
   if (!ready || (authenticated && !hasLoadedData.current && !profile)) {
     return (
-      <div className="dashboard-loading">
+      <div className="dashboard">
         <style>{styles}</style>
-        <Loader2 className="spin" size={40} color="#fff" />
-        <p>Loading...</p>
+        <style>{skeletonStyles}</style>
+        <Sidebar />
+        <DashboardHeader />
+        <main className="dashboard-main">
+          {/* Welcome skeleton */}
+          <div className="welcome-section animate-enter">
+            <div className="welcome-text">
+              <div className="skeleton skeleton-text" style={{ width: 260, height: 32 }} />
+              <div className="skeleton skeleton-text" style={{ width: 180, height: 16, marginTop: 8 }} />
+            </div>
+          </div>
+          {/* Stats skeleton */}
+          <section className="stats-grid animate-enter delay-1">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="stat-card">
+                <div className="skeleton skeleton-text" style={{ width: 100, height: 14 }} />
+                <div className="skeleton skeleton-text" style={{ width: 80, height: 36, marginTop: 8 }} />
+              </div>
+            ))}
+          </section>
+          {/* Providers skeleton */}
+          <section className="contribute-section animate-enter delay-2">
+            <div className="section-header">
+              <div className="skeleton skeleton-text" style={{ width: 140, height: 24 }} />
+              <div className="skeleton skeleton-text" style={{ width: 220, height: 14, marginTop: 6 }} />
+            </div>
+            <div className="providers-grid">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="provider-card" style={{ minHeight: 180 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="skeleton skeleton-circle" style={{ width: 40, height: 40 }} />
+                    <div className="skeleton skeleton-text" style={{ width: 80, height: 16 }} />
+                  </div>
+                  <div className="skeleton skeleton-text" style={{ width: '90%', height: 12, marginTop: 12 }} />
+                  <div className="skeleton skeleton-text" style={{ width: '70%', height: 12, marginTop: 4 }} />
+                  <div className="skeleton skeleton-button" style={{ marginTop: 'auto' }} />
+                </div>
+              ))}
+            </div>
+          </section>
+          {/* Activity skeleton */}
+          <section className="activity-section animate-enter delay-3">
+            <div className="section-header">
+              <div className="skeleton skeleton-text" style={{ width: 160, height: 24 }} />
+            </div>
+            <div className="activity-list">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="activity-item">
+                  <div className="activity-info">
+                    <div className="skeleton skeleton-text" style={{ width: 140, height: 14 }} />
+                    <div className="skeleton skeleton-text" style={{ width: 100, height: 12, marginTop: 4 }} />
+                  </div>
+                  <div className="skeleton skeleton-text" style={{ width: 60, height: 28, borderRadius: 100 }} />
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
       </div>
     );
   }
@@ -2263,6 +2462,92 @@ const DashboardPage = () => {
           </button>
         </div>
       )}
+{/* Referral Modal */}
+{showReferralModal && (
+  <div className="success-modal-overlay">
+    <div className="success-modal-container">
+      <h2 className="success-modal-title">Enter Referral Code</h2>
+      <p className="success-modal-provider">
+        If someone invited you, enter their 8-digit code to get bonus points!
+      </p>
+
+      <input
+        type="text"
+        maxLength={8}
+        value={referralCode}
+        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+        placeholder="Enter code (8 characters)"
+        disabled={submittingReferral}
+        style={{
+          width: '100%',
+          padding: '14px',
+          borderRadius: '12px',
+          border: referralCode.length === 8 ? '2px solid #10b981' : '1px solid #e5e7eb',
+          marginBottom: '24px',
+          fontSize: '14px',
+          fontWeight: '500',
+          letterSpacing: '0.1em',
+          opacity: submittingReferral ? 0.6 : 1,
+          cursor: submittingReferral ? 'not-allowed' : 'text',
+          transition: 'all 0.3s ease'
+        }}
+      />
+
+      {referralCode.length > 0 && referralCode.length < 8 && (
+        <p style={{ fontSize: '12px', color: '#ef4444', marginBottom: '12px', textAlign: 'center' }}>
+          Code must be 8 characters
+        </p>
+      )}
+
+      <button
+        className="success-modal-button"
+        onClick={handleReferralSubmit}
+        disabled={submittingReferral || referralCode.length !== 8}
+        style={{
+          opacity: submittingReferral || referralCode.length !== 8 ? 0.6 : 1,
+          cursor: submittingReferral || referralCode.length !== 8 ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px'
+        }}
+      >
+        {submittingReferral ? (
+          <>
+            <Loader2 size={16} className="spin" />
+            Processing...
+          </>
+        ) : (
+          'Apply Code'
+        )}
+      </button>
+
+      <button
+        onClick={() => {
+          setShowReferralModal(false);
+          setReferralCode('');
+        }}
+        disabled={submittingReferral}
+        style={{
+          width: '100%',
+          padding: '12px',
+          marginTop: '12px',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          backgroundColor: '#f9fafb',
+          color: '#6b7280',
+          cursor: submittingReferral ? 'not-allowed' : 'pointer',
+          fontSize: '14px',
+          fontWeight: '500',
+          opacity: submittingReferral ? 0.5 : 1,
+          transition: 'all 0.3s ease'
+        }}
+      >
+        Skip for Now
+      </button>
+    </div>
+  </div>
+)}
 
       {/* Shared Dashboard Header */}
       <DashboardHeader onOptOutSuccess={() => fetchUserData(true)} />
@@ -2351,10 +2636,55 @@ const DashboardPage = () => {
         )}
 
         {loading ? (
-          <div className="loading-state animate-enter">
-            <Loader2 className="spin" size={40} color="#111827" />
-            <p style={{ fontSize: 16, fontWeight: 500 }}>...</p>
-          </div>
+          <>
+            <style>{skeletonStyles}</style>
+            {/* Stats skeleton */}
+            <section className="stats-grid animate-enter">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="stat-card">
+                  <div className="skeleton skeleton-text" style={{ width: 100, height: 14 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 80, height: 36, marginTop: 8 }} />
+                </div>
+              ))}
+            </section>
+            {/* Providers skeleton */}
+            <section className="contribute-section animate-enter delay-1">
+              <div className="section-header">
+                <div className="skeleton skeleton-text" style={{ width: 140, height: 24 }} />
+                <div className="skeleton skeleton-text" style={{ width: 220, height: 14, marginTop: 6 }} />
+              </div>
+              <div className="providers-grid">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="provider-card" style={{ minHeight: 180 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div className="skeleton skeleton-circle" style={{ width: 40, height: 40 }} />
+                      <div className="skeleton skeleton-text" style={{ width: 80, height: 16 }} />
+                    </div>
+                    <div className="skeleton skeleton-text" style={{ width: '90%', height: 12, marginTop: 12 }} />
+                    <div className="skeleton skeleton-text" style={{ width: '70%', height: 12, marginTop: 4 }} />
+                    <div className="skeleton skeleton-button" style={{ marginTop: 'auto' }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+            {/* Activity skeleton */}
+            <section className="activity-section animate-enter delay-2">
+              <div className="section-header">
+                <div className="skeleton skeleton-text" style={{ width: 160, height: 24 }} />
+              </div>
+              <div className="activity-list">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="activity-item">
+                    <div className="activity-info">
+                      <div className="skeleton skeleton-text" style={{ width: 140, height: 14 }} />
+                      <div className="skeleton skeleton-text" style={{ width: 100, height: 12, marginTop: 4 }} />
+                    </div>
+                    <div className="skeleton skeleton-text" style={{ width: 60, height: 28, borderRadius: 100 }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
         ) : (
           <>
             {/* Stats Cards */}
@@ -2543,10 +2873,11 @@ const DashboardPage = () => {
                       }
                     }
                     const provider = getProviderInfo(dataType || 'general');
+                    const title = contrib.providerName || provider.name || (dataType || 'Activity');
                     return (
                       <div key={contrib.id} className="activity-item">
                         <div className="activity-info">
-                          <span className="activity-title">{provider.name} Verification</span>
+                          <span className="activity-title">{title} Verification</span>
                           <span className="activity-time">{new Date(contrib.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -2571,6 +2902,33 @@ const DashboardPage = () => {
     </div>
   );
 };
+
+// Skeleton loader styles
+const skeletonStyles = `
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+    background-size: 800px 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  .skeleton-text {
+    display: block;
+  }
+  .skeleton-circle {
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  .skeleton-button {
+    height: 42px;
+    width: 100%;
+    border-radius: 10px;
+    margin-top: 12px;
+  }
+`;
 
 // Styles
 const styles = `

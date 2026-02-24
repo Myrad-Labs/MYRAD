@@ -3,6 +3,33 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useNavigate } from 'react-router-dom';
 import { Copy, LogOut, Key, AlertTriangle, X, Loader2 } from 'lucide-react';
 
+/**
+ * Extract a stable identifier from a Privy user object.
+ * Checks email sources first, then falls back to Twitter handle (@username).
+ */
+function getPrivyEmail(user: any): string | null {
+  if (!user) return null;
+  if (user.email?.address) return user.email.address;
+  if (user.google?.email) return user.google.email;
+  if (user.twitter?.email) return user.twitter.email;
+  if (user.apple?.email) return user.apple.email;
+  if (user.discord?.email) return user.discord.email;
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'email' && account.address) return account.address;
+      if (account.email) return account.email;
+    }
+  }
+  // Twitter handle fallback (stored as @username in DB)
+  if (user.twitter?.username) return `@${user.twitter.username}`;
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'twitter_oauth' && account.username) return `@${account.username}`;
+    }
+  }
+  return null;
+}
+
 interface DashboardHeaderProps {
   onOptOutSuccess?: () => void;
 }
@@ -42,7 +69,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onOptOutSuccess }) =>
     setOptOutError(null);
 
     try {
-      const token = `privy_${user.id}_${user?.email?.address || 'user'}`;
+      const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
       const response = await fetch(`${API_URL}/api/user/opt-out`, {
         method: 'POST',
         headers: {

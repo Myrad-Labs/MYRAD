@@ -25,7 +25,10 @@ const MIGRATIONS = [
   '012_add_opt_out_column.sql',
   '013_add_zepto_table.sql',
   '014_add_composite_indexes.sql',
-  '015_add_zepto_processing_method.sql'
+  '015_add_zepto_processing_method.sql',
+  '016_add_referrals_table.sql',
+  '017_add_wallet_history_table.sql',
+  '018_migrate_referred_by_to_referral_code.sql'
 ];
 
 async function runMigration(migrationFile) {
