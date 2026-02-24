@@ -1,15 +1,30 @@
 // API configuration
-// In production (Vercel), use the backend URL from environment variable
-// In development (local), use the Vite proxy which forwards to localhost:4000
+// In production (Render), frontend is served by the same backend — use relative URLs
+// In development (local), VITE_API_URL points to the local backend (http://localhost:4000)
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// Determine API base URL:
+// 1. If VITE_API_URL is set → use it (works for both dev and explicit prod configs)
+// 2. If VITE_API_BASE_URL is set → use it (legacy support)
+// 3. In production (non-localhost) → use '' (relative URL, same-origin)
+// 4. In development (localhost) → use 'http://localhost:4000'
+function getBaseUrl(): string {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  
+  // Auto-detect: if running on a non-localhost domain, use same-origin (relative URLs)
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+    return '';
+  }
+  
+  // Development fallback
+  return 'http://localhost:4000';
+}
+
+export const API_BASE_URL = getBaseUrl();
 
 // Helper function to build API URLs
 export const getApiUrl = (path: string): string => {
-  // Remove leading slash if present to avoid double slashes
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  
-  // If API_BASE_URL is set, use it; otherwise use relative path (for Vite proxy)
   return API_BASE_URL ? `${API_BASE_URL}/${cleanPath}` : `/${cleanPath}`;
 };
 

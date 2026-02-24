@@ -249,7 +249,7 @@ const [submittingReferral, setSubmittingReferral] = useState(false);
     };
   }, []);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const API_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') ? '' : 'http://localhost:4000');
 
   // Helper function to log errors to server (Render logs)
   const logErrorToServer = async (error: any, context: string, additionalData?: any) => {
@@ -514,7 +514,6 @@ const handleReferralSubmit = async () => {
   setSubmittingReferral(true);
 
   try {
-    const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
     const token = `privy_${user?.id}_${getPrivyEmail(user) || 'user'}`;
     const res = await fetch(`${API_URL}/api/referral`, {
       method: "POST",

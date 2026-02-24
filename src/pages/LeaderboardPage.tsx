@@ -22,7 +22,7 @@ const LeaderboardPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') ? '' : 'http://localhost:4000');
   const myWallet = (user?.wallet?.address || '').toLowerCase() || null;
 
   const fetchLeaderboard = useCallback(async () => {
