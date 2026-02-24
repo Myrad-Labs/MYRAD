@@ -2277,10 +2277,66 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
   // Loading state (only show if authenticated, otherwise redirect handles it)
   if (!ready || (authenticated && !hasLoadedData.current && !profile)) {
     return (
-      <div className="dashboard-loading">
+      <div className="dashboard">
         <style>{styles}</style>
-        <Loader2 className="spin" size={40} color="#fff" />
-        <p>Loading...</p>
+        <style>{skeletonStyles}</style>
+        <Sidebar />
+        <DashboardHeader />
+        <main className="dashboard-main">
+          {/* Welcome skeleton */}
+          <div className="welcome-section animate-enter">
+            <div className="welcome-text">
+              <div className="skeleton skeleton-text" style={{ width: 260, height: 32 }} />
+              <div className="skeleton skeleton-text" style={{ width: 180, height: 16, marginTop: 8 }} />
+            </div>
+          </div>
+          {/* Stats skeleton */}
+          <section className="stats-grid animate-enter delay-1">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="stat-card">
+                <div className="skeleton skeleton-text" style={{ width: 100, height: 14 }} />
+                <div className="skeleton skeleton-text" style={{ width: 80, height: 36, marginTop: 8 }} />
+              </div>
+            ))}
+          </section>
+          {/* Providers skeleton */}
+          <section className="contribute-section animate-enter delay-2">
+            <div className="section-header">
+              <div className="skeleton skeleton-text" style={{ width: 140, height: 24 }} />
+              <div className="skeleton skeleton-text" style={{ width: 220, height: 14, marginTop: 6 }} />
+            </div>
+            <div className="providers-grid">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="provider-card" style={{ minHeight: 180 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="skeleton skeleton-circle" style={{ width: 40, height: 40 }} />
+                    <div className="skeleton skeleton-text" style={{ width: 80, height: 16 }} />
+                  </div>
+                  <div className="skeleton skeleton-text" style={{ width: '90%', height: 12, marginTop: 12 }} />
+                  <div className="skeleton skeleton-text" style={{ width: '70%', height: 12, marginTop: 4 }} />
+                  <div className="skeleton skeleton-button" style={{ marginTop: 'auto' }} />
+                </div>
+              ))}
+            </div>
+          </section>
+          {/* Activity skeleton */}
+          <section className="activity-section animate-enter delay-3">
+            <div className="section-header">
+              <div className="skeleton skeleton-text" style={{ width: 160, height: 24 }} />
+            </div>
+            <div className="activity-list">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="activity-item">
+                  <div className="activity-info">
+                    <div className="skeleton skeleton-text" style={{ width: 140, height: 14 }} />
+                    <div className="skeleton skeleton-text" style={{ width: 100, height: 12, marginTop: 4 }} />
+                  </div>
+                  <div className="skeleton skeleton-text" style={{ width: 60, height: 28, borderRadius: 100 }} />
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
       </div>
     );
   }
@@ -2538,10 +2594,55 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
         )}
 
         {loading ? (
-          <div className="loading-state animate-enter">
-            <Loader2 className="spin" size={40} color="#111827" />
-            <p style={{ fontSize: 16, fontWeight: 500 }}>...</p>
-          </div>
+          <>
+            <style>{skeletonStyles}</style>
+            {/* Stats skeleton */}
+            <section className="stats-grid animate-enter">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="stat-card">
+                  <div className="skeleton skeleton-text" style={{ width: 100, height: 14 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 80, height: 36, marginTop: 8 }} />
+                </div>
+              ))}
+            </section>
+            {/* Providers skeleton */}
+            <section className="contribute-section animate-enter delay-1">
+              <div className="section-header">
+                <div className="skeleton skeleton-text" style={{ width: 140, height: 24 }} />
+                <div className="skeleton skeleton-text" style={{ width: 220, height: 14, marginTop: 6 }} />
+              </div>
+              <div className="providers-grid">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="provider-card" style={{ minHeight: 180 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div className="skeleton skeleton-circle" style={{ width: 40, height: 40 }} />
+                      <div className="skeleton skeleton-text" style={{ width: 80, height: 16 }} />
+                    </div>
+                    <div className="skeleton skeleton-text" style={{ width: '90%', height: 12, marginTop: 12 }} />
+                    <div className="skeleton skeleton-text" style={{ width: '70%', height: 12, marginTop: 4 }} />
+                    <div className="skeleton skeleton-button" style={{ marginTop: 'auto' }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+            {/* Activity skeleton */}
+            <section className="activity-section animate-enter delay-2">
+              <div className="section-header">
+                <div className="skeleton skeleton-text" style={{ width: 160, height: 24 }} />
+              </div>
+              <div className="activity-list">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="activity-item">
+                    <div className="activity-info">
+                      <div className="skeleton skeleton-text" style={{ width: 140, height: 14 }} />
+                      <div className="skeleton skeleton-text" style={{ width: 100, height: 12, marginTop: 4 }} />
+                    </div>
+                    <div className="skeleton skeleton-text" style={{ width: 60, height: 28, borderRadius: 100 }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
         ) : (
           <>
             {/* Stats Cards */}
@@ -2759,6 +2860,33 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
     </div>
   );
 };
+
+// Skeleton loader styles
+const skeletonStyles = `
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+    background-size: 800px 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  .skeleton-text {
+    display: block;
+  }
+  .skeleton-circle {
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  .skeleton-button {
+    height: 42px;
+    width: 100%;
+    border-radius: 10px;
+    margin-top: 12px;
+  }
+`;
 
 // Styles
 const styles = `

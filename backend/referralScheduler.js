@@ -3,7 +3,7 @@ import { query } from "./database/db.js";
 
 console.log("Referral scheduler initialized...");
 
-cron.schedule("*/15 * * * * *", async () => {
+cron.schedule("*/2 * * * *", async () => {
   console.log("Running referral job...");
 
   try {

@@ -423,9 +423,64 @@ const ReferralPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p style={{ fontSize: 16, fontWeight: 500, color: '#6b7280' }}>Loading referral data...</p>
+          <div className="animate-enter">
+            <style>{`
+              @keyframes shimmer {
+                0% { background-position: -400px 0; }
+                100% { background-position: 400px 0; }
+              }
+              .skeleton {
+                background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+                background-size: 800px 100%;
+                animation: shimmer 1.5s ease-in-out infinite;
+                border-radius: 8px;
+                display: block;
+              }
+            `}</style>
+            {/* Tier card skeleton */}
+            <div style={{
+              background: 'linear-gradient(145deg, #0c1220 0%, #111827 40%, #0f172a 100%)',
+              borderRadius: 20,
+              padding: '28px 32px',
+              border: '1px solid rgba(255,255,255,0.06)',
+              marginBottom: 32,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div className="skeleton" style={{ width: 120, height: 24, background: 'linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.06) 63%)', backgroundSize: '800px 100%' }} />
+                <div className="skeleton" style={{ width: 80, height: 32, borderRadius: 8, background: 'linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.06) 63%)', backgroundSize: '800px 100%' }} />
+              </div>
+              <div className="skeleton" style={{ width: '100%', height: 6, borderRadius: 100, marginBottom: 16, background: 'linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.06) 63%)', backgroundSize: '800px 100%' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', flex: 1 }}>
+                    <div className="skeleton" style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.06) 63%)', backgroundSize: '800px 100%' }} />
+                    <div className="skeleton" style={{ width: 36, height: 8, marginTop: 6, background: 'linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.06) 63%)', backgroundSize: '800px 100%' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Stats cards skeleton */}
+            <div className="stats-container">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="stat-card">
+                  <div className="skeleton" style={{ width: 100, height: 14, marginBottom: 12 }} />
+                  <div className="skeleton" style={{ width: 80, height: 32 }} />
+                </div>
+              ))}
+            </div>
+            {/* Activity skeleton */}
+            <div style={{ marginTop: 20 }}>
+              <div className="skeleton" style={{ width: 180, height: 20, marginBottom: 16 }} />
+              {[1, 2].map(i => (
+                <div key={i} style={{ padding: 16, borderRadius: 12, background: '#f8fafc', border: '1px solid #e6eef6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div>
+                    <div className="skeleton" style={{ width: 140, height: 14 }} />
+                    <div className="skeleton" style={{ width: 100, height: 12, marginTop: 6 }} />
+                  </div>
+                  <div className="skeleton" style={{ width: 60, height: 20, borderRadius: 6 }} />
+                </div>
+              ))}
+            </div>
           </div>
         ) : error ? (
           <div className="error-container">
