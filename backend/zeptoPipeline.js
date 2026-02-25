@@ -139,9 +139,16 @@ function parsePrice(p) {
 // Convert paise to rupees (Zepto sends amounts in paise, e.g. 19400 = ₹194)
 function paiseToRupees(paise) {
     const val = parsePrice(paise);
-    // If value > 10000, it's likely in paise (₹100+ orders)
-    // Most grocery orders are ₹50-₹5000, so amounts > 10000 are almost certainly paise
-    if (val > 10000) return Math.round(val) / 100;
+
+    // If the original string contains a decimal point, it is likely already in rupees
+    if (typeof paise === 'string' && paise.includes('.')) {
+        return val;
+    }
+
+    // Assume Zepto amounts are in paise and divide by 100
+    // (If value >= 100 paise i.e., at least Rs 1)
+    if (val >= 100) return Math.round(val) / 100;
+
     return val;
 }
 
@@ -298,9 +305,17 @@ export function processZeptoData(extractedData, options = {}) {
     // Only count DELIVERED orders for insights (skip CANCELLED etc.)
     const deliveredOrders = rawOrders.filter(o => {
         const status = (o.status || '').toUpperCase();
-        return status === 'DELIVERED' || status === '';  // empty status = legacy format
+        const formattedStatus = (o.formattedStatus || '').toUpperCase();
+
+        if (formattedStatus === 'CANCELLED' || status === 'CANCELLED') return false;
+
+        return status === 'DELIVERED' || formattedStatus === 'DELIVERED' || status === 'ARRIVED' || status === '';  // empty status = legacy format
     });
-    const cancelledOrders = rawOrders.filter(o => (o.status || '').toUpperCase() === 'CANCELLED');
+    const cancelledOrders = rawOrders.filter(o => {
+        const status = (o.status || '').toUpperCase();
+        const formattedStatus = (o.formattedStatus || '').toUpperCase();
+        return status === 'CANCELLED' || formattedStatus === 'CANCELLED';
+    });
 
     console.log(`📊 ${deliveredOrders.length} delivered, ${cancelledOrders.length} cancelled out of ${rawOrders.length} total`);
 
