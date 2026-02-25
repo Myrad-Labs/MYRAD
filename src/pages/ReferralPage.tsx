@@ -4,6 +4,32 @@ import { Copy, Check, Lock, Star, Share2 } from 'lucide-react';
 import DashboardHeader from '../components/DashboardHeader';
 import Sidebar from '../components/Sidebar';
 
+/**
+ * Extract a stable identifier from a Privy user object.
+ */
+function getPrivyEmail(user: any): string | null {
+  if (!user) return null;
+  if (user.email?.address) return user.email.address;
+  if (user.google?.email) return user.google.email;
+  if (user.twitter?.email) return user.twitter.email;
+  if (user.apple?.email) return user.apple.email;
+  if (user.discord?.email) return user.discord.email;
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'email' && account.address) return account.address;
+      if (account.email) return account.email;
+    }
+  }
+  // Twitter handle fallback
+  if (user.twitter?.username) return `@${user.twitter.username}`;
+  if (Array.isArray(user.linkedAccounts)) {
+    for (const account of user.linkedAccounts) {
+      if (account.type === 'twitter_oauth' && account.username) return `@${account.username}`;
+    }
+  }
+  return null;
+}
+
 interface ReferralData {
   success: boolean;
   locked: boolean;
@@ -17,12 +43,12 @@ interface ReferralData {
 }
 
 const TIER_COLORS: Record<string, { primary: string; gradient: string; glow: string; text: string; image?: string }> = {
-  none:     { primary: '#4b5563', gradient: 'linear-gradient(135deg, #374151, #6b7280)', glow: '0 0 40px rgba(107,114,128,0.3)', text: '#9ca3af' },
-  bronze:   { primary: '#cd7f32', gradient: 'linear-gradient(135deg, #92400e, #d97706)', glow: '0 0 40px rgba(205,127,50,0.4)', text: '#d4a26a', image: '/bronze.svg' },
-  silver:   { primary: '#c0c0c0', gradient: 'linear-gradient(135deg, #6b7280, #d1d5db)', glow: '0 0 40px rgba(192,192,192,0.4)', text: '#d1d5db', image: '/silver.svg' },
-  gold:     { primary: '#ffd700', gradient: 'linear-gradient(135deg, #b45309, #fbbf24)', glow: '0 0 40px rgba(255,215,0,0.4)', text: '#fbbf24', image: '/gold.svg' },
+  none: { primary: '#4b5563', gradient: 'linear-gradient(135deg, #374151, #6b7280)', glow: '0 0 40px rgba(107,114,128,0.3)', text: '#9ca3af' },
+  bronze: { primary: '#cd7f32', gradient: 'linear-gradient(135deg, #92400e, #d97706)', glow: '0 0 40px rgba(205,127,50,0.4)', text: '#d4a26a', image: '/bronze.svg' },
+  silver: { primary: '#c0c0c0', gradient: 'linear-gradient(135deg, #6b7280, #d1d5db)', glow: '0 0 40px rgba(192,192,192,0.4)', text: '#d1d5db', image: '/silver.svg' },
+  gold: { primary: '#ffd700', gradient: 'linear-gradient(135deg, #b45309, #fbbf24)', glow: '0 0 40px rgba(255,215,0,0.4)', text: '#fbbf24', image: '/gold.svg' },
   platinum: { primary: '#e5e4e2', gradient: 'linear-gradient(135deg, #9ca3af, #e5e7eb)', glow: '0 0 40px rgba(229,228,226,0.4)', text: '#e5e7eb', image: '/platinum.svg' },
-  diamond:  { primary: '#b9f2ff', gradient: 'linear-gradient(135deg, #67e8f9, #a5f3fc)', glow: '0 0 40px rgba(185,242,255,0.5)', text: '#a5f3fc', image: '/diamond.svg' },
+  diamond: { primary: '#b9f2ff', gradient: 'linear-gradient(135deg, #67e8f9, #a5f3fc)', glow: '0 0 40px rgba(185,242,255,0.5)', text: '#a5f3fc', image: '/diamond.svg' },
   champion: { primary: '#ff6b6b', gradient: 'linear-gradient(135deg, #ef4444, #f97316)', glow: '0 0 40px rgba(255,107,107,0.5)', text: '#fca5a5', image: '/champion.svg' },
 };
 
@@ -48,8 +74,14 @@ const ReferralPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
         const response = await fetch(
-          `${API_URL}/api/referral-data?wallet_address=${encodeURIComponent(walletAddress)}`
+          `${API_URL}/api/referral-data?wallet_address=${encodeURIComponent(walletAddress)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
         );
 
         if (!response.ok) {
@@ -92,17 +124,17 @@ const ReferralPage: React.FC = () => {
   const computeTier = (count: number) => {
     // Always assign a tier - users start at Bronze (0 referrals)
     let current = TIERS[0]; // Default to Bronze
-    
+
     for (const t of TIERS) {
       if (count >= t.min && count <= t.max) {
         current = t;
         break;
       }
     }
-    
+
     // If count exceeds max, assign highest tier
-      if (count > TIERS[TIERS.length - 1].max) {
-        current = TIERS[TIERS.length - 1];
+    if (count > TIERS[TIERS.length - 1].max) {
+      current = TIERS[TIERS.length - 1];
     }
 
     const nextTier = TIERS.find(t => t.min > count) || null;
@@ -126,7 +158,7 @@ const ReferralPage: React.FC = () => {
 
   const renderTierBadge = (tierKey: string, size: number = 64) => {
     const colors = TIER_COLORS[tierKey] || TIER_COLORS.none;
-    
+
     // If we have an image for this tier, use it
     if (colors.image) {
       return (
@@ -138,8 +170,8 @@ const ReferralPage: React.FC = () => {
           justifyContent: 'center',
           filter: `drop-shadow(${colors.glow})`,
         }}>
-          <img 
-            src={colors.image} 
+          <img
+            src={colors.image}
             alt={`${tierKey} tier badge`}
             style={{
               width: size,
@@ -150,7 +182,7 @@ const ReferralPage: React.FC = () => {
         </div>
       );
     }
-    
+
     // Fallback for 'none' tier (no image)
     return (
       <div style={{
@@ -649,8 +681,8 @@ const ReferralPage: React.FC = () => {
                                 transition: 'all 0.3s ease',
                                 transform: isCurrent ? 'scale(1.1)' : 'scale(1)',
                               }}>
-                                <img 
-                                  src={tColors.image} 
+                                <img
+                                  src={tColors.image}
                                   alt={`${t.name} tier`}
                                   style={{
                                     width: badgeSize,
