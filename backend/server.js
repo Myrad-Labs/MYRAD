@@ -116,12 +116,19 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
-// Test database connection on startup (if enabled)
+// Test database connection on startup and start keepalive (if enabled)
 if (config.DB_USE_DATABASE && config.DATABASE_URL) {
-  import('./database/db.js').then(({ testConnection }) => {
-    testConnection().catch(err => {
-      console.warn('⚠️  Database connection test failed (continuing without DB):', err.message);
-    });
+  import('./database/db.js').then(({ testConnection, startKeepAlive }) => {
+    testConnection()
+      .then(connected => {
+        if (connected) {
+          // Start keepalive to prevent Neon cold starts (ping every 60s)
+          startKeepAlive(60000);
+        }
+      })
+      .catch(err => {
+        console.warn('⚠️  Database connection test failed (continuing without DB):', err.message);
+      });
   }).catch(err => {
     console.warn('⚠️  Could not load database module:', err.message);
   });

@@ -28,7 +28,8 @@ const MIGRATIONS = [
   '015_add_zepto_processing_method.sql',
   '016_add_referrals_table.sql',
   '017_add_wallet_history_table.sql',
-  '018_migrate_referred_by_to_referral_code.sql'
+  '018_migrate_referred_by_to_referral_code.sql',
+  '019_fix_strava_unique_constraint.sql'
 ];
 
 async function runMigration(migrationFile) {

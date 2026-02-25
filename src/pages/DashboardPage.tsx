@@ -199,6 +199,9 @@ const DashboardPage = () => {
   const hasLoadedData = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Guard against duplicate proof submissions (multiple code paths can fire for the same proof)
+  const submittedProofIds = useRef<Set<string>>(new Set());
+
   // Toast notification state
   const [toast, setToast] = useState<ToastState>({ show: false, type: 'info', title: '', message: '' });
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -394,6 +397,15 @@ const [submittingReferral, setSubmittingReferral] = useState(false);
             ) || PROVIDERS[0];
 
             const walletAddress = user?.wallet?.address || null;
+            const redirectProofId = proof?.identifier || `reclaim-mobile-${Date.now()}`;
+
+            // Guard: skip if this proof was already submitted by another code path
+            if (submittedProofIds.current.has(redirectProofId)) {
+              console.log(`⏭️ Proof ${redirectProofId} already submitted, skipping duplicate call (redirect)`);
+              return;
+            }
+            submittedProofIds.current.add(redirectProofId);
+
             const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
             showToast('info', 'Processing verification...', `Submitting ${detectedProvider.name} data`, true);
@@ -414,7 +426,7 @@ const [submittingReferral, setSubmittingReferral] = useState(false);
                   recoveredFromMobileRedirect: true
                 },
                 dataType: detectedProvider.dataType,
-                reclaimProofId: proof?.identifier || `reclaim-mobile-${Date.now()}`
+                reclaimProofId: redirectProofId
               })
             });
 
@@ -1715,6 +1727,15 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                 }
 
                 const walletAddress = user?.wallet?.address || null;
+                const polledProofId = proof?.identifier || `polled_${Date.now()}`;
+
+                // Guard: skip if this proof was already submitted by another code path
+                if (submittedProofIds.current.has(polledProofId)) {
+                  console.log(`⏭️ Proof ${polledProofId} already submitted, skipping duplicate call (polledProof)`);
+                  return;
+                }
+                submittedProofIds.current.add(polledProofId);
+
                 const token = `privy_${user?.id}_${getPrivyEmail(user) || 'user'}`;
 
                 // #region agent log
@@ -1737,7 +1758,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                       timestamp: new Date().toISOString(),
                       walletAddress
                     },
-                    reclaimProofId: proof?.identifier || `polled_${Date.now()}`,
+                    reclaimProofId: polledProofId,
                     walletAddress
                   })
                 });
@@ -1944,6 +1965,15 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
             // #endregion
           }
 
+          const currentProofId = proof.identifier || proof.id || `reclaim-${Date.now()}`;
+
+          // Guard: skip if this proof was already submitted by another code path
+          if (submittedProofIds.current.has(currentProofId)) {
+            console.log(`⏭️ Proof ${currentProofId} already submitted, skipping duplicate call (onSuccess)`);
+            return;
+          }
+          submittedProofIds.current.add(currentProofId);
+
           const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
           const response = await fetch(`${API_URL}/api/contribute`, {
@@ -1961,7 +1991,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                 walletAddress: walletAddress || null
               },
               dataType: provider.dataType,
-              reclaimProofId: proof.identifier || proof.id || `reclaim-${Date.now()}`
+              reclaimProofId: currentProofId
             })
           });
 
@@ -2134,6 +2164,15 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                 }
 
                 if (Object.keys(extractedData).length > 0) {
+                  const sdkRecoveryProofId = proof.identifier || `reclaim-recovered-${Date.now()}`;
+
+                  // Guard: skip if this proof was already submitted by another code path
+                  if (submittedProofIds.current.has(sdkRecoveryProofId)) {
+                    console.log(`⏭️ Proof ${sdkRecoveryProofId} already submitted, skipping duplicate call (sdkLogs recovery)`);
+                    return;
+                  }
+                  submittedProofIds.current.add(sdkRecoveryProofId);
+
                   console.log('✅ Successfully extracted data:', Object.keys(extractedData));
 
                   const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
@@ -2154,7 +2193,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                         recoveredFromSdkLogs: true
                       },
                       dataType: provider.dataType,
-                      reclaimProofId: proof.identifier || `reclaim-recovered-${Date.now()}`
+                      reclaimProofId: sdkRecoveryProofId
                     })
                   });
 
@@ -2210,6 +2249,15 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                 }
 
                 if (Object.keys(extractedData).length > 0) {
+                  const errorRecoveryProofId = proof.identifier || proof.id || `reclaim-recovered-${Date.now()}`;
+
+                  // Guard: skip if this proof was already submitted by another code path
+                  if (submittedProofIds.current.has(errorRecoveryProofId)) {
+                    console.log(`⏭️ Proof ${errorRecoveryProofId} already submitted, skipping duplicate call (errorObject recovery)`);
+                    return;
+                  }
+                  submittedProofIds.current.add(errorRecoveryProofId);
+
                   console.log('Successfully extracted data from error proof:', Object.keys(extractedData));
 
                   const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
@@ -2230,7 +2278,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                         recoveredFromError: true // Flag to indicate this was recovered
                       },
                       dataType: provider.dataType,
-                      reclaimProofId: proof.identifier || proof.id || `reclaim-recovered-${Date.now()}`
+                      reclaimProofId: errorRecoveryProofId
                     })
                   });
 
