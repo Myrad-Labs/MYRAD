@@ -233,7 +233,9 @@ export const addContribution = async (userId, data) => {
         processingMethod: data.processingMethod || 'raw',
         status: 'verified',
         createdAt: new Date().toISOString(),
-        walletAddress: data.walletAddress || null
+        walletAddress: data.walletAddress || null,
+        // Pass through for progression archiving (if set, old record is archived atomically)
+        archiveOldProofId: data.archiveOldProofId || null
     };
 
     const config = await import('./config.js');

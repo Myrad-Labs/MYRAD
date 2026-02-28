@@ -218,10 +218,8 @@ const DashboardPage = () => {
     points: 0
   });
 
-  // Referral modal state
-const [showReferralModal, setShowReferralModal] = useState(false);
-const [referralCode, setReferralCode] = useState('');
-const [submittingReferral, setSubmittingReferral] = useState(false);
+  // Referral modal state - now handled globally by ReferralModalContext
+  // Local state removed to avoid duplication
 
 
   const showToast = (type: ToastType, title: string, message: string, persistent = false) => {
@@ -433,8 +431,13 @@ const [submittingReferral, setSubmittingReferral] = useState(false);
             const data = await response.json();
 
             if (data.success) {
-              // Reload page to refresh all data (simpler than calling fetchUserData before it's declared)
-              showToast('success', `${detectedProvider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
+              const isUpdate = data.isProgression === true;
+              const pts = data.contribution?.pointsAwarded || 500;
+              const title = isUpdate ? `${detectedProvider.name} Updated!` : `${detectedProvider.name} Verified!`;
+              const msg = isUpdate
+                ? `+${pts} points (${data.contribution?.metricLabel || 'data'}: ${data.contribution?.previousMetric} → ${data.contribution?.currentMetric})`
+                : `+${pts} points earned`;
+              showToast('success', title, msg);
               setTimeout(() => window.location.reload(), 1500);
             } else {
               showToast('error', 'Verification Failed', data.message || 'Backend error');
@@ -512,53 +515,7 @@ const [submittingReferral, setSubmittingReferral] = useState(false);
   // Get wallet address from Privy user
   const walletAddress = user?.wallet?.address || null;
 
-const handleReferralSubmit = async () => {
-  if (!referralCode.trim()) {
-    showToast('error', 'Invalid Code', 'Please enter a referral code');
-    return;
-  }
-
-  if (referralCode.length !== 8) {
-    showToast('error', 'Invalid Code', 'Referral code must be 8 characters');
-    return;
-  }
-
-  setSubmittingReferral(true);
-
-  try {
-    const token = `privy_${user?.id}_${getPrivyEmail(user) || 'user'}`;
-    const res = await fetch(`${API_URL}/api/referral`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        referral_code: referralCode,
-      }),
-    });
-
-    const data = await res.json();
-    console.log('Referral response:', data);
-
-    if (res.ok) {
-      showToast('success', 'Referral Successful!', 'Referral code applied successfully');
-      setReferralCode('');
-      setShowReferralModal(false);
-      // Optionally refresh user data to show updated points
-      setTimeout(() => fetchUserData(true), 1000);
-    } else {
-      // Handle different error messages from backend
-      const errorMsg = data.message || 'Failed to apply referral code';
-      showToast('error', 'Referral Failed', errorMsg);
-    }
-  } catch (err) {
-    console.error('Referral submission error:', err);
-    showToast('error', 'Error', 'An error occurred while processing your referral');
-  } finally {
-    setSubmittingReferral(false);
-  }
-};
+// handleReferralSubmit moved to global ReferralModalContext
 
 
   // Fetch user data
@@ -593,13 +550,8 @@ const verifyRes = await fetch(`${API_URL}/api/auth/verify`, {
   })
 });
 
-const verifyData = await verifyRes.json();
-
-// 🔥 SHOW REFERRAL MODAL ONLY FOR GENUINELY NEW USERS
-// Migrated users (wasMigrated=true) should NOT see this popup again
-if (verifyData.isNewUser && !verifyData.wasMigrated) {
-  setShowReferralModal(true);
-}
+// Consume the response (referral modal is now handled globally by ReferralModalContext)
+await verifyRes.json();
 
 
       // Fetch all data in parallel with cache-busting for refresh
@@ -678,6 +630,20 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
       fetchUserData();
     }
   }, [authenticated, user?.id, fetchUserData]);
+
+  // Listen for referral applied event to refresh user data
+  useEffect(() => {
+    const handleReferralApplied = (event: CustomEvent) => {
+      if (event.detail?.userId === user?.id) {
+        fetchUserData(true);
+      }
+    };
+
+    window.addEventListener('referralApplied', handleReferralApplied as EventListener);
+    return () => {
+      window.removeEventListener('referralApplied', handleReferralApplied as EventListener);
+    };
+  }, [user?.id, fetchUserData]);
 
   // Sync wallet address to backend when it becomes available AFTER initial load.
   // Privy creates embedded wallets asynchronously after login,
@@ -938,6 +904,16 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
           // Show verification progress when proof is received
           setVerificationProgress(true);
           setVerificationProgressComplete(false);
+
+          // Safety net: auto-dismiss verification progress after 90s to prevent stuck UI
+          const progressSafetyTimeout = setTimeout(() => {
+            setVerificationProgress(false);
+            setVerificationProgressComplete(false);
+            setContributing(null);
+            showToast('error', 'Request Timed Out', 'Verification took too long. Please try again.');
+          }, 90000);
+          // Store so we can clear it on success/error
+          (window as any).__progressSafetyTimeout = progressSafetyTimeout;
           setVerificationProgressText('This will take a few seconds...');
 
           // #region agent log - RAW PROOFS RECEIVED
@@ -1778,6 +1754,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
 
                 // Points can be in result.pointsAwarded OR result.contribution.pointsAwarded
                 const pointsAwarded = result.contribution?.pointsAwarded || result.pointsAwarded || 0;
+                const isUpdate = result.isProgression === true;
 
                 // Complete the progress bar first
                 setVerificationProgressComplete(true);
@@ -1790,7 +1767,11 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
 
                 // Replace processing toast with success/error (non-persistent, will auto-dismiss)
                 if (result.success || pointsAwarded > 0) {
-                  showToast('success', 'Success!', `You earned ${pointsAwarded} points!`);
+                  const toastTitle = isUpdate ? `${provider.name} Updated!` : 'Success!';
+                  const toastMsg = isUpdate
+                    ? `+${pointsAwarded} points (${result.contribution?.metricLabel || 'data'}: ${result.contribution?.previousMetric} → ${result.contribution?.currentMetric})`
+                    : `You earned ${pointsAwarded} points!`;
+                  showToast('success', toastTitle, toastMsg);
                   fetchUserData();
                 } else {
                   showToast('error', 'Error', result.message || 'Failed to process contribution');
@@ -1976,26 +1957,50 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
 
           const token = `privy_${user.id}_${getPrivyEmail(user) || 'user'}`;
 
-          const response = await fetch(`${API_URL}/api/contribute`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              anonymizedData: {
-                ...extractedData,
-                provider: provider.id,
-                providerName: provider.name,
-                timestamp: new Date().toISOString(),
-                walletAddress: walletAddress || null
-              },
-              dataType: provider.dataType,
-              reclaimProofId: currentProofId
-            })
-          });
+          // Add 65s timeout to prevent hanging forever
+          const contributeController = new AbortController();
+          const contributeTimeout = setTimeout(() => contributeController.abort(), 65000);
 
-          const data = await response.json();
+          let data: any;
+          try {
+            const response = await fetch(`${API_URL}/api/contribute`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                anonymizedData: {
+                  ...extractedData,
+                  provider: provider.id,
+                  providerName: provider.name,
+                  timestamp: new Date().toISOString(),
+                  walletAddress: walletAddress || null
+                },
+                dataType: provider.dataType,
+                reclaimProofId: currentProofId
+              }),
+              signal: contributeController.signal
+            });
+            data = await response.json();
+          } catch (fetchErr: any) {
+            clearTimeout(contributeTimeout);
+            if (fetchErr.name === 'AbortError') {
+              console.error('⏰ Contribute request timed out after 65s');
+              setVerificationProgress(false);
+              setVerificationProgressComplete(false);
+              setContributing(null);
+              showToast('error', 'Request Timed Out', 'The server took too long. Please try again.');
+              return;
+            }
+            throw fetchErr;
+          }
+          clearTimeout(contributeTimeout);
+          // Clear safety timeout since we got a response
+          if ((window as any).__progressSafetyTimeout) {
+            clearTimeout((window as any).__progressSafetyTimeout);
+            (window as any).__progressSafetyTimeout = null;
+          }
 
           // #region agent log - BACKEND RESPONSE
           fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.backendResponse', message: 'Backend response received', data: { provider: provider.id, success: data.success, contributionId: data.contribution?.id, pointsAwarded: data.contribution?.pointsAwarded, orderCount: data.contribution?.orderCount, error: data.error, message: data.message }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'C' }) }).catch(() => { });
@@ -2005,13 +2010,20 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
             // Complete the progress bar first
             setVerificationProgressComplete(true);
 
+            const pointsEarned = data.contribution?.pointsAwarded || 0;
+            const isUpdate = data.isProgression === true;
+            const toastTitle = isUpdate ? `${provider.name} Updated!` : `${provider.name} Verified!`;
+            const toastMsg = isUpdate
+              ? `+${pointsEarned} points (${data.contribution?.metricLabel || 'data'}: ${data.contribution?.previousMetric} → ${data.contribution?.currentMetric})`
+              : `+${pointsEarned || 500} points earned`;
+
             // Small delay to show progress completion, then show modal
             setTimeout(() => {
               // Show prominent success modal
               setSuccessModal({
                 show: true,
                 provider: provider.name,
-                points: data.contribution?.pointsAwarded || 0
+                points: pointsEarned
               });
 
               // Hide progress indicator
@@ -2023,7 +2035,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
             fetchUserData(true).catch(err => console.error('Error refreshing data:', err));
 
             // Also show toast for consistency
-            showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
+            showToast('success', toastTitle, toastMsg);
           } else {
             // Complete progress bar on error
             setVerificationProgressComplete(true);
@@ -2203,7 +2215,14 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                     await fetchUserData(true);
                     setVerificationUrl(null);
                     setActiveProvider(null);
-                    showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
+                    const isUpdate = data.isProgression === true;
+                    const pts = data.contribution?.pointsAwarded || 500;
+                    showToast('success',
+                      isUpdate ? `${provider.name} Updated!` : `${provider.name} Verified!`,
+                      isUpdate
+                        ? `+${pts} points (${data.contribution?.metricLabel || 'data'}: ${data.contribution?.previousMetric} → ${data.contribution?.currentMetric})`
+                        : `+${pts} points earned`
+                    );
                     return; // Exit - recovery successful
                   } else {
                     // Log backend error to server
@@ -2288,7 +2307,14 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
                     await fetchUserData(true);
                     setVerificationUrl(null);
                     setActiveProvider(null);
-                    showToast('success', `${provider.name} Verified!`, `+${data.contribution?.pointsAwarded || 500} points earned`);
+                    const isUpdate = data.isProgression === true;
+                    const pts = data.contribution?.pointsAwarded || 500;
+                    showToast('success',
+                      isUpdate ? `${provider.name} Updated!` : `${provider.name} Verified!`,
+                      isUpdate
+                        ? `+${pts} points (${data.contribution?.metricLabel || 'data'}: ${data.contribution?.previousMetric} → ${data.contribution?.currentMetric})`
+                        : `+${pts} points earned`
+                    );
                     return; // Exit early - recovery successful
                   } else {
                     // Log backend error to server
@@ -2443,18 +2469,6 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
       {/* Sidebar Navigation */}
       <Sidebar />
 
-      {/* Bounty Banner */}
-      <a
-        href="https://app.firstdollar.money/company/myrad/bounty/myrad-user-experience-bounty"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bounty-banner"
-      >
-        <span className="bounty-banner-text">
-          🏆 Myrad User Experience Bounty is now live on EarnFirstDollar. Check it out now →
-        </span>
-      </a>
-
       {/* Verification Progress Indicator */}
       {verificationProgress && (
         <div className="verification-progress-overlay">
@@ -2510,92 +2524,7 @@ if (verifyData.isNewUser && !verifyData.wasMigrated) {
           </button>
         </div>
       )}
-{/* Referral Modal */}
-{showReferralModal && (
-  <div className="success-modal-overlay">
-    <div className="success-modal-container">
-      <h2 className="success-modal-title">Enter Referral Code</h2>
-      <p className="success-modal-provider">
-        If someone invited you, enter their 8-digit code to get bonus points!
-      </p>
-
-      <input
-        type="text"
-        maxLength={8}
-        value={referralCode}
-        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-        placeholder="Enter code (8 characters)"
-        disabled={submittingReferral}
-        style={{
-          width: '100%',
-          padding: '14px',
-          borderRadius: '12px',
-          border: referralCode.length === 8 ? '2px solid #10b981' : '1px solid #e5e7eb',
-          marginBottom: '24px',
-          fontSize: '14px',
-          fontWeight: '500',
-          letterSpacing: '0.1em',
-          opacity: submittingReferral ? 0.6 : 1,
-          cursor: submittingReferral ? 'not-allowed' : 'text',
-          transition: 'all 0.3s ease'
-        }}
-      />
-
-      {referralCode.length > 0 && referralCode.length < 8 && (
-        <p style={{ fontSize: '12px', color: '#ef4444', marginBottom: '12px', textAlign: 'center' }}>
-          Code must be 8 characters
-        </p>
-      )}
-
-      <button
-        className="success-modal-button"
-        onClick={handleReferralSubmit}
-        disabled={submittingReferral || referralCode.length !== 8}
-        style={{
-          opacity: submittingReferral || referralCode.length !== 8 ? 0.6 : 1,
-          cursor: submittingReferral || referralCode.length !== 8 ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px'
-        }}
-      >
-        {submittingReferral ? (
-          <>
-            <Loader2 size={16} className="spin" />
-            Processing...
-          </>
-        ) : (
-          'Apply Code'
-        )}
-      </button>
-
-      <button
-        onClick={() => {
-          setShowReferralModal(false);
-          setReferralCode('');
-        }}
-        disabled={submittingReferral}
-        style={{
-          width: '100%',
-          padding: '12px',
-          marginTop: '12px',
-          borderRadius: '12px',
-          border: '1px solid #e5e7eb',
-          backgroundColor: '#f9fafb',
-          color: '#6b7280',
-          cursor: submittingReferral ? 'not-allowed' : 'pointer',
-          fontSize: '14px',
-          fontWeight: '500',
-          opacity: submittingReferral ? 0.5 : 1,
-          transition: 'all 0.3s ease'
-        }}
-      >
-        Skip for Now
-      </button>
-    </div>
-  </div>
-)}
+{/* Referral Modal is now rendered globally by GlobalReferralModal component */}
 
       {/* Shared Dashboard Header */}
       <DashboardHeader onOptOutSuccess={() => fetchUserData(true)} />
@@ -2991,44 +2920,6 @@ const styles = `
     font-family: 'Satoshi', sans-serif;
     padding-left: 70px;
     transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Bounty Banner */
-  .bounty-banner {
-    display: block;
-    width: 100%;
-    background-image: url('/earnfirstdollar.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: repeat;
-    background-color: #1e40af; /* Fallback blue color */
-    color: #ffffff;
-    text-decoration: none;
-    padding: 12px 24px;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 700;
-    position: relative;
-    z-index: 10;
-    transition: all 0.2s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .bounty-banner:hover {
-    opacity: 0.95;
-    transform: translateY(0);
-  }
-
-  .bounty-banner-text {
-    display: inline-block;
-    letter-spacing: 0.2px;
-  }
-
-  @media (max-width: 768px) {
-    .bounty-banner {
-      padding: 10px 16px;
-      font-size: 13px;
-    }
   }
 
   /* Animations */

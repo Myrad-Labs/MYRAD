@@ -3,7 +3,18 @@ import { query } from "./database/db.js";
 
 console.log("Referral scheduler initialized...");
 
-cron.schedule("*/2 * * * *", async () => {
+// Track if job is already running to prevent overlap
+let isJobRunning = false;
+
+// Run every 5 minutes instead of every 2 minutes to reduce DB load
+cron.schedule("*/5 * * * *", async () => {
+  // Prevent overlapping executions
+  if (isJobRunning) {
+    console.log("⏭️ Referral job already running, skipping...");
+    return;
+  }
+
+  isJobRunning = true;
   console.log("Running referral job...");
 
   try {
@@ -98,6 +109,8 @@ cron.schedule("*/2 * * * *", async () => {
     }
 
   } catch (err) {
-    console.error("Referral cron error:", err);
+    console.error("Referral cron error:", err.message || err);
+  } finally {
+    isJobRunning = false;
   }
 });

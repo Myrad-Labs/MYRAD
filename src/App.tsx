@@ -13,27 +13,32 @@ import WhitepaperPage from './pages/Whitepaper';
 import TeamsPage from './pages/TeamsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ScrollToTop from './components/ScrollToTop';
+import { ReferralModalProvider } from './contexts/ReferralModalContext';
+import GlobalReferralModal from './components/GlobalReferralModal';
 
 function App() {
   return (
     <Router>
-      <ScrollToTop />
-      <SmoothScroll>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/contribute" element={<ContributorPage />} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
-          <Route path="/referral" element={<ReferralPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/how-to-use" element={<HowToUsePage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/whitepaper" element={<WhitepaperPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
-          <Route path="/terms" element={<TermsOfServicePage />} />
-          <Route path="/team" element={<TeamsPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </SmoothScroll>
+      <ReferralModalProvider>
+        <ScrollToTop />
+        <GlobalReferralModal />
+        <SmoothScroll>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/contribute" element={<ContributorPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/referral" element={<ReferralPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/how-to-use" element={<HowToUsePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/whitepaper" element={<WhitepaperPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
+            <Route path="/team" element={<TeamsPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </SmoothScroll>
+      </ReferralModalProvider>
     </Router>
   );
 }

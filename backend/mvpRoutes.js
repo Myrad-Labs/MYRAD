@@ -328,6 +328,7 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
             success: true,
             isNewUser,
             wasMigrated,
+            hasReferrer: !!user.referredBy, // true if user already applied a referral code
             user: {
                 id: user.id,
                 email: user.email,
@@ -336,7 +337,8 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
                 league: user.league || 'Bronze',
                 streak: user.streak || 0,
                 createdAt: user.createdAt,
-                lastActiveAt: user.lastActiveAt
+                lastActiveAt: user.lastActiveAt,
+                referredBy: user.referredBy || null
             }
         });
 
@@ -377,7 +379,7 @@ router.get('/user/profile', verifyPrivyToken, async (req, res) => {
 });
 
 router.post("/referral", verifyPrivyToken, async (req, res) => {
-    const { referral_code } = req.body;
+    const referral_code = req.body.referral_code || req.body.referralCode;
     const privyId = req.user.privyId;
 
     console.log("Referral attempt by privyId:", privyId);
@@ -454,7 +456,7 @@ router.post("/referral", verifyPrivyToken, async (req, res) => {
         await jsonStorage.addPoints(currentUser.id, 20, 'referral_bonus');
         console.log("20 referral points awarded to user:", currentUser.id);
 
-        res.json({ message: "Referral saved successfully + 20 points awarded" });
+        res.json({ success: true, message: "Referral saved successfully + 20 points awarded" });
 
     } catch (err) {
         console.error("Server error:", err);
@@ -565,7 +567,21 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
     // Acquire semaphore to control concurrent database operations
     await contributionSemaphore.acquire();
 
+    // Set a request-level timeout to prevent hanging requests
+    const REQUEST_TIMEOUT = 60000; // 60 seconds
+    let responded = false;
+    const timeoutTimer = setTimeout(() => {
+        if (!responded) {
+            responded = true;
+            console.error('⏰ Contribute request timed out after 60s for user:', req.user?.privyId);
+            contributionSemaphore.release();
+            res.status(504).json({ error: 'Request timed out', message: 'The server took too long to process your contribution. Please try again.' });
+        }
+    }, REQUEST_TIMEOUT);
+
     try {
+        console.log(`📥 Contribute request received: provider=${req.body?.anonymizedData?.provider}, privyId=${req.user?.privyId?.substring(0, 30)}...`);
+
         const user = await jsonStorage.getUserByPrivyId(req.user.privyId);
 
         if (!user) {
@@ -590,89 +606,78 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
         }
 
         // ========================================
-        // DUPLICATE SUBMISSION PREVENTION
+        // PROOF ID LOOKUP (non-blocking — progression check happens after pipeline)
         // ========================================
-        // Check if this exact proof has already been submitted (using database)
+        let existingProofContribution = null;
         if (reclaimProofId) {
-            const { findContributionByProofId } = await import('./database/contributionService.js');
-            const duplicateProof = await findContributionByProofId(reclaimProofId);
-
-            if (duplicateProof) {
-                console.log(`⚠️ Duplicate submission blocked: proofId ${reclaimProofId} already exists`);
-                return res.status(409).json({
-                    error: 'Duplicate submission',
-                    message: 'This data has already been submitted. You cannot earn points for the same data twice.',
-                    existingContributionId: duplicateProof.id
-                });
+            const { findContributionByProofIdWithMetrics } = await import('./database/contributionService.js');
+            existingProofContribution = await findContributionByProofIdWithMetrics(reclaimProofId);
+            if (existingProofContribution) {
+                console.log(`🔍 Found existing contribution for proofId: ${existingProofContribution.metricName}=${existingProofContribution.metricValue} (${existingProofContribution.dataType})`);
             }
         }
 
-        // Content-based duplicate detection (check across ALL users/wallets)
+        // Content-based duplicate detection — only for FIRST-TIME submissions (no existing proof match)
+        // For re-submissions with the same proof ID, progression check below handles duplicate vs update.
         const { findDuplicateByContent } = await import('./database/contributionService.js');
 
         // Generate content hash based on data type
+        // Only check for FIRST-TIME submissions (skip if same proof ID already found — handled by progression logic)
         let contentSignature = null;
-        if (dataType === 'zomato_order_history' && anonymizedData.orders?.length > 0) {
-            // For Zomato: hash based on order count + first order details + userId (from Zomato)
-            const orders = anonymizedData.orders;
-            const firstOrder = orders[0];
-            contentSignature = `zomato_${anonymizedData.userId || ''}_${orders.length}_${firstOrder?.restaurant || ''}_${firstOrder?.timestamp || ''}`;
-        } else if (dataType === 'github_profile') {
-            // For GitHub: hash based on username + followers + contributions
-            contentSignature = `github_${anonymizedData.username || anonymizedData.login || ''}_${anonymizedData.followers || 0}_${anonymizedData.contributions || 0}`;
-        } else if (dataType === 'netflix_watch_history' && anonymizedData.titles?.length > 0) {
-            // For Netflix: hash based on title count + first title
-            const titles = anonymizedData.titles;
-            const firstTitle = titles[0];
-            contentSignature = `netflix_${titles.length}_${firstTitle?.title || firstTitle?.name || ''}`;
-        } else if (dataType === 'ubereats_order_history' && anonymizedData.orders?.length > 0) {
-            // For Uber Eats: hash based on order count + first order details
-            const orders = anonymizedData.orders;
-            const firstOrder = orders[0];
-            contentSignature = `ubereats_${anonymizedData.userId || ''}_${orders.length}_${firstOrder?.restaurant || firstOrder?.restaurant_name || ''}_${firstOrder?.timestamp || firstOrder?.date || ''}`;
-        } else if (dataType === 'strava_fitness') {
-            // For Strava: hash based on activity totals and primary stats
-            contentSignature = `strava_${anonymizedData.running_total || 0}_${anonymizedData.cycling_total || 0}_${anonymizedData.total_activities || 0}_${anonymizedData.location || ''}`;
-        } else if (dataType === 'blinkit_order_history' && anonymizedData.orders?.length > 0) {
-            // For Blinkit: hash based on order count + first order details
-            const orders = anonymizedData.orders;
-            const firstOrder = orders[0];
-            contentSignature = `blinkit_${orders.length}_${firstOrder?.items || ''}_${firstOrder?.total || firstOrder?.price || ''}`;
-        } else if (dataType === 'uber_ride_history' && anonymizedData.rides?.length > 0) {
-            // For Uber Rides: hash based on ride count + first ride details
-            const rides = anonymizedData.rides;
-            const firstRide = rides[0];
-            contentSignature = `uber_rides_${rides.length}_${firstRide?.fare || firstRide?.total || ''}_${firstRide?.timestamp || firstRide?.date || ''}`;
-        } else if (dataType === 'zepto_order_history') {
-            // For Zepto: hash based on orders array (count + first/last order codes)
-            const orders = anonymizedData.orders;
-            if (Array.isArray(orders) && orders.length > 0) {
-                const firstCode = orders[0]?.code || orders[0]?.id || '';
-                const lastCode = orders[orders.length - 1]?.code || orders[orders.length - 1]?.id || '';
-                contentSignature = `zepto_${orders.length}_${firstCode}_${lastCode}`;
-            } else {
-                // Legacy single-order format fallback
-                const productsStr = anonymizedData.productsNamesAndCounts || '';
-                let firstProduct = '';
-                try {
-                    const products = typeof productsStr === 'string' ? JSON.parse(productsStr) : productsStr;
-                    if (Array.isArray(products) && products.length > 0) {
-                        firstProduct = products[0]?.name || '';
-                    }
-                } catch (e) { /* ignore parse errors */ }
-                contentSignature = `zepto_${anonymizedData.grandTotalAmount || 0}_${anonymizedData.itemQuantityCount || 0}_${firstProduct}`;
+        if (!existingProofContribution) {
+            if (dataType === 'zomato_order_history' && anonymizedData.orders?.length > 0) {
+                const orders = anonymizedData.orders;
+                const firstOrder = orders[0];
+                contentSignature = `zomato_${anonymizedData.userId || ''}_${orders.length}_${firstOrder?.restaurant || ''}_${firstOrder?.timestamp || ''}`;
+            } else if (dataType === 'github_profile') {
+                contentSignature = `github_${anonymizedData.username || anonymizedData.login || ''}_${anonymizedData.followers || 0}_${anonymizedData.contributions || 0}`;
+            } else if (dataType === 'netflix_watch_history' && anonymizedData.titles?.length > 0) {
+                const titles = anonymizedData.titles;
+                const firstTitle = titles[0];
+                contentSignature = `netflix_${titles.length}_${firstTitle?.title || firstTitle?.name || ''}`;
+            } else if (dataType === 'ubereats_order_history' && anonymizedData.orders?.length > 0) {
+                const orders = anonymizedData.orders;
+                const firstOrder = orders[0];
+                contentSignature = `ubereats_${anonymizedData.userId || ''}_${orders.length}_${firstOrder?.restaurant || firstOrder?.restaurant_name || ''}_${firstOrder?.timestamp || firstOrder?.date || ''}`;
+            } else if (dataType === 'strava_fitness') {
+                contentSignature = `strava_${anonymizedData.running_total || 0}_${anonymizedData.cycling_total || 0}_${anonymizedData.total_activities || 0}_${anonymizedData.location || ''}`;
+            } else if (dataType === 'blinkit_order_history' && anonymizedData.orders?.length > 0) {
+                const orders = anonymizedData.orders;
+                const firstOrder = orders[0];
+                contentSignature = `blinkit_${orders.length}_${firstOrder?.items || ''}_${firstOrder?.total || firstOrder?.price || ''}`;
+            } else if (dataType === 'uber_ride_history' && anonymizedData.rides?.length > 0) {
+                const rides = anonymizedData.rides;
+                const firstRide = rides[0];
+                contentSignature = `uber_rides_${rides.length}_${firstRide?.fare || firstRide?.total || ''}_${firstRide?.timestamp || firstRide?.date || ''}`;
+            } else if (dataType === 'zepto_order_history') {
+                const orders = anonymizedData.orders;
+                if (Array.isArray(orders) && orders.length > 0) {
+                    const firstCode = orders[0]?.code || orders[0]?.id || '';
+                    const lastCode = orders[orders.length - 1]?.code || orders[orders.length - 1]?.id || '';
+                    contentSignature = `zepto_${orders.length}_${firstCode}_${lastCode}`;
+                } else {
+                    const productsStr = anonymizedData.productsNamesAndCounts || '';
+                    let firstProduct = '';
+                    try {
+                        const products = typeof productsStr === 'string' ? JSON.parse(productsStr) : productsStr;
+                        if (Array.isArray(products) && products.length > 0) {
+                            firstProduct = products[0]?.name || '';
+                        }
+                    } catch (e) { /* ignore parse errors */ }
+                    contentSignature = `zepto_${anonymizedData.grandTotalAmount || 0}_${anonymizedData.itemQuantityCount || 0}_${firstProduct}`;
+                }
             }
-        }
 
-        if (contentSignature) {
-            const duplicateContent = await findDuplicateByContent(dataType, contentSignature);
-            if (duplicateContent) {
-                console.log(`⚠️ Duplicate content blocked: ${contentSignature} already exists (contribution ${duplicateContent.id})`);
-                return res.status(409).json({
-                    error: 'Duplicate data',
-                    message: 'This exact data has already been submitted by someone. Each unique data set can only earn points once.',
-                    existingContributionId: duplicateContent.id
-                });
+            if (contentSignature) {
+                const duplicateContent = await findDuplicateByContent(dataType, contentSignature);
+                if (duplicateContent) {
+                    console.log(`⚠️ Duplicate content blocked: ${contentSignature} already exists (contribution ${duplicateContent.id})`);
+                    return res.status(409).json({
+                        error: 'Duplicate data',
+                        message: 'This exact data has already been submitted by someone. Each unique data set can only earn points once.',
+                        existingContributionId: duplicateContent.id
+                    });
+                }
             }
         }
 
@@ -880,6 +885,44 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
             }
         }
 
+        // ========================================
+        // PROGRESSION / DUPLICATE DETECTION
+        // Compare new metrics vs existing (if same proof ID found earlier)
+        // ========================================
+        let isDeltaMode = false;
+        let metricDelta = 0;
+        let oldMetricValue = 0;
+        let newMetricValue = 0;
+
+        if (existingProofContribution) {
+            const { getMetricFromSellableData } = await import('./database/contributionService.js');
+            newMetricValue = getMetricFromSellableData(dataType, sellableData);
+            oldMetricValue = existingProofContribution.metricValue;
+
+            if (newMetricValue > oldMetricValue) {
+                // PROGRESSION: more data than before → archive old, award delta points
+                isDeltaMode = true;
+                metricDelta = newMetricValue - oldMetricValue;
+                console.log(`📈 Progression detected for ${dataType}: ${existingProofContribution.metricLabel} ${oldMetricValue} → ${newMetricValue} (+${metricDelta})`);
+            } else if (newMetricValue === oldMetricValue) {
+                // IDENTICAL: exact same data → block as duplicate
+                console.log(`⚠️ Identical submission blocked: ${existingProofContribution.metricName}=${oldMetricValue}`);
+                return res.status(409).json({
+                    error: 'Duplicate submission',
+                    message: 'This data has already been submitted with identical metrics. No additional points can be awarded.',
+                    existingContributionId: existingProofContribution.id
+                });
+            } else {
+                // REGRESSION: less data than before → block
+                console.log(`⚠️ Regression blocked: ${existingProofContribution.metricName} ${oldMetricValue} → ${newMetricValue}`);
+                return res.status(409).json({
+                    error: 'Stale submission',
+                    message: `This submission contains less data than your previous contribution (${oldMetricValue} → ${newMetricValue} ${existingProofContribution.metricLabel}). Only updated data with more entries is accepted.`,
+                    existingContributionId: existingProofContribution.id
+                });
+            }
+        }
+
         // Store contribution with sellable data format
         const finalWalletAddress = user.walletAddress || walletAddress || null;
         let contribution;
@@ -891,7 +934,9 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
                 dataType,
                 reclaimProofId,
                 processingMethod: sellableData ? 'enterprise_pipeline' : 'raw',
-                walletAddress: finalWalletAddress
+                walletAddress: finalWalletAddress,
+                // If progression, archive old record atomically inside the save transaction
+                archiveOldProofId: isDeltaMode ? reclaimProofId : undefined
             });
         } catch (saveError) {
             // Check if it's a duplicate error from the database layer
@@ -1041,9 +1086,29 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
             });
         }
 
-        // Calculate rewards based on new points system
+        // Calculate rewards based on points system
         let rewardResult;
-        if (dataType === 'github_profile') {
+
+        if (isDeltaMode) {
+            // ========================================
+            // DELTA MODE: award only incremental points
+            // Base points were already given on first submission
+            // ========================================
+            const { calculateDeltaPoints } = await import('./database/contributionService.js');
+            const deltaPoints = calculateDeltaPoints(dataType, metricDelta);
+            rewardResult = {
+                totalPoints: deltaPoints,
+                breakdown: {
+                    base: 0,
+                    bonus: deltaPoints,
+                    delta: metricDelta,
+                    previousMetric: oldMetricValue,
+                    currentMetric: newMetricValue
+                }
+            };
+            console.log(`📈 Delta reward for ${dataType}: +${deltaPoints} points (${metricDelta} additional ${existingProofContribution.metricLabel}, ${oldMetricValue} → ${newMetricValue})`);
+
+        } else if (dataType === 'github_profile') {
             // GitHub: 20 points base
             rewardResult = {
                 totalPoints: 20,
@@ -1156,8 +1221,9 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
         }
 
 
-        // Award dynamic points
-        await jsonStorage.addPoints(user.id, rewardResult.totalPoints, 'data_contribution');
+        // Award points (full for first-time, delta for progressions)
+        const pointsReason = isDeltaMode ? 'data_contribution_update' : 'data_contribution';
+        await jsonStorage.addPoints(user.id, rewardResult.totalPoints, pointsReason);
 
         // Update user stats (only league, no streaks)
         const updatedUser = await jsonStorage.getUserById(user.id);
@@ -1245,6 +1311,7 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
 
         res.json({
             success: true,
+            isProgression: isDeltaMode,
             contribution: {
                 id: contribution.id,
                 pointsAwarded: rewardResult.totalPoints,
@@ -1254,14 +1321,26 @@ router.post('/contribute', contributionRateLimit, verifyPrivyToken, async (req, 
                 cohortSize,
                 kAnonymityCompliant,
                 dataQualityScore: sellableData?.metadata?.data_quality?.score || null,
-                hasSellableData: !!sellableData
+                hasSellableData: !!sellableData,
+                ...(isDeltaMode && {
+                    previousMetric: oldMetricValue,
+                    currentMetric: newMetricValue,
+                    metricDelta,
+                    metricLabel: existingProofContribution?.metricLabel
+                })
             },
-            message: `Contribution received! ${rewardResult.totalPoints} points awarded.`
+            message: isDeltaMode
+                ? `Updated contribution! +${rewardResult.totalPoints} points for ${metricDelta} additional ${existingProofContribution?.metricLabel}.`
+                : `Contribution received! ${rewardResult.totalPoints} points awarded.`
         });
     } catch (error) {
         console.error('Contribute error:', error);
-        res.status(500).json({ error: 'Failed to submit contribution' });
+        if (!responded) {
+            res.status(500).json({ error: 'Failed to submit contribution' });
+        }
     } finally {
+        clearTimeout(timeoutTimer);
+        responded = true;
         // Always release semaphore
         contributionSemaphore.release();
     }

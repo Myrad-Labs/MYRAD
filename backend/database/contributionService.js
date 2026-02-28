@@ -5,6 +5,105 @@
 import { query } from './db.js';
 import config from '../config.js';
 
+// ========================================
+// METRIC CONFIGURATION FOR PROGRESSION TRACKING
+// Maps each data type to its table and key metric column
+// ========================================
+const METRIC_CONFIG = {
+  'zomato_order_history':   { table: 'zomato_contributions',     column: 'total_orders',          label: 'orders',     perUnit: 10 },
+  'ubereats_order_history': { table: 'ubereats_contributions',   column: 'total_orders',          label: 'orders',     perUnit: 10 },
+  'blinkit_order_history':  { table: 'blinkit_contributions',    column: 'total_orders',          label: 'orders',     perUnit: 10 },
+  'zepto_order_history':    { table: 'zepto_contributions',      column: 'total_orders',          label: 'orders',     perUnit: 10 },
+  'uber_ride_history':      { table: 'uber_rides_contributions', column: 'total_rides',           label: 'rides',      perUnit: 5  },
+  'netflix_watch_history':  { table: 'netflix_contributions',    column: 'total_titles_watched',  label: 'titles',     perUnit: 10 },
+  'strava_fitness':         { table: 'strava_contributions',     column: 'total_activities',      label: 'activities', perUnit: 5  },
+  'github_profile':         { table: 'github_contributions',     column: 'contribution_count',    label: 'contributions', perUnit: 0 },
+};
+
+/**
+ * Get the table name for a given data type
+ */
+export function getTableForDataType(dataType) {
+  return METRIC_CONFIG[dataType]?.table || null;
+}
+
+/**
+ * Find an existing contribution by proof ID, returning the key metric value.
+ * Used for progression detection (same proof ID, more data → delta points).
+ * @param {string} reclaimProofId
+ * @returns {Object|null} { table, dataType, id, userId, reclaimProofId, metricName, metricLabel, metricValue, perUnit }
+ */
+export async function findContributionByProofIdWithMetrics(reclaimProofId) {
+  if (!config.DB_USE_DATABASE || !config.DATABASE_URL) return null;
+
+  try {
+    for (const [dataType, cfg] of Object.entries(METRIC_CONFIG)) {
+      const result = await query(
+        `SELECT id, user_id, reclaim_proof_id, ${cfg.column}
+         FROM ${cfg.table}
+         WHERE reclaim_proof_id = $1
+           AND (opt_out = FALSE OR opt_out IS NULL)`,
+        [reclaimProofId]
+      );
+
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          table:          cfg.table,
+          dataType,
+          id:             row.id,
+          userId:         row.user_id,
+          reclaimProofId: row.reclaim_proof_id,
+          metricName:     cfg.column,
+          metricLabel:    cfg.label,
+          metricValue:    parseInt(row[cfg.column], 10) || 0,
+          perUnit:        cfg.perUnit,
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error finding contribution with metrics:', error);
+    return null;
+  }
+}
+
+/**
+ * Extract the primary metric value from sellableData for a given data type.
+ * Used to compare the new submission against the existing record.
+ */
+export function getMetricFromSellableData(dataType, sellableData) {
+  if (!sellableData) return 0;
+  switch (dataType) {
+    case 'zomato_order_history':
+    case 'ubereats_order_history':
+    case 'blinkit_order_history':
+    case 'zepto_order_history':
+      return parseInt(sellableData?.transaction_data?.summary?.total_orders, 10) || 0;
+    case 'uber_ride_history':
+      return parseInt(sellableData?.ride_summary?.total_rides, 10) || 0;
+    case 'netflix_watch_history':
+      return parseInt(sellableData?.viewing_summary?.total_titles_watched, 10) || 0;
+    case 'strava_fitness':
+      return parseInt(sellableData?.activity_totals?.total_activities, 10) || 0;
+    case 'github_profile':
+      return parseInt(sellableData?.activity_metrics?.yearly_contributions, 10) || 0;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Calculate the delta (incremental) points for a progression update.
+ * Only awards points for the difference between old and new metric values.
+ * Base points are NOT re-awarded (they were given on first submission).
+ */
+export function calculateDeltaPoints(dataType, metricDelta) {
+  const cfg = METRIC_CONFIG[dataType];
+  if (!cfg) return 0;
+  return Math.max(0, metricDelta * cfg.perUnit);
+}
+
 /**
  * Extract key fields from sellableData for indexing (Zomato)
  */
@@ -438,7 +537,8 @@ async function saveContributionInternal(contribution) {
     status = 'verified',
     processingMethod,
     createdAt,
-    walletAddress
+    walletAddress,
+    archiveOldProofId
   } = contribution;
 
   if (!sellableData) {
@@ -453,6 +553,23 @@ async function saveContributionInternal(contribution) {
   await query('BEGIN');
 
   try {
+    // ========================================
+    // ARCHIVE OLD RECORD (for progression updates)
+    // If archiveOldProofId is set, rename the old record's proof ID
+    // so the new INSERT doesn't conflict. Old data is preserved.
+    // ========================================
+    if (archiveOldProofId && dataType) {
+      const archiveTable = getTableForDataType(dataType);
+      if (archiveTable) {
+        const archivedProofId = `${archiveOldProofId}::v${Date.now()}`;
+        await query(
+          `UPDATE ${archiveTable} SET reclaim_proof_id = $1 WHERE reclaim_proof_id = $2`,
+          [archivedProofId, archiveOldProofId]
+        );
+        console.log(`📦 Archived old contribution: proof ${archiveOldProofId.substring(0, 20)}... → ${archivedProofId.substring(0, 30)}...`);
+      }
+    }
+
     // ========================================
     // DUPLICATE CHECKS INSIDE TRANSACTION
     // Using SELECT FOR UPDATE to lock rows and prevent race conditions
