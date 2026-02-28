@@ -847,11 +847,10 @@ await verifyRes.json();
           fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.rawProofs', message: 'RAW proofs received from SDK', data: { provider: provider.id, proofsType: typeof proofs, isArray: Array.isArray(proofs), proofsLength: Array.isArray(proofs) ? proofs.length : null, proofsKeys: proofs && typeof proofs === 'object' ? Object.keys(proofs) : [], rawProofsStringified: JSON.stringify(proofs).substring(0, 3000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run5', hypothesisId: 'E' }) }).catch(() => { });
           // #endregion
 
-          // No callback URL is set, so the SDK delivers proofs directly via WebSocket.
-          // No polling needed — proofs arrive in this onSuccess handler.
+          // No callback URL is set — SDK delivers proofs directly via WebSocket.
 
-            // Helper function to process proof data (used by both direct and fallback flows)
-            const processPolledProof = async (proofData: any, provider: any) => {
+            // @ts-ignore - keeping processPolledProof as fallback utility
+            const processPolledProof = async (proofData: any, _provider: any) => {
               try {
                 // #region agent log - Log the FULL proof structure
                 const proofStr = JSON.stringify(proofData);
@@ -1968,7 +1967,7 @@ await verifyRes.json();
           const timeSinceStart = verificationStartTime ? Date.now() - verificationStartTime : 0;
 
           // Log to server with tab visibility info
-          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute.onError', message: 'Reclaim error triggered', data: { provider: provider.id, errorMessage: error?.message || error?.toString(), errorName: error?.name, tabHidden, isTabVisible, timeSinceStart, verificationUrl: verificationUrl || null, isLocalhost: callbackUrl?.includes('localhost') || false }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
+          fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute.onError', message: 'Reclaim error triggered', data: { provider: provider.id, errorMessage: error?.message || error?.toString(), errorName: error?.name, tabHidden, isTabVisible, timeSinceStart, verificationUrl: verificationUrl || null, isLocalhost: (window as any).__reclaimIsLocalhost || false }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
 
           logErrorToServer(error, `DashboardPage.handleContribute.${provider.id}.onError`, {
             provider: provider.id,
