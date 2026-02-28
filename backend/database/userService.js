@@ -570,10 +570,17 @@ export async function addPoints(userId, points, reason) {
 
       try {
         // Lock the user row to prevent concurrent points updates
-        await query(
-          'SELECT id FROM users WHERE id = $1 FOR UPDATE',
+        const userLock = await query(
+          'SELECT id, total_points, referred_by FROM users WHERE id = $1 FOR UPDATE',
           [userId]
         );
+
+        if (userLock.rows.length === 0) {
+          throw new Error(`User ${userId} not found`);
+        }
+
+        const oldTotalPoints = parseInt(userLock.rows[0].total_points || 0, 10);
+        const referredBy = userLock.rows[0].referred_by;
 
         // Insert points transaction with unique ID
         const pointsId = generateUniqueId();
@@ -601,6 +608,20 @@ export async function addPoints(userId, points, reason) {
           'UPDATE users SET league = $1 WHERE id = $2 AND league != $1',
           [league, userId]
         );
+
+        // Check if user just reached 70 points and has a referrer - increment successful_ref
+        if (oldTotalPoints < 70 && totalPoints >= 70 && referredBy) {
+          try {
+            await query(
+              'UPDATE referrals SET successful_ref = successful_ref + 1 WHERE referral_code = $1',
+              [referredBy]
+            );
+            console.log(`✅ User ${userId} reached 70 points - incremented successful_ref for referrer ${referredBy}`);
+          } catch (refError) {
+            // Log but don't fail the transaction if referral update fails
+            console.error(`⚠️ Failed to increment successful_ref for referrer ${referredBy}:`, refError);
+          }
+        }
 
         await query('COMMIT');
 

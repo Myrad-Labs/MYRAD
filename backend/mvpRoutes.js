@@ -282,11 +282,11 @@ router.post('/auth/verify', verifyPrivyToken, async (req, res) => {
                     console.log("🟢 referred_by updated:", updateUser.rows[0]);
 
                     const updateRef = await dbQuery(
-                        'UPDATE referrals SET referral_count = referral_count + 1, successful_ref = successful_ref + 1 WHERE referral_code = $1 RETURNING referral_count, successful_ref',
+                        'UPDATE referrals SET referral_count = referral_count + 1 WHERE referral_code = $1 RETURNING referral_count',
                         [referralCode]
                     );
 
-                    console.log("🟢 referral_count & successful_ref new value:", updateRef.rows[0]);
+                    console.log("🟢 referral_count new value:", updateRef.rows[0]);
                 } else {
                     console.log("❌ Referral code NOT found in DB");
                 }
@@ -445,12 +445,12 @@ router.post("/referral", verifyPrivyToken, async (req, res) => {
             return res.status(400).json({ message: "Referral already used or user not found" });
         }
 
-        // 7️⃣ Increase referral_count and successful_ref in referrals table
+        // 7️⃣ Increase referral_count in referrals table (successful_ref will be incremented when user reaches 70 points)
         await query(
-            `UPDATE referrals SET referral_count = referral_count + 1, successful_ref = successful_ref + 1 WHERE referral_code = $1`,
+            `UPDATE referrals SET referral_count = referral_count + 1 WHERE referral_code = $1`,
             [referral_code]
         );
-        console.log("Referral count and successful_ref incremented");
+        console.log("Referral count incremented");
 
         // 🔥 Give 20 referral bonus
         await jsonStorage.addPoints(currentUser.id, 20, 'referral_bonus');
