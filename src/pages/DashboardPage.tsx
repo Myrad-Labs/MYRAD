@@ -734,105 +734,20 @@ await verifyRes.json();
         acceptAiProviders: true
       });
 
-      // Set callback URL to backend endpoint for mobile reliability
-      // The backend will receive the POST and redirect to dashboard with proof in URL hash
-      // CRITICAL: Use absolute URL - Reclaim SDK needs full URL, not relative path
-      let callbackUrl: string;
-      const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-      const windowOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://www.myradhq.xyz';
+      // DO NOT set a callback URL — the Reclaim SDK delivers proofs directly via
+      // its built-in WebSocket mechanism in the onSuccess callback. Setting a callback
+      // URL causes the SDK to POST the proof to that URL and return an empty array []
+      // in onSuccess, which requires a complex polling mechanism that breaks on Render.
+      // Without a callback URL, both localhost and production work identically.
+      (window as any).__currentVerificationSessionId = null;
+      (window as any).__reclaimIsLocalhost = typeof window !== 'undefined' && 
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      
+      console.log('📱 Reclaim SDK will deliver proofs via WebSocket (no callback URL)');
 
-      if (isProduction) {
-        // In production on Render, backend serves frontend and API on same domain
-        // API_URL is empty string (relative), so use windowOrigin
-        if (API_URL && API_URL.startsWith('http') && !API_URL.includes('localhost')) {
-          // Use provided API_URL if it's a full production URL
-          callbackUrl = `${API_URL}/api/reclaim-callback`;
-        } else {
-          // Backend serves /api on same domain (Render setup)
-          callbackUrl = `${windowOrigin}/api/reclaim-callback`;
-        }
-      } else {
-        // Development: use API_URL or localhost
-        callbackUrl = API_URL 
-          ? `${API_URL}/api/reclaim-callback`
-          : `http://localhost:4000/api/reclaim-callback`;
-      }
-
-      // Ensure callback URL is absolute and valid
-      if (!callbackUrl.startsWith('http://') && !callbackUrl.startsWith('https://')) {
-        // If somehow we got a relative URL, make it absolute
-        callbackUrl = `${windowOrigin}${callbackUrl.startsWith('/') ? callbackUrl : '/' + callbackUrl}`;
-      }
-
-      // Generate a unique session ID for this verification request
-      // This ensures multiple concurrent users don't interfere with each other
-      const verificationSessionId = `${user?.id || 'anon'}_${provider.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
-      // Add session ID to callback URL so backend can associate the proof with this user
-      callbackUrl = `${callbackUrl}?sessionId=${encodeURIComponent(verificationSessionId)}`;
-
-      // Store the session ID so we can poll for it later
-      (window as any).__currentVerificationSessionId = verificationSessionId;
-
-      // Log callback URL configuration for debugging
-      fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.handleContribute', message: 'Setting callback URL with session', data: { callbackUrl, verificationSessionId, apiUrl: API_URL, windowOrigin, isProduction, hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run10', hypothesisId: 'M' }) }).catch(() => { });
-
-      // For development with localhost, the Reclaim mobile app can't access localhost URLs
-      // So we'll only set the callback URL if it's a public URL (not localhost)
-      // When callback URL is not set, the SDK will use the redirect flow (proof in URL hash)
-      const isLocalhost = callbackUrl.includes('localhost') || callbackUrl.includes('127.0.0.1');
-
-      // Store isLocalhost for use in error handler
-      (window as any).__reclaimIsLocalhost = isLocalhost;
-
-      if (!isLocalhost) {
-        console.log('📱 Setting Reclaim callback URL:', callbackUrl);
-        console.log('📱 Production mode:', isProduction, 'API_URL:', API_URL, 'Window origin:', windowOrigin);
-        try {
-          reclaimProofRequest.setAppCallbackUrl(callbackUrl);
-          console.log('✅ Callback URL set successfully with sessionId:', verificationSessionId);
-        } catch (callbackError: any) {
-          console.warn('⚠️ Failed to set callback URL, continuing without it:', callbackError);
-          console.warn('⚠️ Callback error details:', {
-            message: callbackError?.message,
-            name: callbackError?.name,
-            stack: callbackError?.stack
-          });
-          // Continue without callback URL - will use redirect flow instead
-          // Clear the session ID since we won't be using polling
-          (window as any).__currentVerificationSessionId = null;
-        }
-      } else {
-        console.log('ℹ️ Skipping callback URL for localhost (mobile app can\'t access it)');
-        console.log('ℹ️ Will use redirect flow instead (proof will be in URL hash)');
-        // Clear the session ID since we won't be using polling
-        (window as any).__currentVerificationSessionId = null;
-      }
-
-      // Get request URL - wrap in try-catch in case SDK validation fails
-      let requestUrl: string;
-      try {
-        requestUrl = await reclaimProofRequest.getRequestUrl();
-        setVerificationUrl(requestUrl);
-      } catch (urlError: any) {
-        console.error('❌ Failed to get request URL:', urlError);
-        // If it's a callback URL validation error and we're on localhost, try without callback URL
-        if (isLocalhost && (urlError?.message?.includes('callback') || urlError?.message?.includes('url') || urlError?.name === 'ProofSubmissionFailedError')) {
-          console.log('🔄 Retrying without callback URL...');
-          // Create a new instance without callback URL
-          const newReclaimProofRequest = await ReclaimProofRequest.init(APP_ID, APP_SECRET, provider.providerId, {
-            log: true,
-            acceptAiProviders: true
-          });
-          // Don't set callback URL - use redirect flow
-          requestUrl = await newReclaimProofRequest.getRequestUrl();
-          setVerificationUrl(requestUrl);
-          // Update the reference
-          reclaimProofRequest = newReclaimProofRequest;
-        } else {
-          throw urlError; // Re-throw if it's a different error
-        }
-      }
+      // Get request URL
+      const requestUrl = await reclaimProofRequest.getRequestUrl();
+      setVerificationUrl(requestUrl);
 
       // Intercept console.log to capture proof data from SDK's internal logs
       // Using window global so it persists and can be checked in onError
@@ -932,75 +847,10 @@ await verifyRes.json();
           fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.rawProofs', message: 'RAW proofs received from SDK', data: { provider: provider.id, proofsType: typeof proofs, isArray: Array.isArray(proofs), proofsLength: Array.isArray(proofs) ? proofs.length : null, proofsKeys: proofs && typeof proofs === 'object' ? Object.keys(proofs) : [], rawProofsStringified: JSON.stringify(proofs).substring(0, 3000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run5', hypothesisId: 'E' }) }).catch(() => { });
           // #endregion
 
-          // CRITICAL: When using callback URL, the SDK returns a string message instead of proof data
-          // The actual proof is sent to the callback URL and stored on the backend
-          // We need to poll the backend to fetch the stored proof
-          if (typeof proofs === 'string') {
-            // #region agent log
-            fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.callbackMode', message: 'Callback URL mode detected - polling for proof', data: { provider: provider.id, message: proofs }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run7', hypothesisId: 'J' }) }).catch(() => { });
-            // #endregion
+          // No callback URL is set, so the SDK delivers proofs directly via WebSocket.
+          // No polling needed — proofs arrive in this onSuccess handler.
 
-            // Show verification progress
-            setVerificationProgress(true);
-            setVerificationProgressComplete(false);
-            setVerificationProgressText('Verification complete, validating your contribution...');
-            showToast('info', 'Processing...', 'Verification complete, validating your contribution...', true);
-
-            // Poll the backend for the stored proof using THIS user's specific session ID
-            let attempts = 0;
-            const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
-            const pollInterval = 2000;
-
-            // Get the session ID that was set when starting this verification
-            const mySessionId = (window as any).__currentVerificationSessionId;
-
-            const pollForProof = async () => {
-              attempts++;
-              try {
-                // #region agent log
-                fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.pollForProof', message: 'Polling for MY specific proof', data: { attempt: attempts, mySessionId }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run10', hypothesisId: 'M' }) }).catch(() => { });
-                // #endregion
-
-                // Directly fetch THIS user's proof using their specific session ID
-                const proofRes = await fetch(`${API_URL}/api/reclaim-proof/${encodeURIComponent(mySessionId)}`);
-                const proofData = await proofRes.json();
-
-                if (proofData.success && proofData.proof) {
-                  // #region agent log
-                  fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.pollForProof.found', message: 'MY proof found via polling', data: { mySessionId, proofKeys: Object.keys(proofData.proof || {}) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run10', hypothesisId: 'M' }) }).catch(() => { });
-                  // #endregion
-
-                  // Clear the session ID
-                  (window as any).__currentVerificationSessionId = null;
-
-                  // Process the proof - reuse the redirect processing logic
-                  await processPolledProof(proofData.proof, provider);
-                  return;
-                }
-
-                // Continue polling if not found yet (proof might not have arrived yet)
-                if (attempts < maxAttempts) {
-                  setTimeout(pollForProof, pollInterval);
-                } else {
-                  setVerificationUrl(null);
-                  setActiveProvider(null);
-                  (window as any).__currentVerificationSessionId = null;
-                  showToast('error', 'Timeout', 'Could not retrieve verification data. Please try again.');
-                }
-              } catch (error) {
-                console.error('Polling error:', error);
-                if (attempts < maxAttempts) {
-                  setTimeout(pollForProof, pollInterval);
-                } else {
-                  setVerificationUrl(null);
-                  setActiveProvider(null);
-                  (window as any).__currentVerificationSessionId = null;
-                  showToast('error', 'Error', 'Failed to retrieve verification data.');
-                }
-              }
-            };
-
-            // Helper function to process polled proof
+            // Helper function to process proof data (used by both direct and fallback flows)
             const processPolledProof = async (proofData: any, provider: any) => {
               try {
                 // #region agent log - Log the FULL proof structure
@@ -1810,12 +1660,7 @@ await verifyRes.json();
               }
             };
 
-            // Start polling after a short delay (give backend time to receive the callback)
-            setTimeout(pollForProof, 3000);
-            return;
-          }
-
-          // Proof received successfully (direct mode, not callback URL)
+          // Proof received directly from SDK via WebSocket
           setVerificationUrl(null);
           setActiveProvider(null);
 
