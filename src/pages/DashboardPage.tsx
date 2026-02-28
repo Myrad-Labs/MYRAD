@@ -1847,6 +1847,15 @@ await verifyRes.json();
           // Guard: skip if this proof was already submitted by another code path
           if (submittedProofIds.current.has(currentProofId)) {
             console.log(`⏭️ Proof ${currentProofId} already submitted, skipping duplicate call (onSuccess)`);
+            // Dismiss verification overlay and reset state
+            setContributing(null);
+            setVerificationProgress(false);
+            setVerificationProgressComplete(false);
+            setVerificationUrl(null);
+            setActiveProvider(null);
+            const safetyTimeout = (window as any).__progressSafetyTimeout;
+            if (safetyTimeout) clearTimeout(safetyTimeout);
+            showToast('info', 'Already Submitted', 'This data was already submitted.');
             return;
           }
           submittedProofIds.current.add(currentProofId);
