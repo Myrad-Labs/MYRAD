@@ -737,26 +737,25 @@ await verifyRes.json();
       // Set callback URL to backend endpoint for mobile reliability
       // The backend will receive the POST and redirect to dashboard with proof in URL hash
       // CRITICAL: Use absolute URL - Reclaim SDK needs full URL, not relative path
-      // The SDK might default to current page origin if callback URL is not properly set
       let callbackUrl: string;
       const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
       const windowOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://www.myradhq.xyz';
 
       if (isProduction) {
-        // In production, backend is on a different domain (e.g., Render backend URL)
-        // Use the backend API URL directly, or if backend serves /api on same domain, use origin
+        // In production on Render, backend serves frontend and API on same domain
+        // API_URL is empty string (relative), so use windowOrigin
         if (API_URL && API_URL.startsWith('http') && !API_URL.includes('localhost')) {
           // Use provided API_URL if it's a full production URL
           callbackUrl = `${API_URL}/api/reclaim-callback`;
         } else {
-          // Backend serves /api on same domain (e.g., Vercel/Netlify proxy)
-          // Or use production backend URL - check environment
-          const backendUrl = import.meta.env.VITE_BACKEND_URL || windowOrigin;
-          callbackUrl = `${backendUrl}/api/reclaim-callback`;
+          // Backend serves /api on same domain (Render setup)
+          callbackUrl = `${windowOrigin}/api/reclaim-callback`;
         }
       } else {
         // Development: use API_URL or localhost
-        callbackUrl = `${API_URL}/api/reclaim-callback`;
+        callbackUrl = API_URL 
+          ? `${API_URL}/api/reclaim-callback`
+          : `http://localhost:4000/api/reclaim-callback`;
       }
 
       // Ensure callback URL is absolute and valid
@@ -788,11 +787,17 @@ await verifyRes.json();
 
       if (!isLocalhost) {
         console.log('📱 Setting Reclaim callback URL:', callbackUrl);
+        console.log('📱 Production mode:', isProduction, 'API_URL:', API_URL, 'Window origin:', windowOrigin);
         try {
           reclaimProofRequest.setAppCallbackUrl(callbackUrl);
           console.log('✅ Callback URL set successfully with sessionId:', verificationSessionId);
-        } catch (callbackError) {
+        } catch (callbackError: any) {
           console.warn('⚠️ Failed to set callback URL, continuing without it:', callbackError);
+          console.warn('⚠️ Callback error details:', {
+            message: callbackError?.message,
+            name: callbackError?.name,
+            stack: callbackError?.stack
+          });
           // Continue without callback URL - will use redirect flow instead
           // Clear the session ID since we won't be using polling
           (window as any).__currentVerificationSessionId = null;
@@ -917,6 +922,13 @@ await verifyRes.json();
           setVerificationProgressText('This will take a few seconds...');
 
           // #region agent log - RAW PROOFS RECEIVED
+          console.log('🔍 Raw proofs received from SDK:', {
+            type: typeof proofs,
+            isArray: Array.isArray(proofs),
+            length: Array.isArray(proofs) ? proofs.length : null,
+            keys: proofs && typeof proofs === 'object' ? Object.keys(proofs) : [],
+            sample: JSON.stringify(proofs).substring(0, 500)
+          });
           fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.rawProofs', message: 'RAW proofs received from SDK', data: { provider: provider.id, proofsType: typeof proofs, isArray: Array.isArray(proofs), proofsLength: Array.isArray(proofs) ? proofs.length : null, proofsKeys: proofs && typeof proofs === 'object' ? Object.keys(proofs) : [], rawProofsStringified: JSON.stringify(proofs).substring(0, 3000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run5', hypothesisId: 'E' }) }).catch(() => { });
           // #endregion
 
@@ -1807,11 +1819,51 @@ await verifyRes.json();
           setVerificationUrl(null);
           setActiveProvider(null);
 
-          const proof = Array.isArray(proofs) ? proofs[0] : proofs;
-          if (!proof) {
-            alert('No proof data received');
+          // Handle different proof structures from SDK 4.12
+          let proof: any = null;
+          
+          console.log('🔍 Processing proofs structure:', {
+            isArray: Array.isArray(proofs),
+            type: typeof proofs,
+            hasProofs: proofs?.proofs ? 'yes' : 'no',
+            hasProof: proofs?.proof ? 'yes' : 'no',
+            keys: proofs && typeof proofs === 'object' ? Object.keys(proofs) : []
+          });
+          
+          if (Array.isArray(proofs)) {
+            proof = proofs.length > 0 ? proofs[0] : null;
+            console.log('✅ Extracted proof from array, length:', proofs.length);
+          } else if (proofs && typeof proofs === 'object') {
+            // SDK 4.12 might return object directly
+            if (proofs.proofs && Array.isArray(proofs.proofs)) {
+              proof = proofs.proofs[0];
+              console.log('✅ Extracted proof from proofs.proofs array');
+            } else if (proofs.proof) {
+              proof = proofs.proof;
+              console.log('✅ Extracted proof from proofs.proof');
+            } else {
+              proof = proofs;
+              console.log('✅ Using proofs object directly');
+            }
+          }
+
+          if (!proof || (typeof proof === 'object' && Object.keys(proof).length === 0)) {
+            console.error('❌ No proof data received. Proofs structure:', {
+              proofs,
+              proof,
+              proofKeys: proof && typeof proof === 'object' ? Object.keys(proof) : []
+            });
+            showToast('error', 'Verification Error', 'No proof data received from Reclaim. Please try again.');
+            setContributing(null);
             return;
           }
+          
+          console.log('✅ Proof extracted successfully:', {
+            hasIdentifier: !!proof.identifier,
+            hasId: !!proof.id,
+            hasClaimData: !!proof.claimData,
+            keys: Object.keys(proof)
+          });
 
           // #region agent log - FULL PROOF STRUCTURE
           fetch(`${API_URL}/api/logs/debug`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.onSuccess.fullProofStructure', message: 'FULL proof object structure', data: { provider: provider.id, proofKeys: Object.keys(proof || {}), hasClaimData: !!proof.claimData, claimDataKeys: proof.claimData ? Object.keys(proof.claimData) : [], hasContext: !!proof.claimData?.context, contextType: typeof proof.claimData?.context, hasExtractedParameterValues: !!proof.extractedParameterValues, extractedParamKeys: proof.extractedParameterValues ? Object.keys(proof.extractedParameterValues) : [], hasPublicData: !!proof.publicData, publicDataKeys: proof.publicData ? Object.keys(proof.publicData) : [], identifier: proof.identifier, id: proof.id, proofStringified: JSON.stringify(proof).substring(0, 3000) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'A' }) }).catch(() => { });
